@@ -1,3 +1,8 @@
 spring:
   application:
     name: plishka-backend
+    project_version: 1
+
+server:
+  servlet:
+    context-path: /api
