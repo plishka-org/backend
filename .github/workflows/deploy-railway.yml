@@ -1,0 +1,62 @@
+name: Manual deploy to Railway
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate branch for selected environment
+        run: |
+          echo "Git ref: $GITHUB_REF"
+          echo "Target: ${{ github.event.inputs.target }}"
+
+          if [ "${{ github.event.inputs.target }}" = "dev" ] && [ "$GITHUB_REF" != "refs/heads/develop" ]; then
+            echo "Deployment to dev is allowed only from develop branch"
+            exit 1
+          fi
+
+          if [ "${{ github.event.inputs.target }}" = "prod" ] && [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "Deployment to prod is allowed only from master branch"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Run tests
+        run: ./mvnw test
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to dev
+        if: ${{ github.event.inputs.target == 'dev' }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEV }}
+        run: railway up --ci
+
+      - name: Deploy to prod
+        if: ${{ github.event.inputs.target == 'prod' }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
+        run: railway up --ci
