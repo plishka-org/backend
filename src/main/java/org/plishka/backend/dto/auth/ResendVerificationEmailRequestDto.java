@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 
 public record ResendVerificationEmailRequestDto(
         @NotBlank
-        @Email
+        @Email(message = "Email must be a valid email address")
         @Size(min = 5, max = 128)
         String email
 ) {

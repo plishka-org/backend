@@ -29,8 +29,7 @@ public class SchedulerService {
     @Transactional
     @Scheduled(cron = "0 0 3 * * *", zone = EUROPE_KYIV)
     public void cleanupExpiredRefreshTokens() {
-        int deletedCount =
-                refreshTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
+        int deletedCount = refreshTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
 
         if (deletedCount > 0) {
             log.info("RefreshToken cleanup: deleted {}", deletedCount);
@@ -40,8 +39,7 @@ public class SchedulerService {
     @Transactional
     @Scheduled(cron = "0 5 3 * * *", zone = EUROPE_KYIV)
     public void cleanupExpiredEmailVerificationTokens() {
-        int deletedCount = emailVerificationTokenRepository
-                .deleteAllByExpiresAtBefore(Instant.now(clock));
+        int deletedCount = emailVerificationTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
 
         if (deletedCount > 0) {
             log.info("EmailVerificationToken cleanup: deleted {}", deletedCount);
@@ -49,7 +47,7 @@ public class SchedulerService {
     }
 
     @Transactional
-    @Scheduled(cron = "0 10 3 * * *", zone = "Europe/Kyiv")
+    @Scheduled(cron = "0 10 3 * * *", zone = EUROPE_KYIV)
     public void cleanupUnverifiedUsers() {
         Instant threshold = Instant.now(clock).minus(UNVERIFIED_USER_ACCOUNTS_TTL_HOURS);
 

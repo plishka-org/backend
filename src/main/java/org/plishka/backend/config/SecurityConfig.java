@@ -44,9 +44,7 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/auth/resend-verification",
                                 "/auth/login",
-                                "/auth/refresh",
-                                "/auth/forgot-password",
-                                "/auth/reset-password"
+                                "/auth/refresh"
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
