@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
-    private static final int EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
+    public static final int EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
     private static final String VERIFY_TOKEN_PATH = "/auth/verify?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
 
