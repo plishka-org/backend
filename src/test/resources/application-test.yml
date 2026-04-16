@@ -16,17 +16,9 @@ spring:
         jdbc:
           time_zone: UTC
 
-  mail:
-    host: localhost
-    port: 1025
-    username: test
-    password: test
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
+resend:
+  api-key: test-api-key
+  from-email: Test <test@example.com>
 
 jwt:
   secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY
