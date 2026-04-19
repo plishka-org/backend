@@ -19,9 +19,9 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "email_verification_tokens",
+@Table(name = "password_reset_tokens",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_email_verification_tokens_user",
+                name = "uk_password_reset_tokens_user",
                 columnNames = "user_id"
         ))
 @Getter
@@ -29,10 +29,10 @@ import org.hibernate.annotations.CreationTimestamp;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmailVerificationToken {
+public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long emailVerificationTokenId;
+    private Long passwordResetTokenId;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
+import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
 import org.plishka.backend.repository.user.UserRepository;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,6 +24,7 @@ public class SchedulerService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserRepository userRepository;
     private final Clock clock;
 
@@ -50,19 +52,15 @@ public class SchedulerService {
     @Scheduled(cron = "0 10 3 * * *", zone = EUROPE_KYIV)
     public void cleanupUnverifiedUsers() {
         Instant threshold = Instant.now(clock).minus(UNVERIFIED_USER_ACCOUNTS_TTL_HOURS);
-
         List<User> usersToDelete = userRepository.findUnverifiedUsersForCleanupForUpdate(threshold);
 
         if (usersToDelete.isEmpty()) {
-            log.info("Unverified users cleanup: nothing to delete");
             return;
         }
 
         List<Long> userIds = usersToDelete.stream()
                 .map(User::getUserId)
                 .toList();
-
-        log.info("Unverified users cleanup started, userIds={}", userIds);
 
         int deletedVerificationTokens = emailVerificationTokenRepository.deleteAllByUserIdIn(userIds);
         int deletedUserRoles = userRepository.deleteAllUserRolesByUserIdIn(userIds);
@@ -74,5 +72,15 @@ public class SchedulerService {
                 deletedVerificationTokens,
                 deletedUserRoles
         );
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 15 3 * * *", zone = EUROPE_KYIV)
+    public void cleanupExpiredPasswordResetTokens() {
+        int deletedCount = passwordResetTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
+
+        if (deletedCount > 0) {
+            log.info("PasswordResetToken cleanup: deleted {}", deletedCount);
+        }
     }
 }

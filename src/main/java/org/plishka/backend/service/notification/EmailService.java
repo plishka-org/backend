@@ -16,6 +16,13 @@ public class EmailService {
         asyncEmailSender.sendEmailAsync(email, subject, text);
     }
 
+    public void sendPasswordResetEmail(String email, String resetPasswordLink) {
+        String subject = "Reset your password";
+        String text = buildPasswordResetEmailText(resetPasswordLink);
+
+        asyncEmailSender.sendEmailAsync(email, subject, text);
+    }
+
     private String buildVerificationEmailText(String verificationLink) {
         return """
                 Welcome,
@@ -33,5 +40,24 @@ public class EmailService {
                 Plishka
                 """
                 .formatted(verificationLink, AuthServiceImpl.EMAIL_VERIFICATION_TOKEN_TTL_HOURS);
+    }
+
+    private String buildPasswordResetEmailText(String resetPasswordLink) {
+        return """
+                Hello,
+
+                We received a request to reset your password.
+
+                Click the link below to continue resetting your password:
+                %s
+
+                This link will expire in %d hours.
+
+                If you did not request a password reset, you can ignore this email.
+
+                Best regards,
+                Plishka
+                """
+                .formatted(resetPasswordLink, AuthServiceImpl.PASSWORD_RESET_TOKEN_TTL_HOURS);
     }
 }

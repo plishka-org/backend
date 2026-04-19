@@ -25,5 +25,8 @@ jwt:
   expiration: 15m
 
 backend:
-  base-url: http://localhost:8080
+  base-url: http://localhost:8080/api
   refresh-token-expiration: 30d
+
+frontend:
+  reset-password-url: http://localhost:3000/reset-password

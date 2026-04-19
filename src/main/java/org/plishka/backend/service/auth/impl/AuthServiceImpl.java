@@ -9,23 +9,30 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.plishka.backend.config.BackendProperties;
+import org.plishka.backend.config.FrontendProperties;
 import org.plishka.backend.domain.user.EmailVerificationToken;
+import org.plishka.backend.domain.user.PasswordResetToken;
 import org.plishka.backend.domain.user.RefreshToken;
 import org.plishka.backend.domain.user.Role;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.dto.auth.AuthResponseDto;
 import org.plishka.backend.dto.auth.LoginRequestDto;
 import org.plishka.backend.dto.auth.RegisterRequestDto;
+import org.plishka.backend.dto.auth.ResetPasswordRequestDto;
 import org.plishka.backend.event.auth.EmailVerificationRequestedEvent;
+import org.plishka.backend.event.auth.PasswordResetRequestedEvent;
 import org.plishka.backend.exception.AuthenticationFailedException;
 import org.plishka.backend.exception.EmailAlreadyExistsException;
 import org.plishka.backend.exception.EmailNotVerifiedException;
 import org.plishka.backend.exception.ForbiddenException;
+import org.plishka.backend.exception.InvalidPasswordResetTokenException;
 import org.plishka.backend.exception.InvalidVerificationTokenException;
 import org.plishka.backend.exception.RefreshTokenDeviceMismatchException;
 import org.plishka.backend.exception.RefreshTokenExpiredException;
 import org.plishka.backend.exception.RefreshTokenNotFoundException;
 import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
+import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
 import org.plishka.backend.repository.user.RoleRepository;
 import org.plishka.backend.repository.user.UserRepository;
@@ -33,34 +40,40 @@ import org.plishka.backend.service.auth.AuthService;
 import org.plishka.backend.service.auth.JwtService;
 import org.plishka.backend.util.TokenGenerator;
 import org.plishka.backend.util.TokenHashUtil;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Authentication service implementation.
+ *
+ * <p>Concurrency invariant for auth flows: whenever a method needs both a {@link User} row lock
+ * and token-row locks, it must acquire them in this order: {@code User -> token rows}. Token rows
+ * include refresh tokens, password-reset tokens, and email-verification tokens. This ordering must
+ * be preserved across methods to avoid deadlocks between concurrent auth operations.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
     public static final int EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
+    public static final int PASSWORD_RESET_TOKEN_TTL_HOURS = 2;
+    private static final String RESET_PASSWORD_TOKEN_FRAGMENT = "#token=";
     private static final String VERIFY_TOKEN_PATH = "/auth/verify?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
-
-    @Value("${backend.refresh-token-expiration}")
-    private Duration refreshTokenExpiration;
-
-    @Value("${backend.base-url}")
-    private String backendBaseUrl;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final BackendProperties backendProperties;
+    private final FrontendProperties frontendProperties;
     private final Clock clock;
 
     @Override
@@ -103,7 +116,9 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        if (verificationToken.getExpiresAt().isBefore(Instant.now(clock))) {
+        // Lock the token row only after the User row is locked to keep the order: User -> token rows.
+        EmailVerificationToken lockedVerificationToken = findEmailVerificationTokenForUpdateOrThrow(rawToken);
+        if (lockedVerificationToken.getExpiresAt().isBefore(now())) {
             throw new InvalidVerificationTokenException("Verification token has expired");
         }
 
@@ -118,10 +133,11 @@ public class AuthServiceImpl implements AuthService {
     public void resendVerificationEmail(String email) {
         String normalizedEmail = normalizeEmail(email);
 
-        userRepository.findByEmail(normalizedEmail)
+        userRepository.findByEmailForUpdate(normalizedEmail)
                 .filter(user -> !user.isEmailVerified())
                 .ifPresent(user -> {
                     emailVerificationTokenRepository.deleteAllByUser(user);
+                    emailVerificationTokenRepository.flush();
 
                     String rawVerificationToken = TokenGenerator.generateEmailVerificationToken();
                     EmailVerificationToken emailVerificationToken =
@@ -140,6 +156,63 @@ public class AuthServiceImpl implements AuthService {
                             user.getUserId()
                     );
                 });
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(String email) {
+        String normalizedEmail = normalizeEmail(email);
+
+        userRepository.findByEmailForUpdate(normalizedEmail)
+                .filter(User::isEmailVerified)
+                .ifPresent(user -> {
+                    passwordResetTokenRepository.deleteAllByUser(user);
+                    passwordResetTokenRepository.flush();
+
+                    String rawResetToken = TokenGenerator.generatePasswordResetToken();
+                    PasswordResetToken passwordResetToken = buildPasswordResetToken(user, rawResetToken);
+
+                    passwordResetTokenRepository.save(passwordResetToken);
+
+                    applicationEventPublisher.publishEvent(
+                            new PasswordResetRequestedEvent(
+                                    user.getEmail(),
+                                    buildResetPasswordLink(rawResetToken)
+                            )
+                    );
+
+                    log.info(
+                            "Password reset requested: email={}, userId={}",
+                            user.getEmail(),
+                            user.getUserId()
+                    );
+                });
+    }
+
+    @Override
+    @Transactional(noRollbackFor = InvalidPasswordResetTokenException.class)
+    public void resetPassword(ResetPasswordRequestDto request) {
+        PasswordResetToken passwordResetToken = findPasswordResetTokenOrThrow(request.token());
+
+        User lockedUser = userRepository.findByIdForUpdate(passwordResetToken.getUser().getUserId())
+                .orElseThrow(() -> new InvalidPasswordResetTokenException("User not found"));
+
+        // Lock the token row only after the User row is locked to keep the order: User -> token rows.
+        PasswordResetToken lockedPasswordResetToken = findPasswordResetTokenForUpdateOrThrow(request.token());
+        if (lockedPasswordResetToken.getExpiresAt().isBefore(now())) {
+            passwordResetTokenRepository.delete(lockedPasswordResetToken);
+            throw new InvalidPasswordResetTokenException("Password reset token has expired");
+        }
+
+        lockedUser.setPasswordHash(passwordEncoder.encode(request.password()));
+        refreshTokenRepository.deleteAllByUserId(lockedUser.getUserId());
+        passwordResetTokenRepository.deleteAllByUser(lockedUser);
+
+        log.info(
+                "Password reset successful: userId={}, email={}",
+                lockedUser.getUserId(),
+                lockedUser.getEmail()
+        );
     }
 
     @Override
@@ -176,14 +249,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = RefreshTokenExpiredException.class)
     public AuthResponseDto refresh(String rawRefreshToken, String deviceId) {
         String normalizedDeviceId = normalizeDeviceId(deviceId);
 
-        RefreshToken currentToken = findRefreshTokenForUpdateOrThrow(rawRefreshToken);
-        validateRefreshTokenOrThrow(currentToken, normalizedDeviceId);
-
+        RefreshToken currentToken = findRefreshTokenOrThrow(rawRefreshToken);
         User lockedUser = findUserByIdForUpdateOrThrow(currentToken.getUser().getUserId());
+
+        // Lock the token row only after the User row is locked to keep the order: User -> token rows.
+        currentToken = findRefreshTokenForUpdateOrThrow(rawRefreshToken);
+        validateRefreshTokenOrThrow(currentToken, normalizedDeviceId);
         validateUserCanAuthenticateOrThrow(lockedUser);
 
         refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getUserId(), normalizedDeviceId);
@@ -245,12 +320,20 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    private PasswordResetToken buildPasswordResetToken(User user, String rawToken) {
+        return PasswordResetToken.builder()
+                .tokenHash(TokenHashUtil.sha256(rawToken))
+                .user(user)
+                .expiresAt(now().plus(Duration.ofHours(PASSWORD_RESET_TOKEN_TTL_HOURS)))
+                .build();
+    }
+
     private void persistRefreshToken(User user, String rawToken, String deviceId) {
         RefreshToken refreshToken = RefreshToken.builder()
                 .tokenHash(TokenHashUtil.sha256(rawToken))
                 .user(user)
                 .deviceId(deviceId)
-                .expiresAt(now().plus(refreshTokenExpiration))
+                .expiresAt(now().plus(backendProperties.refreshTokenExpiration()))
                 .build();
 
         refreshTokenRepository.save(refreshToken);
@@ -273,11 +356,39 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token not found"));
     }
 
+    private RefreshToken findRefreshTokenOrThrow(String rawRefreshToken) {
+        String refreshTokenHash = TokenHashUtil.sha256(rawRefreshToken);
+
+        return refreshTokenRepository.findByTokenHash(refreshTokenHash)
+                .orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token not found"));
+    }
+
     private EmailVerificationToken findEmailVerificationTokenOrThrow(String rawToken) {
         String verificationTokenHash = TokenHashUtil.sha256(rawToken);
 
         return emailVerificationTokenRepository.findByTokenHash(verificationTokenHash)
                 .orElseThrow(() -> new InvalidVerificationTokenException("Verification token not found"));
+    }
+
+    private EmailVerificationToken findEmailVerificationTokenForUpdateOrThrow(String rawToken) {
+        String verificationTokenHash = TokenHashUtil.sha256(rawToken);
+
+        return emailVerificationTokenRepository.findByTokenHashForUpdate(verificationTokenHash)
+                .orElseThrow(() -> new InvalidVerificationTokenException("Verification token not found"));
+    }
+
+    private PasswordResetToken findPasswordResetTokenOrThrow(String rawToken) {
+        String passwordResetTokenHash = TokenHashUtil.sha256(rawToken);
+
+        return passwordResetTokenRepository.findByTokenHash(passwordResetTokenHash)
+                .orElseThrow(() -> new InvalidPasswordResetTokenException("Password reset token not found"));
+    }
+
+    private PasswordResetToken findPasswordResetTokenForUpdateOrThrow(String rawToken) {
+        String passwordResetTokenHash = TokenHashUtil.sha256(rawToken);
+
+        return passwordResetTokenRepository.findByTokenHashForUpdate(passwordResetTokenHash)
+                .orElseThrow(() -> new InvalidPasswordResetTokenException("Password reset token not found"));
     }
 
     private void validateRefreshTokenOrThrow(RefreshToken refreshToken, String deviceId) {
@@ -332,7 +443,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String buildVerificationLink(String rawVerificationToken) {
-        return backendBaseUrl + VERIFY_TOKEN_PATH + rawVerificationToken;
+        return backendProperties.baseUrl() + VERIFY_TOKEN_PATH + rawVerificationToken;
+    }
+
+    private String buildResetPasswordLink(String rawResetToken) {
+        return frontendProperties.resetPasswordUrl() + RESET_PASSWORD_TOKEN_FRAGMENT + rawResetToken;
     }
 
     private String normalizeEmail(String email) {

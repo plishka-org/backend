@@ -3,10 +3,12 @@ package org.plishka.backend.controller.auth;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.auth.AuthResponseDto;
+import org.plishka.backend.dto.auth.ForgotPasswordRequestDto;
 import org.plishka.backend.dto.auth.LoginRequestDto;
 import org.plishka.backend.dto.auth.RefreshTokenRequestDto;
 import org.plishka.backend.dto.auth.RegisterRequestDto;
 import org.plishka.backend.dto.auth.ResendVerificationEmailRequestDto;
+import org.plishka.backend.dto.auth.ResetPasswordRequestDto;
 import org.plishka.backend.dto.common.MessageResponseDto;
 import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.service.auth.AuthService;
@@ -48,6 +50,20 @@ public class AuthController {
         return new MessageResponseDto(
                 "If an unverified account exists, a new verification email has been sent."
         );
+    }
+
+    @PostMapping("/forgot-password")
+    public MessageResponseDto forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto requestDto) {
+        authService.forgotPassword(requestDto.email());
+        return new MessageResponseDto(
+                "If an account with this email exists, password reset instructions have been sent."
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public MessageResponseDto resetPassword(@Valid @RequestBody ResetPasswordRequestDto requestDto) {
+        authService.resetPassword(requestDto);
+        return new MessageResponseDto("Password has been reset successfully.");
     }
 
     @PostMapping("/login")

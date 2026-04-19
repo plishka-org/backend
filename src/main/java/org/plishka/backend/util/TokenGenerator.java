@@ -20,6 +20,10 @@ public final class TokenGenerator {
         return generateAccountLinkToken();
     }
 
+    public static String generatePasswordResetToken() {
+        return generateAccountLinkToken();
+    }
+
     public static String generateRefreshToken() {
         return generateUrlSafeToken(REFRESH_TOKEN_BYTE_LENGTH);
     }
