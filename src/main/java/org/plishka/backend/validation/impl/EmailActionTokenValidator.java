@@ -3,9 +3,9 @@ package org.plishka.backend.validation.impl;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.plishka.backend.util.TokenGenerator;
-import org.plishka.backend.validation.EmailActionToken;
+import org.plishka.backend.validation.ValidEmailActionToken;
 
-public class EmailActionTokenValidator implements ConstraintValidator<EmailActionToken, String> {
+public class EmailActionTokenValidator implements ConstraintValidator<ValidEmailActionToken, String> {
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {

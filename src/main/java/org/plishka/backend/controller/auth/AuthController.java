@@ -10,8 +10,8 @@ import org.plishka.backend.dto.auth.ResendVerificationEmailRequestDto;
 import org.plishka.backend.dto.common.MessageResponseDto;
 import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.service.auth.AuthService;
-import org.plishka.backend.validation.EmailActionToken;
 import org.plishka.backend.validation.ValidDeviceId;
+import org.plishka.backend.validation.ValidEmailActionToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,7 +35,7 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public MessageResponseDto verifyEmail(@RequestParam @EmailActionToken String token) {
+    public MessageResponseDto verifyEmail(@RequestParam @ValidEmailActionToken String token) {
         authService.verifyEmail(token);
         return new MessageResponseDto("Email verified successfully.");
     }

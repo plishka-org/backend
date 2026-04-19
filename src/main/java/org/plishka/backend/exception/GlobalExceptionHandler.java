@@ -33,12 +33,10 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 public class GlobalExceptionHandler {
     private static final String VALIDATION_FAILED_MESSAGE = "Validation failed";
     private static final String MALFORMED_REQUEST_BODY_MESSAGE = "Malformed JSON request body";
-    private static final String EMAIL_SERVICE_UNAVAILABLE_MESSAGE =
-            "Email service is temporarily unavailable";
+    private static final String EMAIL_SERVICE_UNAVAILABLE_MESSAGE = "Email service is temporarily unavailable";
     private static final String INTERNAL_SERVER_ERROR_MESSAGE = "An unexpected error occurred";
     private static final String REQUIRED_HEADER_MISSING_MESSAGE = "Required header is missing";
-    private static final String REQUIRED_PARAMETER_MISSING_MESSAGE =
-            "Required request parameter is missing";
+    private static final String REQUIRED_PARAMETER_MISSING_MESSAGE = "Required request parameter is missing";
     private static final String GLOBAL_ERROR_FIELD = "global";
 
     private final Clock clock;

@@ -1,12 +1,12 @@
 package org.plishka.backend.dto.auth;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.plishka.backend.validation.ValidEmail;
 
 public record LoginRequestDto(
         @NotBlank(message = "Email is required")
-        @Email(message = "Email must be a valid email address")
+        @ValidEmail
         @Size(min = 5, max = 128, message = "Email must be between 5 and 128 characters long")
         String email,
 
