@@ -20,7 +20,6 @@ public record BackendProperties(
 ) {
     @AssertTrue(message = "backend.refresh-token-expiration must be greater than 0")
     public boolean isRefreshTokenExpirationPositive() {
-        return refreshTokenExpiration == null
-                || (!refreshTokenExpiration.isZero() && !refreshTokenExpiration.isNegative());
+        return refreshTokenExpiration == null || refreshTokenExpiration.isPositive();
     }
 }

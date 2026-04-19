@@ -165,6 +165,7 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.findByEmailForUpdate(normalizedEmail)
                 .filter(User::isEmailVerified)
+                .filter(user -> !user.isBanned())
                 .ifPresent(user -> {
                     passwordResetTokenRepository.deleteAllByUser(user);
                     passwordResetTokenRepository.flush();
