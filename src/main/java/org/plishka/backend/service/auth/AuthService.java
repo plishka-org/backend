@@ -3,6 +3,7 @@ package org.plishka.backend.service.auth;
 import org.plishka.backend.dto.auth.AuthResponseDto;
 import org.plishka.backend.dto.auth.LoginRequestDto;
 import org.plishka.backend.dto.auth.RegisterRequestDto;
+import org.plishka.backend.dto.auth.ResetPasswordRequestDto;
 
 public interface AuthService {
     void register(RegisterRequestDto requestDto);
@@ -10,6 +11,10 @@ public interface AuthService {
     void verifyEmail(String token);
 
     void resendVerificationEmail(String email);
+
+    void forgotPassword(String email);
+
+    void resetPassword(ResetPasswordRequestDto requestDto);
 
     AuthResponseDto login(LoginRequestDto requestDto, String deviceId);
 

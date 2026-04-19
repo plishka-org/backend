@@ -73,9 +73,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request);
     }
 
-    @ExceptionHandler(InvalidVerificationTokenException.class)
+    @ExceptionHandler({
+            InvalidVerificationTokenException.class,
+            InvalidPasswordResetTokenException.class
+    })
     public ResponseEntity<ErrorResponseDto> handleBadRequest(
-            InvalidVerificationTokenException exception,
+            RuntimeException exception,
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request);

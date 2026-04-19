@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/auth/register",
                                 "/auth/resend-verification",
+                                "/auth/forgot-password",
+                                "/auth/reset-password",
                                 "/auth/login",
                                 "/auth/refresh"
                         ).permitAll()

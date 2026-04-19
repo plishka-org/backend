@@ -42,3 +42,11 @@ jwt:
 backend:
   base-url: ${BACKEND_BASE_URL}
   refresh-token-expiration: ${BACKEND_REFRESH_TOKEN_EXPIRATION}
+  auth:
+    email-verification-token-ttl: 24h
+    password-reset-token-ttl: 3h
+  cleanup:
+    unverified-user-ttl: 24h
+
+frontend:
+  reset-password-url: ${FRONTEND_RESET_PASSWORD_URL}

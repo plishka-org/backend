@@ -3,6 +3,7 @@ package org.plishka.backend.event.listener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.event.auth.EmailVerificationRequestedEvent;
+import org.plishka.backend.event.auth.PasswordResetRequestedEvent;
 import org.plishka.backend.service.notification.EmailService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -19,6 +20,14 @@ public class AuthEventListener {
         emailService.sendEmailVerificationEmail(
                 event.email(),
                 event.verificationLink()
+        );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handlePasswordResetRequested(PasswordResetRequestedEvent event) {
+        emailService.sendPasswordResetEmail(
+                event.email(),
+                event.resetPasswordLink()
         );
     }
 }

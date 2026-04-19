@@ -1,17 +1,25 @@
 package org.plishka.backend.service.notification;
 
 import lombok.RequiredArgsConstructor;
-import org.plishka.backend.service.auth.impl.AuthServiceImpl;
+import org.plishka.backend.config.BackendProperties;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
     private final AsyncEmailSender asyncEmailSender;
+    private final BackendProperties backendProperties;
 
     public void sendEmailVerificationEmail(String email, String verificationLink) {
         String subject = "Verify your email";
         String text = buildVerificationEmailText(verificationLink);
+
+        asyncEmailSender.sendEmailAsync(email, subject, text);
+    }
+
+    public void sendPasswordResetEmail(String email, String resetPasswordLink) {
+        String subject = "Reset your password";
+        String text = buildPasswordResetEmailText(resetPasswordLink);
 
         asyncEmailSender.sendEmailAsync(email, subject, text);
     }
@@ -32,6 +40,25 @@ public class EmailService {
                 Best regards,
                 Plishka
                 """
-                .formatted(verificationLink, AuthServiceImpl.EMAIL_VERIFICATION_TOKEN_TTL_HOURS);
+                .formatted(verificationLink, backendProperties.auth().emailVerificationTokenTtl().toHours());
+    }
+
+    private String buildPasswordResetEmailText(String resetPasswordLink) {
+        return """
+                Hello,
+
+                We received a request to reset your password.
+
+                Click the link below to continue resetting your password:
+                %s
+
+                This link will expire in %d hours.
+
+                If you did not request a password reset, you can ignore this email.
+
+                Best regards,
+                Plishka
+                """
+                .formatted(resetPasswordLink, backendProperties.auth().passwordResetTokenTtl().toHours());
     }
 }
