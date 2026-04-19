@@ -1,13 +1,14 @@
 package org.plishka.backend.service.notification;
 
 import lombok.RequiredArgsConstructor;
-import org.plishka.backend.service.auth.impl.AuthServiceImpl;
+import org.plishka.backend.config.BackendProperties;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
     private final AsyncEmailSender asyncEmailSender;
+    private final BackendProperties backendProperties;
 
     public void sendEmailVerificationEmail(String email, String verificationLink) {
         String subject = "Verify your email";
@@ -39,7 +40,7 @@ public class EmailService {
                 Best regards,
                 Plishka
                 """
-                .formatted(verificationLink, AuthServiceImpl.EMAIL_VERIFICATION_TOKEN_TTL_HOURS);
+                .formatted(verificationLink, backendProperties.auth().emailVerificationTokenTtl().toHours());
     }
 
     private String buildPasswordResetEmailText(String resetPasswordLink) {
@@ -58,6 +59,6 @@ public class EmailService {
                 Best regards,
                 Plishka
                 """
-                .formatted(resetPasswordLink, AuthServiceImpl.PASSWORD_RESET_TOKEN_TTL_HOURS);
+                .formatted(resetPasswordLink, backendProperties.auth().passwordResetTokenTtl().toHours());
     }
 }

@@ -2,7 +2,6 @@ package org.plishka.backend.service.auth.impl;
 
 import java.text.Normalizer;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Set;
@@ -58,8 +57,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
-    public static final int EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
-    public static final int PASSWORD_RESET_TOKEN_TTL_HOURS = 2;
     private static final String RESET_PASSWORD_TOKEN_FRAGMENT = "#token=";
     private static final String VERIFY_TOKEN_PATH = "/auth/verify?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
@@ -317,7 +314,7 @@ public class AuthServiceImpl implements AuthService {
         return EmailVerificationToken.builder()
                 .tokenHash(TokenHashUtil.sha256(rawToken))
                 .user(user)
-                .expiresAt(now().plus(Duration.ofHours(EMAIL_VERIFICATION_TOKEN_TTL_HOURS)))
+                .expiresAt(now().plus(backendProperties.auth().emailVerificationTokenTtl()))
                 .build();
     }
 
@@ -325,7 +322,7 @@ public class AuthServiceImpl implements AuthService {
         return PasswordResetToken.builder()
                 .tokenHash(TokenHashUtil.sha256(rawToken))
                 .user(user)
-                .expiresAt(now().plus(Duration.ofHours(PASSWORD_RESET_TOKEN_TTL_HOURS)))
+                .expiresAt(now().plus(backendProperties.auth().passwordResetTokenTtl()))
                 .build();
     }
 

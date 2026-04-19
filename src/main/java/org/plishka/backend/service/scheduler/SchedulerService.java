@@ -1,11 +1,11 @@
 package org.plishka.backend.service.scheduler;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.plishka.backend.config.BackendProperties;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
 import org.plishka.backend.repository.user.PasswordResetTokenRepository;
@@ -20,12 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SchedulerService {
     private static final String EUROPE_KYIV = "Europe/Kyiv";
-    private static final Duration UNVERIFIED_USER_ACCOUNTS_TTL_HOURS = Duration.ofHours(24);
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserRepository userRepository;
+    private final BackendProperties backendProperties;
     private final Clock clock;
 
     @Transactional
@@ -51,7 +51,7 @@ public class SchedulerService {
     @Transactional
     @Scheduled(cron = "0 10 3 * * *", zone = EUROPE_KYIV)
     public void cleanupUnverifiedUsers() {
-        Instant threshold = Instant.now(clock).minus(UNVERIFIED_USER_ACCOUNTS_TTL_HOURS);
+        Instant threshold = Instant.now(clock).minus(backendProperties.cleanup().unverifiedUserTtl());
         List<User> usersToDelete = userRepository.findUnverifiedUsersForCleanupForUpdate(threshold);
 
         if (usersToDelete.isEmpty()) {
