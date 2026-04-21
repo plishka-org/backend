@@ -8,21 +8,26 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 
 @Entity
-@Table(name = "roles")
+@Table(name = "roles",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_roles_name",
+                columnNames = "name"))
 @Getter
 @Setter
 public class Role implements GrantedAuthority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "role_id")
     private Long roleId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, unique = true)
+    @Column(name = "name", nullable = false, length = 20)
     private RoleName name;
 
     @Override

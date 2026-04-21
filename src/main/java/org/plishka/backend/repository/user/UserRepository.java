@@ -22,14 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             """)
     int deleteAllByIdIn(List<Long> userIds);
 
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(value = """
-            delete from users_roles
-            where user_id in (:userIds)
-            """,
-            nativeQuery = true)
-    int deleteAllUserRolesByUserIdIn(List<Long> userIds);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select u

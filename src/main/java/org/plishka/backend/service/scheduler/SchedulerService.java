@@ -62,15 +62,11 @@ public class SchedulerService {
                 .map(User::getUserId)
                 .toList();
 
-        int deletedVerificationTokens = emailVerificationTokenRepository.deleteAllByUserIdIn(userIds);
-        int deletedUserRoles = userRepository.deleteAllUserRolesByUserIdIn(userIds);
         int deletedUsers = userRepository.deleteAllByIdIn(userIds);
 
         log.info(
-                "Unverified users cleanup finished: deletedUsers={}, deletedVerificationTokens={}, deletedUserRoles={}",
-                deletedUsers,
-                deletedVerificationTokens,
-                deletedUserRoles
+                "Unverified users cleanup finished: deletedUsers={} (dependent rows removed by FK cascades)",
+                deletedUsers
         );
     }
 

@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-email-verification-tokens-table
+      author: codex
+      changes:
+        - createTable:
+            tableName: email_verification_tokens
+            columns:
+              - column:
+                  name: email_verification_token_id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_email_verification_tokens
+              - column:
+                  name: token_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: email_verification_tokens
+            columnNames: token_hash
+            constraintName: uk_email_verification_tokens_token_hash
+        - addUniqueConstraint:
+            tableName: email_verification_tokens
+            columnNames: user_id
+            constraintName: uk_email_verification_tokens_user
+        - addForeignKeyConstraint:
+            baseTableName: email_verification_tokens
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_email_verification_tokens_user
+            onDelete: CASCADE
+        - createIndex:
+            tableName: email_verification_tokens
+            indexName: idx_email_verification_tokens_expires_at
+            columns:
+              - column:
+                  name: expires_at

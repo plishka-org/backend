@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-roles-table
+      author: codex
+      changes:
+        - createTable:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_roles
+              - column:
+                  name: name
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: roles
+            columnNames: name
+            constraintName: uk_roles_name
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: name
+                  value: USER
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: name
+                  value: ADMIN
