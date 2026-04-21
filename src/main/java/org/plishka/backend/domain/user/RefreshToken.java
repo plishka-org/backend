@@ -20,8 +20,16 @@ import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "refresh_tokens",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_refresh_tokens_user_device", columnNames = {"user_id", "device_id"}))
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_refresh_tokens_token_hash",
+                        columnNames = "token_hash"
+                ),
+                @UniqueConstraint(
+                        name = "uk_refresh_tokens_user_device",
+                        columnNames = {"user_id", "device_id"}
+                )
+        })
 @Getter
 @Setter
 @Builder
@@ -30,9 +38,10 @@ import org.hibernate.annotations.CreationTimestamp;
 public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "refresh_token_id")
     private Long refreshTokenId;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

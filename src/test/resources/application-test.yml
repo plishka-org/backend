@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     show-sql: false
     open-in-view: false
     properties:
@@ -27,6 +27,11 @@ jwt:
 backend:
   base-url: http://localhost:8080/api
   refresh-token-expiration: 30d
+  auth:
+    email-verification-token-ttl: 24h
+    password-reset-token-ttl: 3h
+  cleanup:
+    unverified-user-ttl: 24h
 
 frontend:
   reset-password-url: http://localhost:3000/reset-password

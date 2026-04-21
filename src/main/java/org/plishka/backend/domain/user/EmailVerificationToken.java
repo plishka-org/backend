@@ -20,10 +20,16 @@ import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "email_verification_tokens",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_email_verification_tokens_user",
-                columnNames = "user_id"
-        ))
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_email_verification_tokens_token_hash",
+                        columnNames = "token_hash"
+                ),
+                @UniqueConstraint(
+                        name = "uk_email_verification_tokens_user",
+                        columnNames = "user_id"
+                )
+        })
 @Getter
 @Setter
 @Builder
@@ -32,12 +38,13 @@ import org.hibernate.annotations.CreationTimestamp;
 public class EmailVerificationToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "email_verification_token_id")
     private Long emailVerificationTokenId;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

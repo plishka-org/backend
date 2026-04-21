@@ -35,17 +35,19 @@ import org.hibernate.annotations.UpdateTimestamp;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "email", nullable = false, length = 128)
     private String email;
 
+    @Column(name = "phone", length = 13)
     private String phone;
 
-    @Column(nullable = false)
+    @Column(name = "password_hash", nullable = false, length = 60)
     private String passwordHash;
 
     @Builder.Default
@@ -55,10 +57,10 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id", nullable = false))
     private Set<Role> roles = new HashSet<>();
 
-    @Column(name = "is_banned", nullable = false)
+    @Column(name = "is_banned", nullable = false, columnDefinition = "bit")
     private boolean isBanned;
 
-    @Column(name = "is_email_verified", nullable = false)
+    @Column(name = "is_email_verified", nullable = false, columnDefinition = "bit")
     private boolean isEmailVerified;
 
     @Column(name = "created_at", nullable = false, updatable = false)

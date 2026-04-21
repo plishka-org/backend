@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-refresh-tokens-table
+      author: codex
+      changes:
+        - createTable:
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: refresh_token_id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_refresh_tokens
+              - column:
+                  name: token_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: device_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: refresh_tokens
+            columnNames: token_hash
+            constraintName: uk_refresh_tokens_token_hash
+        - addUniqueConstraint:
+            tableName: refresh_tokens
+            columnNames: user_id, device_id
+            constraintName: uk_refresh_tokens_user_device
+        - addForeignKeyConstraint:
+            baseTableName: refresh_tokens
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_refresh_tokens_user
+            onDelete: CASCADE
+        - createIndex:
+            tableName: refresh_tokens
+            indexName: idx_refresh_tokens_expires_at
+            columns:
+              - column:
+                  name: expires_at

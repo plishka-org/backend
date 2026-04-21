@@ -20,10 +20,16 @@ import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "password_reset_tokens",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_password_reset_tokens_user",
-                columnNames = "user_id"
-        ))
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_password_reset_tokens_token_hash",
+                        columnNames = "token_hash"
+                ),
+                @UniqueConstraint(
+                        name = "uk_password_reset_tokens_user",
+                        columnNames = "user_id"
+                )
+        })
 @Getter
 @Setter
 @Builder
@@ -32,12 +38,13 @@ import org.hibernate.annotations.CreationTimestamp;
 public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "password_reset_token_id")
     private Long passwordResetTokenId;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
