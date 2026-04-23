@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.Optional;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
+import org.plishka.backend.config.properties.JwtProperties;
 import org.plishka.backend.domain.user.Role;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.service.auth.JwtService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -32,13 +32,9 @@ public class JwtServiceImpl implements JwtService {
     private final Duration accessTokenExpiration;
     private final Clock clock;
 
-    public JwtServiceImpl(
-            @Value("${jwt.secret}") String jwtSecret,
-            @Value("${jwt.expiration}") Duration accessTokenExpiration,
-            Clock clock
-    ) {
-        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
-        this.accessTokenExpiration = accessTokenExpiration;
+    public JwtServiceImpl(JwtProperties jwtProperties, Clock clock) {
+        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret()));
+        this.accessTokenExpiration = jwtProperties.expiration();
         this.clock = clock;
     }
 

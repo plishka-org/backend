@@ -35,3 +35,19 @@ backend:
 
 frontend:
   reset-password-url: http://localhost:3000/reset-password
+
+storage:
+  s3:
+    bucket: test-bucket
+    region: eu-central-1
+    access-key: test-access-key
+    secret-key: test-secret-key
+    upload-presign-ttl: 15m
+    download-presign-ttl: 60m
+  image:
+    max-size: 10MB
+  video:
+    max-size: 200MB
+  cleanup:
+    enabled: false
+    orphan-upload-ttl: 24h

@@ -1,7 +1,7 @@
 package org.plishka.backend.service.notification;
 
 import lombok.RequiredArgsConstructor;
-import org.plishka.backend.config.BackendProperties;
+import org.plishka.backend.config.properties.BackendProperties;
 import org.springframework.stereotype.Service;
 
 @Service

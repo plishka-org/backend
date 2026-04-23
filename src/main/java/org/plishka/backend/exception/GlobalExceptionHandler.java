@@ -74,6 +74,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({
+            BadRequestException.class,
             InvalidVerificationTokenException.class,
             InvalidPasswordResetTokenException.class
     })
@@ -84,6 +85,14 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleNotFound(
+            ResourceNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request);
+    }
+
     @ExceptionHandler(ResendEmailException.class)
     public ResponseEntity<ErrorResponseDto> handleServiceUnavailable(
             ResendEmailException exception,
@@ -91,6 +100,15 @@ public class GlobalExceptionHandler {
     ) {
         log.warn("Email provider error while processing {}", request.getRequestURI(), exception);
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, EMAIL_SERVICE_UNAVAILABLE_MESSAGE, request);
+    }
+
+    @ExceptionHandler(StorageOperationException.class)
+    public ResponseEntity<ErrorResponseDto> handleStorageUnavailable(
+            StorageOperationException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Storage provider error while processing {}", request.getRequestURI(), exception);
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

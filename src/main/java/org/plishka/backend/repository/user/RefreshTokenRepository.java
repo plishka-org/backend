@@ -18,7 +18,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("""
             select rt
             from RefreshToken rt
-            join fetch rt.user
             where rt.tokenHash = :tokenHash
             """)
     Optional<RefreshToken> findByTokenHashForUpdate(String tokenHash);
@@ -30,7 +29,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             delete from RefreshToken rt
             where rt.user.userId = :userId
             """)
-    int deleteAllByUserId(Long userId);
+    void deleteAllByUserId(Long userId);
 
     @Modifying
     @Query("""

@@ -18,7 +18,6 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     @Query("""
             select evt
             from EmailVerificationToken evt
-            join fetch evt.user
             where evt.tokenHash = :tokenHash
             """)
     Optional<EmailVerificationToken> findByTokenHashForUpdate(String tokenHash);
