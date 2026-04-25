@@ -185,12 +185,12 @@
                         -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
                         -Xshare:off
                     </argLine>
-                    <systemPropertyVariables>
-                        <spring.datasource.url>jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL</spring.datasource.url>
-                        <spring.datasource.username>sa</spring.datasource.username>
-                        <spring.datasource.password></spring.datasource.password>
-                        <spring.datasource.driver-class-name>org.h2.Driver</spring.datasource.driver-class-name>
-                    </systemPropertyVariables>
+                    <excludedEnvironmentVariables>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_URL</excludedEnvironmentVariable>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_USERNAME</excludedEnvironmentVariable>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_PASSWORD</excludedEnvironmentVariable>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_DRIVER_CLASS_NAME</excludedEnvironmentVariable>
+                    </excludedEnvironmentVariables>
                 </configuration>
             </plugin>
         </plugins>

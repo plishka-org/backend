@@ -26,6 +26,23 @@ spring:
         jdbc:
           time_zone: UTC
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+      accept-float-as-int: false
+      accept-empty-string-as-null-object: false
+      accept-single-value-as-array: false
+    datatype:
+      enum:
+        fail-on-numbers-for-enums: true
+      datetime:
+        write-dates-as-timestamps: false
+    mapper:
+      accept-case-insensitive-properties: false
+      accept-case-insensitive-enums: false
+    time-zone: UTC
+
   config:
     import: optional:file:.env[.properties]
 
