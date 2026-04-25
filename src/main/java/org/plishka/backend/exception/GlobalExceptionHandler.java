@@ -5,8 +5,10 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.dto.common.ErrorResponseDto;
@@ -26,6 +28,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.TokenStreamLocation;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -74,6 +82,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({
+            BadRequestException.class,
             InvalidVerificationTokenException.class,
             InvalidPasswordResetTokenException.class
     })
@@ -84,6 +93,14 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleNotFound(
+            ResourceNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request);
+    }
+
     @ExceptionHandler(ResendEmailException.class)
     public ResponseEntity<ErrorResponseDto> handleServiceUnavailable(
             ResendEmailException exception,
@@ -91,6 +108,15 @@ public class GlobalExceptionHandler {
     ) {
         log.warn("Email provider error while processing {}", request.getRequestURI(), exception);
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, EMAIL_SERVICE_UNAVAILABLE_MESSAGE, request);
+    }
+
+    @ExceptionHandler(StorageOperationException.class)
+    public ResponseEntity<ErrorResponseDto> handleStorageUnavailable(
+            StorageOperationException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Storage provider error while processing {}", request.getRequestURI(), exception);
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -143,8 +169,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponseDto> handleHttpMessageNotReadable(HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, MALFORMED_REQUEST_BODY_MESSAGE, request);
+    public ResponseEntity<ValidationErrorResponseDto> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
+        return buildValidationErrorResponse(extractRequestBodyReadErrors(exception), request);
     }
 
     @ExceptionHandler(Exception.class)
@@ -249,6 +278,100 @@ public class GlobalExceptionHandler {
         }
 
         return List.copyOf(fieldErrors);
+    }
+
+    private List<String> extractRequestBodyReadErrors(HttpMessageNotReadableException exception) {
+        Throwable rootCause = exception.getMostSpecificCause();
+
+        return switch (rootCause) {
+            case UnrecognizedPropertyException propertyException ->
+                    List.of(buildJsonFieldError(propertyException, "Unknown property"));
+
+            case InvalidFormatException formatException -> List.of(buildJsonFieldError(
+                    formatException,
+                    buildInvalidValueMessage(formatException)));
+
+            case MismatchedInputException inputException -> List.of(buildJsonFieldError(
+                    inputException,
+                    resolveJsonErrorMessage(inputException.getOriginalMessage())));
+
+            case StreamReadException streamReadException -> List.of(formatJsonParseMessage(
+                    resolveJsonErrorMessage(streamReadException.getOriginalMessage()),
+                    streamReadException.getLocation()));
+
+            default -> List.of(MALFORMED_REQUEST_BODY_MESSAGE);
+        };
+    }
+
+    private String buildJsonFieldError(JacksonException exception, String message) {
+        return formatValidationMessage(resolveJsonFieldPath(exception), message);
+    }
+
+    private String buildInvalidValueMessage(InvalidFormatException exception) {
+        Class<?> expectedType = exception.getTargetType();
+        Object rejectedValue = exception.getValue();
+
+        if (expectedType != null && expectedType.isEnum()) {
+            String allowedValues = Arrays.stream(expectedType.getEnumConstants())
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", "));
+            return "Must be one of: %s".formatted(allowedValues);
+        }
+
+        String expectedTypeName = expectedType != null ? expectedType.getSimpleName() : null;
+        if (expectedTypeName == null && rejectedValue == null) {
+            return "Invalid value";
+        }
+
+        if (expectedTypeName == null) {
+            return "Invalid value '%s'".formatted(rejectedValue);
+        }
+
+        if (rejectedValue == null) {
+            return "Invalid value, expected %s".formatted(expectedTypeName);
+        }
+
+        return "Invalid value '%s', expected %s".formatted(rejectedValue, expectedTypeName);
+    }
+
+    private String resolveJsonFieldPath(JacksonException exception) {
+        StringBuilder pathBuilder = new StringBuilder();
+
+        for (JacksonException.Reference pathReference : exception.getPath()) {
+            String propertyName = pathReference.getPropertyName();
+            if (StringUtils.hasText(propertyName)) {
+                if (!pathBuilder.isEmpty()) {
+                    pathBuilder.append('.');
+                }
+                pathBuilder.append(propertyName);
+                continue;
+            }
+
+            int index = pathReference.getIndex();
+            if (index >= 0) {
+                pathBuilder.append('[').append(index).append(']');
+            }
+        }
+
+        return StringUtils.hasText(pathBuilder) ? pathBuilder.toString() : null;
+    }
+
+    private String formatJsonParseMessage(String message, TokenStreamLocation location) {
+        if (location == null || location == TokenStreamLocation.NA) {
+            return message;
+        }
+
+        int line = location.getLineNr();
+        int column = location.getColumnNr();
+        if (line < 0 || column < 0) {
+            return message;
+        }
+
+        return "%s (line %d, column %d)".formatted(message, line, column);
+    }
+
+    private String resolveJsonErrorMessage(String message) {
+        return StringUtils.hasText(message) ? message : MALFORMED_REQUEST_BODY_MESSAGE;
     }
 
     private String formatValidationMessage(String fieldName, String message) {

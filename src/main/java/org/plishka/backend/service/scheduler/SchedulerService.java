@@ -5,12 +5,14 @@ import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.plishka.backend.config.BackendProperties;
+import org.plishka.backend.config.properties.BackendProperties;
+import org.plishka.backend.config.properties.StorageProperties;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
 import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
 import org.plishka.backend.repository.user.UserRepository;
+import org.plishka.backend.service.storage.ObjectStorageService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,12 +28,14 @@ public class SchedulerService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserRepository userRepository;
     private final BackendProperties backendProperties;
+    private final StorageProperties storageProperties;
+    private final ObjectStorageService objectStorageService;
     private final Clock clock;
 
     @Transactional
     @Scheduled(cron = "0 0 3 * * *", zone = EUROPE_KYIV)
     public void cleanupExpiredRefreshTokens() {
-        int deletedCount = refreshTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
+        int deletedCount = refreshTokenRepository.deleteAllByExpiresAtBefore(now());
 
         if (deletedCount > 0) {
             log.info("RefreshToken cleanup: deleted {}", deletedCount);
@@ -41,7 +45,7 @@ public class SchedulerService {
     @Transactional
     @Scheduled(cron = "0 5 3 * * *", zone = EUROPE_KYIV)
     public void cleanupExpiredEmailVerificationTokens() {
-        int deletedCount = emailVerificationTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
+        int deletedCount = emailVerificationTokenRepository.deleteAllByExpiresAtBefore(now());
 
         if (deletedCount > 0) {
             log.info("EmailVerificationToken cleanup: deleted {}", deletedCount);
@@ -73,10 +77,31 @@ public class SchedulerService {
     @Transactional
     @Scheduled(cron = "0 15 3 * * *", zone = EUROPE_KYIV)
     public void cleanupExpiredPasswordResetTokens() {
-        int deletedCount = passwordResetTokenRepository.deleteAllByExpiresAtBefore(Instant.now(clock));
+        int deletedCount = passwordResetTokenRepository.deleteAllByExpiresAtBefore(now());
 
         if (deletedCount > 0) {
             log.info("PasswordResetToken cleanup: deleted {}", deletedCount);
         }
+    }
+
+    @Scheduled(cron = "0 0 4 * * SUN", zone = EUROPE_KYIV)
+    public void cleanupOrphanS3Uploads() {
+        if (!storageProperties.cleanup().enabled()) {
+            return;
+        }
+
+        Instant threshold = now().minus(storageProperties.cleanup().orphanUploadTtl());
+        List<String> orphanUploadKeys = objectStorageService.findPendingUploadKeysOlderThan(threshold);
+
+        if (orphanUploadKeys.isEmpty()) {
+            return;
+        }
+
+        objectStorageService.deleteObjects(orphanUploadKeys);
+        log.info("Orphan upload cleanup: deleted {}", orphanUploadKeys.size());
+    }
+
+    private Instant now() {
+        return Instant.now(clock);
     }
 }

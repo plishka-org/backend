@@ -26,6 +26,23 @@ spring:
         jdbc:
           time_zone: UTC
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+      accept-float-as-int: false
+      accept-empty-string-as-null-object: false
+      accept-single-value-as-array: false
+    datatype:
+      enum:
+        fail-on-numbers-for-enums: true
+      datetime:
+        write-dates-as-timestamps: false
+    mapper:
+      accept-case-insensitive-properties: false
+      accept-case-insensitive-enums: false
+    time-zone: UTC
+
   config:
     import: optional:file:.env[.properties]
 
@@ -52,3 +69,21 @@ backend:
 
 frontend:
   reset-password-url: ${FRONTEND_RESET_PASSWORD_URL}
+
+storage:
+  s3:
+    endpoint-url: ${STORAGE_S3_ENDPOINT_URL:}
+    bucket: ${STORAGE_S3_BUCKET}
+    region: ${STORAGE_S3_REGION}
+    access-key: ${STORAGE_S3_ACCESS_KEY}
+    secret-key: ${STORAGE_S3_SECRET_KEY}
+
+    upload-presign-ttl: ${STORAGE_S3_UPLOAD_PRESIGN_TTL}
+    download-presign-ttl: ${STORAGE_S3_DOWNLOAD_PRESIGN_TTL}
+  image:
+    max-size: ${STORAGE_IMAGE_MAX_SIZE}
+  video:
+    max-size: ${STORAGE_VIDEO_MAX_SIZE}
+  cleanup:
+    enabled: ${STORAGE_CLEANUP_ENABLED:false}
+    orphan-upload-ttl: ${STORAGE_CLEANUP_ORPHAN_UPLOAD_TTL:}

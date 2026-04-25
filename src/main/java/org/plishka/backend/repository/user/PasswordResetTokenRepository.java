@@ -18,7 +18,6 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     @Query("""
             select prt
             from PasswordResetToken prt
-            join fetch prt.user
             where prt.tokenHash = :tokenHash
             """)
     Optional<PasswordResetToken> findByTokenHashForUpdate(String tokenHash);

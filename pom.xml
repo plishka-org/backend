@@ -30,8 +30,21 @@
     <properties>
         <java.version>21</java.version>
         <maven.checkstyle.plugin.configLocation>checkstyle.xml</maven.checkstyle.plugin.configLocation>
+        <aws.sdk.version>2.42.35</aws.sdk.version>
         <jjwt.version>0.13.0</jjwt.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -109,6 +122,10 @@
             <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
         <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>test</scope>
@@ -168,12 +185,12 @@
                         -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
                         -Xshare:off
                     </argLine>
-                    <systemPropertyVariables>
-                        <spring.datasource.url>jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL</spring.datasource.url>
-                        <spring.datasource.username>sa</spring.datasource.username>
-                        <spring.datasource.password></spring.datasource.password>
-                        <spring.datasource.driver-class-name>org.h2.Driver</spring.datasource.driver-class-name>
-                    </systemPropertyVariables>
+                    <excludedEnvironmentVariables>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_URL</excludedEnvironmentVariable>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_USERNAME</excludedEnvironmentVariable>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_PASSWORD</excludedEnvironmentVariable>
+                        <excludedEnvironmentVariable>SPRING_DATASOURCE_DRIVER_CLASS_NAME</excludedEnvironmentVariable>
+                    </excludedEnvironmentVariables>
                 </configuration>
             </plugin>
         </plugins>

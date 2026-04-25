@@ -8,8 +8,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.plishka.backend.config.properties.ResendProperties;
 import org.plishka.backend.exception.ResendEmailException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -25,17 +25,13 @@ public class ResendEmailClient {
     private final String apiKey;
     private final String fromEmail;
 
-    public ResendEmailClient(
-            ObjectMapper objectMapper,
-            @Value("${resend.api-key}") String apiKey,
-            @Value("${resend.from-email}") String fromEmail
-    ) {
+    public ResendEmailClient(ObjectMapper objectMapper, ResendProperties resendProperties) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .build();
         this.objectMapper = objectMapper;
-        this.apiKey = apiKey;
-        this.fromEmail = fromEmail;
+        this.apiKey = resendProperties.apiKey();
+        this.fromEmail = resendProperties.fromEmail();
     }
 
     public void sendEmail(String to, String subject, String text) {

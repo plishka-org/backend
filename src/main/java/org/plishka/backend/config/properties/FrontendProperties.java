@@ -1,4 +1,4 @@
-package org.plishka.backend.config;
+package org.plishka.backend.config.properties;
 
 import jakarta.validation.constraints.NotBlank;
 import org.hibernate.validator.constraints.URL;
