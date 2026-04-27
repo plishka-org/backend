@@ -62,7 +62,8 @@ public class SecurityConfig {
                                 "/api/about",
                                 "/api/contacts-page",
                                 "/api/reviews",
-                                "/api/reviews/featured"
+                                "/api/reviews/featured",
+                                "/api/settings"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
