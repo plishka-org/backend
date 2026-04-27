@@ -57,7 +57,12 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify",
-                                "/version"
+                                "/version",
+                                "/api/home",
+                                "/api/about",
+                                "/api/contacts-page",
+                                "/api/reviews",
+                                "/api/reviews/featured"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
