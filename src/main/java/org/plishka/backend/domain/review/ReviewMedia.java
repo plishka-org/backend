@@ -33,7 +33,7 @@ public class ReviewMedia {
     @Column(name = "media_type", nullable = false, length = 50)
     private String mediaType;
 
-    @Column(name = "is_primary", nullable = false)
+    @Column(name = "is_primary", columnDefinition = "TINYINT", nullable = false)
     private Boolean isPrimary = false;
 
     @Column(name = "display_order", nullable = false)

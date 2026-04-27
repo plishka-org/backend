@@ -30,10 +30,10 @@ public class Review {
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "is_approved", nullable = false)
+    @Column(name = "is_approved", columnDefinition = "TINYINT", nullable = false)
     private Boolean isApproved = false;
 
-    @Column(name = "is_featured", nullable = false)
+    @Column(name = "is_featured", columnDefinition = "TINYINT", nullable = false)
     private Boolean isFeatured = false;
 
     @Column(name = "user_id")

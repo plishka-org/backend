@@ -21,7 +21,7 @@ public class SystemSettings {
     @Column(name = "id", nullable = false)
     private Long id = 1L;
 
-    @Column(name = "is_shop_mode_enabled", nullable = false)
+    @Column(name = "is_shop_mode_enabled", columnDefinition = "TINYINT", nullable = false)
     private Boolean isShopModeEnabled = false;
 
     @CreationTimestamp
