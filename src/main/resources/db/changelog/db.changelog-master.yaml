@@ -11,3 +11,25 @@ databaseChangeLog:
       file: db/changelog/changes/005-create-email-verification-tokens-table.yaml
   - include:
       file: db/changelog/changes/006-create-password-reset-tokens-table.yaml
+  - include:
+      file: db/changelog/changes/007-create-home-page-content-table.yaml
+  - include:
+      file: db/changelog/changes/008-create-home-page-advantages-table.yaml
+  - include:
+      file: db/changelog/changes/009-create-home-page-products-table.yaml
+  - include:
+      file: db/changelog/changes/010-create-about-page-content-table.yaml
+  - include:
+      file: db/changelog/changes/011-create-about-page-media-table.yaml
+  - include:
+      file: db/changelog/changes/012-create-contacts-page-table.yaml
+  - include:
+      file: db/changelog/changes/013-create-social-links-table.yaml
+  - include:
+      file: db/changelog/changes/014-create-reviews-table.yaml
+  - include:
+      file: db/changelog/changes/015-create-review-media-table.yaml
+  - include:
+      file: db/changelog/changes/016-create-system-settings-table.yaml
+  - include:
+      file: db/changelog/changes/017-init-singleton-records.yaml
