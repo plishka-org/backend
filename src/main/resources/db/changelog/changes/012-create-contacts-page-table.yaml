@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-178-create-contacts-page
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: contacts_page
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: phone_number
+                  type: VARCHAR(20)
+              - column:
+                  name: email
+                  type: VARCHAR(128)
+              - column:
+                  name: address
+                  type: VARCHAR(255)
+              - column:
+                  name: google_maps_url
+                  type: VARCHAR(512)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE contacts_page ADD CONSTRAINT chk_contacts_page_singleton CHECK (id = 1);

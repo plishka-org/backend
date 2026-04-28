@@ -1,0 +1,53 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-181-init-singletons
+      author: plishka-backend
+      changes:
+        - insert:
+            tableName: home_page_content
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: title
+                  value: 'Автентичні вироби з дерева ручної роботи'
+              - column:
+                  name: description
+                  value: 'Коротка інформація про майстерню. Зв''яжіться з нами для замовлення!'
+
+        - insert:
+            tableName: about_page_content
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: history_text
+                  value: 'Наша домашня майстерня створює автентичні дерев''яні вироби з душею: від сувенірів до садових скульптур та альтанок.'
+
+        - insert:
+            tableName: contacts_page
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: phone_number
+                  value: '+380000000000'
+              - column:
+                  name: email
+                  value: 'team@plishka.com.ua'
+              - column:
+                  name: address
+                  value: 'Косівщина, Україна'
+
+        - insert:
+            tableName: system_settings
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: is_shop_mode_enabled
+                  valueBoolean: false
