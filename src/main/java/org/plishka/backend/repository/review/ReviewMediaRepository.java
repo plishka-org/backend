@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ReviewMediaRepository extends JpaRepository<ReviewMedia, Long> {
     List<ReviewMedia> findAllByReviewIdInOrderByDisplayOrderAsc(List<Long> reviewIds);
+
+    boolean existsByS3Key(String s3Key);
 }
