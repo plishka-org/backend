@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AboutPageMediaRepository extends JpaRepository<AboutPageMedia, Long> {
     List<AboutPageMedia> findAllByAboutPageIdOrderByDisplayOrderAsc(Long aboutPageId);
+
+    boolean existsByS3Key(String s3Key);
 }
