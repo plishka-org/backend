@@ -5,12 +5,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.about.AboutPageContent;
 import org.plishka.backend.domain.about.AboutPageMedia;
+import org.plishka.backend.domain.media.MediaType;
 import org.plishka.backend.dto.about.AboutPageContentDto;
 import org.plishka.backend.dto.about.AboutPageMediaDto;
 import org.plishka.backend.dto.about.AboutPageResponse;
+import org.plishka.backend.dto.file.AttachMediaRequestDto;
+import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.repository.about.AboutPageContentRepository;
 import org.plishka.backend.repository.about.AboutPageMediaRepository;
 import org.plishka.backend.service.about.AboutPageService;
+import org.plishka.backend.service.storage.ObjectStorageService;
+import org.plishka.backend.service.storage.model.StorageObjectMetadata;
+import org.plishka.backend.service.storage.validation.MediaFileTypeRules;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +28,9 @@ public class AboutPageServiceImpl implements AboutPageService {
 
     private final AboutPageContentRepository contentRepository;
     private final AboutPageMediaRepository mediaRepository;
+    private final ObjectStorageService objectStorageService;
+    private final MediaFileTypeRules mediaFileTypeRules;
+    private final AboutPageMediaRepository aboutPageMediaRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -39,6 +48,42 @@ public class AboutPageServiceImpl implements AboutPageService {
         log.info("About page data fetched successfully: mediaCount={}", media.size());
 
         return response;
+    }
+
+    @Override
+    @Transactional
+    public void attachMedia(AttachMediaRequestDto request) {
+        String s3Key = request.s3Key();
+
+        if (aboutPageMediaRepository.existsByS3Key(s3Key)) {
+            log.warn("Media with S3 key {} is already attached to About page", s3Key);
+            throw new BadRequestException("This media file is already attached.");
+        }
+
+        StorageObjectMetadata metadata = objectStorageService.getObjectMetadata(s3Key);
+
+        MediaType mediaType = mediaFileTypeRules.mediaTypeForContentType(metadata.contentType())
+                .orElseThrow(() -> new BadRequestException("Unsupported media content type from S3"));
+
+        Long aboutPageId = 1L;
+        int nextDisplayOrder = aboutPageMediaRepository.findMaxDisplayOrderByAboutPageId(aboutPageId) + 1;
+
+        AboutPageMedia media = new AboutPageMedia();
+        media.setAboutPageId(aboutPageId);
+        media.setS3Key(s3Key);
+        media.setMediaType(mediaType.name());
+        media.setDisplayOrder(nextDisplayOrder);
+
+        aboutPageMediaRepository.save(media);
+
+        try {
+            objectStorageService.markObjectAsAttached(s3Key);
+        } catch (Exception e) {
+            log.warn("Failed to update S3 tags for {}. Tigris might not support tagging yet. Error: {}",
+                    s3Key, e.getMessage());
+        }
+
+        log.info("Successfully attached media {} to About page with order {}", s3Key, nextDisplayOrder);
     }
 
     private AboutPageContent findContentOrThrow() {

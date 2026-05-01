@@ -52,7 +52,9 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/files/presign/upload"
+                                "/files/presign/upload",
+                                "/api/about/media/attach",
+                                "/api/reviews/*/media/attach"
                         ).hasRole("ADMIN")
                         .requestMatchers(
                                 HttpMethod.GET,
