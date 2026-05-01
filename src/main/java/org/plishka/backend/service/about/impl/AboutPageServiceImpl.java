@@ -30,7 +30,6 @@ public class AboutPageServiceImpl implements AboutPageService {
     private final AboutPageMediaRepository mediaRepository;
     private final ObjectStorageService objectStorageService;
     private final MediaFileTypeRules mediaFileTypeRules;
-    private final AboutPageMediaRepository aboutPageMediaRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,7 +54,7 @@ public class AboutPageServiceImpl implements AboutPageService {
     public void attachMedia(AttachMediaRequestDto request) {
         String s3Key = request.s3Key();
 
-        if (aboutPageMediaRepository.existsByS3Key(s3Key)) {
+        if (mediaRepository.existsByS3Key(s3Key)) {
             log.warn("Media with S3 key {} is already attached to About page", s3Key);
             throw new BadRequestException("This media file is already attached.");
         }
@@ -65,16 +64,15 @@ public class AboutPageServiceImpl implements AboutPageService {
         MediaType mediaType = mediaFileTypeRules.mediaTypeForContentType(metadata.contentType())
                 .orElseThrow(() -> new BadRequestException("Unsupported media content type from S3"));
 
-        Long aboutPageId = 1L;
-        int nextDisplayOrder = aboutPageMediaRepository.findMaxDisplayOrderByAboutPageId(aboutPageId) + 1;
+        int nextDisplayOrder = mediaRepository.findMaxDisplayOrderByAboutPageId(SINGLETON_CONTENT_ID) + 1;
 
         AboutPageMedia media = new AboutPageMedia();
-        media.setAboutPageId(aboutPageId);
+        media.setAboutPageId(SINGLETON_CONTENT_ID);
         media.setS3Key(s3Key);
         media.setMediaType(mediaType.name());
         media.setDisplayOrder(nextDisplayOrder);
 
-        aboutPageMediaRepository.save(media);
+        mediaRepository.save(media);
 
         try {
             objectStorageService.markObjectAsAttached(s3Key);
