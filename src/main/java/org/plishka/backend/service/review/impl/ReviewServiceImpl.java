@@ -128,12 +128,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewMediaRepository.save(media);
 
-        try {
-            objectStorageService.markObjectAsAttached(s3Key);
-        } catch (Exception e) {
-            log.warn("Failed to update S3 tags for {}. Tigris might not support tagging yet. Error: {}",
-                    s3Key, e.getMessage());
-        }
+        objectStorageService.markObjectAsAttached(s3Key);
 
         log.info("Successfully attached media {} to Review {} with primary status: {}", s3Key, reviewId, isFirstMedia);
     }
