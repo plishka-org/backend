@@ -53,8 +53,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/files/presign/upload",
-                                "/about/media/attach",
-                                "/reviews/*/media/attach"
+                                "/admin/about/media/attach",
+                                "/admin/reviews/*/media/attach"
                         ).hasRole("ADMIN")
                         .requestMatchers(
                                 HttpMethod.GET,

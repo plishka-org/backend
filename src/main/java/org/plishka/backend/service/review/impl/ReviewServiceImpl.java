@@ -20,6 +20,8 @@ import org.plishka.backend.service.review.ReviewService;
 import org.plishka.backend.service.storage.ObjectStorageService;
 import org.plishka.backend.service.storage.model.StorageObjectMetadata;
 import org.plishka.backend.service.storage.validation.MediaFileTypeRules;
+import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -33,13 +35,14 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMediaRepository reviewMediaRepository;
     private final ObjectStorageService objectStorageService;
     private final MediaFileTypeRules mediaFileTypeRules;
+    private final S3ObjectKeyValidator s3ObjectKeyValidator;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ReviewDto> getApprovedReviews(int page, int size) {
         log.debug("Fetching approved reviews: page={}, size={}", page, size);
 
-        Page<Review> reviewPage = reviewRepository.findAllByIsApprovedTrueOrderByCreatedAtDesc(
+        Page<Review> reviewPage = reviewRepository.findAllByOrderByCreatedAtDesc(
                 PageRequest.of(page, size)
         );
 
@@ -48,9 +51,9 @@ public class ReviewServiceImpl implements ReviewService {
                 .toList();
 
         Map<Long, List<ReviewMedia>> mediaByReviewId = reviewMediaRepository
-                .findAllByReviewIdInOrderByDisplayOrderAsc(reviewIds)
+                .findAllByReview_IdInOrderByDisplayOrderAsc(reviewIds)
                 .stream()
-                .collect(Collectors.groupingBy(ReviewMedia::getReviewId));
+                .collect(Collectors.groupingBy(m -> m.getReview().getId()));
 
         List<ReviewDto> content = reviewPage.getContent().stream()
                 .map(review -> mapToReviewDto(review, mediaByReviewId.getOrDefault(review.getId(), List.of())))
@@ -73,7 +76,7 @@ public class ReviewServiceImpl implements ReviewService {
     public List<ReviewDto> getFeaturedReviews() {
         log.debug("Fetching featured reviews");
 
-        List<Review> featuredReviews = reviewRepository.findAllByIsApprovedTrueAndIsFeaturedTrueOrderByCreatedAtDesc();
+        List<Review> featuredReviews = reviewRepository.findAllByIsFeaturedTrueOrderByCreatedAtDesc();
 
         if (featuredReviews.isEmpty()) {
             return List.of();
@@ -84,9 +87,9 @@ public class ReviewServiceImpl implements ReviewService {
                 .toList();
 
         Map<Long, List<ReviewMedia>> mediaByReviewId = reviewMediaRepository
-                .findAllByReviewIdInOrderByDisplayOrderAsc(reviewIds)
+                .findAllByReview_IdInOrderByDisplayOrderAsc(reviewIds)
                 .stream()
-                .collect(Collectors.groupingBy(ReviewMedia::getReviewId));
+                .collect(Collectors.groupingBy(m -> m.getReview().getId()));
 
         List<ReviewDto> result = featuredReviews.stream()
                 .map(review -> mapToReviewDto(review, mediaByReviewId.getOrDefault(review.getId(), List.of())))
@@ -100,11 +103,18 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void attachMedia(Long reviewId, AttachMediaRequestDto request) {
-        String s3Key = request.s3Key();
+        S3ObjectKeyValidator.ValidatedS3ObjectKey validatedKey =
+                s3ObjectKeyValidator.validateAndParseS3Key(request.s3Key());
 
-        if (!reviewRepository.existsById(reviewId)) {
-            throw new ResourceNotFoundException("Review with ID " + reviewId + " not found");
+        if (validatedKey.targetType() != org.plishka.backend.domain.media.MediaTargetType.REVIEW
+                || !validatedKey.targetId().equals(reviewId)) {
+            throw new BadRequestException("S3 key does not match review target");
         }
+
+        String s3Key = validatedKey.value();
+
+        Review review = reviewRepository.findByIdForUpdate(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review with ID " + reviewId + " not found"));
 
         if (reviewMediaRepository.existsByS3Key(s3Key)) {
             log.warn("Media with S3 key {} is already attached to Review {}", s3Key, reviewId);
@@ -116,21 +126,24 @@ public class ReviewServiceImpl implements ReviewService {
         MediaType mediaType = mediaFileTypeRules.mediaTypeForContentType(metadata.contentType())
                 .orElseThrow(() -> new BadRequestException("Unsupported media content type from S3"));
 
-        int nextDisplayOrder = reviewMediaRepository.findMaxDisplayOrderByReviewId(reviewId) + 1;
-        boolean isFirstMedia = (nextDisplayOrder == 1);
+        if (mediaType != validatedKey.mediaType()) {
+            throw new BadRequestException("S3 key media type does not match file content type");
+        }
 
-        ReviewMedia media = new ReviewMedia();
-        media.setReviewId(reviewId);
-        media.setS3Key(s3Key);
-        media.setMediaType(mediaType.name());
-        media.setDisplayOrder(nextDisplayOrder);
-        media.setIsPrimary(isFirstMedia);
+        ReviewMedia media = buildReviewMedia(review, s3Key, mediaType);
 
-        reviewMediaRepository.save(media);
+        try {
+            reviewMediaRepository.saveAndFlush(media);
+        } catch (DataIntegrityViolationException exception) {
+            log.warn("Failed to attach media {} because it conflicts with existing Review {} media",
+                    s3Key, reviewId, exception);
+            throw new BadRequestException("This media file is already attached or media order has changed.");
+        }
 
         objectStorageService.markObjectAsAttached(s3Key);
 
-        log.info("Successfully attached media {} to Review {} with primary status: {}", s3Key, reviewId, isFirstMedia);
+        log.info("Successfully attached media {} to Review {} with primary status: {}", s3Key,
+                reviewId, media.getIsPrimary());
     }
 
     private ReviewDto mapToReviewDto(Review review, List<ReviewMedia> mediaList) {
@@ -150,5 +163,19 @@ public class ReviewServiceImpl implements ReviewService {
                 review.getCreatedAt(),
                 mediaDtos
         );
+    }
+
+    private ReviewMedia buildReviewMedia(Review review, String s3Key, MediaType mediaType) {
+        int nextDisplayOrder = reviewMediaRepository.findMaxDisplayOrderByReviewId(review.getId()) + 1;
+        boolean isFirstMedia = (nextDisplayOrder == 1);
+
+        ReviewMedia media = new ReviewMedia();
+        media.setReview(review);
+        media.setS3Key(s3Key);
+        media.setMediaType(mediaType);
+        media.setDisplayOrder(nextDisplayOrder);
+        media.setIsPrimary(isFirstMedia);
+
+        return media;
     }
 }

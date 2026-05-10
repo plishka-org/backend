@@ -38,8 +38,8 @@ import org.hibernate.annotations.CreationTimestamp;
 public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "password_reset_token_id")
-    private Long passwordResetTokenId;
+    @Column(name = "id")
+    private Long id;
 
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;

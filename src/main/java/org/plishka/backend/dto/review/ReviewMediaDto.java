@@ -1,9 +1,11 @@
 package org.plishka.backend.dto.review;
 
+import org.plishka.backend.domain.media.MediaType;
+
 public record ReviewMediaDto(
         Long id,
         String s3Key,
-        String mediaType,
+        MediaType mediaType,
         Boolean isPrimary
 ) {
 }

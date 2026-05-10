@@ -28,18 +28,32 @@ public class S3ObjectKeyValidator {
 
     private final MediaFileTypeRules mediaFileTypeRules;
 
-    public String validateAndNormalizeS3Key(String s3Key) {
+    public record ValidatedS3ObjectKey(
+            String value,
+            MediaTargetType targetType,
+            Long targetId,
+            MediaType mediaType
+    ) {
+    }
+
+    public ValidatedS3ObjectKey validateAndParseS3Key(String s3Key) {
         String normalizedKey = normalizeS3Key(s3Key);
         String[] keyParts = splitKey(normalizedKey);
 
-        requireTargetType(keyParts[TARGET_TYPE_PART]);
-        requireTargetId(keyParts[TARGET_ID_PART]);
-        MediaType mediaType = resolveMediaType(keyParts[MEDIA_TYPE_PART]);
+        final MediaType mediaType = resolveMediaType(keyParts[MEDIA_TYPE_PART]);
+
         requireYear(keyParts[YEAR_PART]);
         requireMonth(keyParts[MONTH_PART]);
         validateFilename(keyParts[FILENAME_PART], mediaType);
 
-        return normalizedKey;
+        final MediaTargetType targetType = resolveTargetType(keyParts[TARGET_TYPE_PART]);
+        final Long targetId = resolveTargetId(keyParts[TARGET_ID_PART]);
+
+        return new ValidatedS3ObjectKey(normalizedKey, targetType, targetId, mediaType);
+    }
+
+    public String validateAndNormalizeS3Key(String s3Key) {
+        return validateAndParseS3Key(s3Key).value();
     }
 
     private String normalizeS3Key(String s3Key) {
@@ -59,14 +73,18 @@ public class S3ObjectKeyValidator {
         return parts;
     }
 
-    private void requireTargetType(String keySegment) {
-        if (MediaTargetType.fromKeySegment(keySegment).isEmpty()) {
-            throw new BadRequestException(INVALID_KEY_FORMAT_MESSAGE);
-        }
+    private MediaTargetType resolveTargetType(String keySegment) {
+        return MediaTargetType.fromKeySegment(keySegment)
+                .orElseThrow(() -> new BadRequestException(INVALID_KEY_FORMAT_MESSAGE));
     }
 
-    private void requireTargetId(String targetId) {
-        requireMatches(POSITIVE_LONG_PATTERN, targetId);
+    private Long resolveTargetId(String targetIdSegment) {
+        requireMatches(POSITIVE_LONG_PATTERN, targetIdSegment);
+        try {
+            return Long.parseLong(targetIdSegment);
+        } catch (NumberFormatException exception) {
+            throw new BadRequestException(INVALID_KEY_FORMAT_MESSAGE);
+        }
     }
 
     private MediaType resolveMediaType(String keyFolder) {

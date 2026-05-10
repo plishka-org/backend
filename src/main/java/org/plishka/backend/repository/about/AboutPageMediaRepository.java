@@ -9,10 +9,10 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AboutPageMediaRepository extends JpaRepository<AboutPageMedia, Long> {
-    List<AboutPageMedia> findAllByAboutPageIdOrderByDisplayOrderAsc(Long aboutPageId);
+    List<AboutPageMedia> findAllByAboutPage_IdOrderByDisplayOrderAsc(Long aboutPageId);
 
     boolean existsByS3Key(String s3Key);
 
-    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM AboutPageMedia m WHERE m.aboutPageId = :aboutPageId")
+    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM AboutPageMedia m WHERE m.aboutPage.id = :aboutPageId")
     Integer findMaxDisplayOrderByAboutPageId(@Param("aboutPageId") Long aboutPageId);
 }

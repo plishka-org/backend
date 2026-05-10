@@ -63,7 +63,7 @@ public class SchedulerService {
         }
 
         List<Long> userIds = usersToDelete.stream()
-                .map(User::getUserId)
+                .map(User::getId)
                 .toList();
 
         int deletedUsers = userRepository.deleteAllByIdIn(userIds);

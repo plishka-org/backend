@@ -7,7 +7,7 @@ databaseChangeLog:
             tableName: refresh_tokens
             columns:
               - column:
-                  name: refresh_token_id
+                  name: id
                   type: BIGINT
                   autoIncrement: true
                   constraints:
@@ -51,7 +51,7 @@ databaseChangeLog:
             baseTableName: refresh_tokens
             baseColumnNames: user_id
             referencedTableName: users
-            referencedColumnNames: user_id
+            referencedColumnNames: id
             constraintName: fk_refresh_tokens_user
             onDelete: CASCADE
         - createIndex:

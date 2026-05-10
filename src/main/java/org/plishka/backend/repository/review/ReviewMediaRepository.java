@@ -9,10 +9,10 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ReviewMediaRepository extends JpaRepository<ReviewMedia, Long> {
-    List<ReviewMedia> findAllByReviewIdInOrderByDisplayOrderAsc(List<Long> reviewIds);
+    List<ReviewMedia> findAllByReview_IdInOrderByDisplayOrderAsc(List<Long> reviewIds);
 
     boolean existsByS3Key(String s3Key);
 
-    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM ReviewMedia m WHERE m.reviewId = :reviewId")
+    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM ReviewMedia m WHERE m.review.id = :reviewId")
     Integer findMaxDisplayOrderByReviewId(@Param("reviewId") Long reviewId);
 }

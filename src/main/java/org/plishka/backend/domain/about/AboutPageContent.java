@@ -4,7 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,14 +21,23 @@ public class AboutPageContent {
     @Column(name = "id", nullable = false)
     private Long id = 1L;
 
+    @Column(name = "history_title", nullable = false, length = 255)
+    private String historyTitle;
+
     @Column(name = "history_text", columnDefinition = "TEXT", nullable = false)
     private String historyText;
 
+    @Column(name = "current_title", nullable = false, length = 255)
+    private String currentTitle;
+
+    @Column(name = "current_text", columnDefinition = "TEXT", nullable = false)
+    private String currentText;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

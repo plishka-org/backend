@@ -97,7 +97,7 @@ public class AuthServiceImpl implements AuthService {
                 new EmailVerificationRequestedEvent(user.getEmail(), buildVerificationLink(rawVerificationToken))
         );
 
-        log.info("User registered: userId={}, email={}", user.getUserId(), user.getEmail());
+        log.info("User registered: userId={}, email={}", user.getId(), user.getEmail());
     }
 
     @Override
@@ -105,7 +105,7 @@ public class AuthServiceImpl implements AuthService {
     public void verifyEmail(String rawToken) {
         EmailVerificationToken verificationToken = findEmailVerificationTokenOrThrow(rawToken);
 
-        User user = userRepository.findByIdForUpdate(verificationToken.getUser().getUserId())
+        User user = userRepository.findByIdForUpdate(verificationToken.getUser().getId())
                 .orElseThrow(() -> new InvalidVerificationTokenException("User not found"));
 
         if (user.isEmailVerified()) {
@@ -122,7 +122,7 @@ public class AuthServiceImpl implements AuthService {
         user.setEmailVerified(true);
         emailVerificationTokenRepository.deleteAllByUser(user);
 
-        log.info("Email verified successfully, userId={}", user.getUserId());
+        log.info("Email verified successfully, userId={}", user.getId());
     }
 
     @Override
@@ -150,7 +150,7 @@ public class AuthServiceImpl implements AuthService {
                     log.info(
                             "Verification email resent: email={}, userId={}",
                             user.getEmail(),
-                            user.getUserId()
+                            user.getId()
                     );
                 });
     }
@@ -182,7 +182,7 @@ public class AuthServiceImpl implements AuthService {
                     log.info(
                             "Password reset requested: email={}, userId={}",
                             user.getEmail(),
-                            user.getUserId()
+                            user.getId()
                     );
                 });
     }
@@ -192,7 +192,7 @@ public class AuthServiceImpl implements AuthService {
     public void resetPassword(ResetPasswordRequestDto request) {
         PasswordResetToken passwordResetToken = findPasswordResetTokenOrThrow(request.token());
 
-        User lockedUser = userRepository.findByIdForUpdate(passwordResetToken.getUser().getUserId())
+        User lockedUser = userRepository.findByIdForUpdate(passwordResetToken.getUser().getId())
                 .orElseThrow(() -> new InvalidPasswordResetTokenException("User not found"));
 
         // Lock the token row only after the User row is locked to keep the order: User -> token rows.
@@ -203,12 +203,12 @@ public class AuthServiceImpl implements AuthService {
         }
 
         lockedUser.setPasswordHash(passwordEncoder.encode(request.password()));
-        refreshTokenRepository.deleteAllByUserId(lockedUser.getUserId());
+        refreshTokenRepository.deleteAllByUserId(lockedUser.getId());
         passwordResetTokenRepository.deleteAllByUser(lockedUser);
 
         log.info(
                 "Password reset successful: userId={}, email={}",
-                lockedUser.getUserId(),
+                lockedUser.getId(),
                 lockedUser.getEmail()
         );
     }
@@ -221,14 +221,14 @@ public class AuthServiceImpl implements AuthService {
         User user = findUserByEmailOrThrow(normalizedEmail);
         validatePasswordOrThrow(request.password(), user);
 
-        User lockedUser = findUserByIdForUpdateOrThrow(user.getUserId());
+        User lockedUser = findUserByIdForUpdateOrThrow(user.getId());
         if (!lockedUser.getPasswordHash().equals(user.getPasswordHash())) {
             throw new AuthenticationFailedException("Invalid email or password");
         }
         validateUserCanAuthenticateOrThrow(lockedUser);
 
         String normalizedDeviceId = normalizeDeviceId(deviceId);
-        refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getUserId(), normalizedDeviceId);
+        refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getId(), normalizedDeviceId);
         refreshTokenRepository.flush();
 
         final String accessToken = jwtService.generateAccessToken(lockedUser);
@@ -238,7 +238,7 @@ public class AuthServiceImpl implements AuthService {
 
         log.info(
                 "Login successful: userId={}, email={}, deviceId={}",
-                lockedUser.getUserId(),
+                lockedUser.getId(),
                 lockedUser.getEmail(),
                 normalizedDeviceId
         );
@@ -252,14 +252,14 @@ public class AuthServiceImpl implements AuthService {
         String normalizedDeviceId = normalizeDeviceId(deviceId);
 
         RefreshToken currentToken = findRefreshTokenOrThrow(rawRefreshToken);
-        User lockedUser = findUserByIdForUpdateOrThrow(currentToken.getUser().getUserId());
+        User lockedUser = findUserByIdForUpdateOrThrow(currentToken.getUser().getId());
 
         // Lock the token row only after the User row is locked to keep the order: User -> token rows.
         currentToken = findRefreshTokenForUpdateOrThrow(rawRefreshToken);
         validateRefreshTokenOrThrow(currentToken, normalizedDeviceId);
         validateUserCanAuthenticateOrThrow(lockedUser);
 
-        refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getUserId(), normalizedDeviceId);
+        refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getId(), normalizedDeviceId);
         refreshTokenRepository.flush();
 
         final String newAccessToken = jwtService.generateAccessToken(lockedUser);
@@ -269,7 +269,7 @@ public class AuthServiceImpl implements AuthService {
 
         log.info(
                 "Token refresh successful: userId={}, email={}, deviceId={}",
-                lockedUser.getUserId(),
+                lockedUser.getId(),
                 lockedUser.getEmail(),
                 normalizedDeviceId
         );

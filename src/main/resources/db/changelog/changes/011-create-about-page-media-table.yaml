@@ -37,15 +37,21 @@ databaseChangeLog:
               - column:
                   name: created_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
               - column:
                   name: updated_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
+        - addUniqueConstraint:
+            tableName: about_page_media
+            columnNames: s3_key
+            constraintName: uk_about_page_media_s3_key
+        - addUniqueConstraint:
+            tableName: about_page_media
+            columnNames: about_page_id, display_order
+            constraintName: uk_about_page_media_about_page_id_display_order
         - createIndex:
             tableName: about_page_media
             indexName: idx_about_page_media_order

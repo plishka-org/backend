@@ -38,8 +38,8 @@ import org.hibernate.annotations.CreationTimestamp;
 public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "refresh_token_id")
-    private Long refreshTokenId;
+    @Column(name = "id")
+    private Long id;
 
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;

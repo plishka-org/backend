@@ -24,14 +24,14 @@ databaseChangeLog:
             baseTableName: users_roles
             baseColumnNames: user_id
             referencedTableName: users
-            referencedColumnNames: user_id
+            referencedColumnNames: id
             constraintName: fk_users_roles_user
             onDelete: CASCADE
         - addForeignKeyConstraint:
             baseTableName: users_roles
             baseColumnNames: role_id
             referencedTableName: roles
-            referencedColumnNames: role_id
+            referencedColumnNames: id
             constraintName: fk_users_roles_role
             onDelete: CASCADE
         - createIndex:

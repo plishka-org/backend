@@ -43,15 +43,21 @@ databaseChangeLog:
               - column:
                   name: created_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
               - column:
                   name: updated_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
+        - addUniqueConstraint:
+            tableName: review_media
+            columnNames: s3_key
+            constraintName: uk_review_media_s3_key
+        - addUniqueConstraint:
+            tableName: review_media
+            columnNames: review_id, display_order
+            constraintName: uk_review_media_review_id_display_order
         - createIndex:
             tableName: review_media
             indexName: idx_review_media_review_id

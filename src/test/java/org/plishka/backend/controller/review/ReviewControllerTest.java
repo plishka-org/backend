@@ -3,6 +3,7 @@ package org.plishka.backend.controller.review;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
+import org.plishka.backend.controller.admin.AdminReviewMediaController;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.exception.BadRequestException;
@@ -27,7 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ReviewController.class)
+@WebMvcTest({ReviewController.class, AdminReviewMediaController.class})
 @AutoConfigureMockMvc(addFilters = false)
 class ReviewControllerTest extends BaseControllerTest {
     @Autowired
@@ -70,7 +71,7 @@ class ReviewControllerTest extends BaseControllerTest {
 
         doNothing().when(reviewService).attachMedia(eq(reviewId), any(AttachMediaRequestDto.class));
 
-        mockMvc.perform(post("/reviews/{id}/media/attach", reviewId)
+        mockMvc.perform(post("/admin/reviews/{id}/media/attach", reviewId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -83,7 +84,7 @@ class ReviewControllerTest extends BaseControllerTest {
         Long reviewId = 1L;
         AttachMediaRequestDto request = new AttachMediaRequestDto("");
 
-        mockMvc.perform(post("/reviews/{id}/media/attach", reviewId)
+        mockMvc.perform(post("/admin/reviews/{id}/media/attach", reviewId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -97,7 +98,7 @@ class ReviewControllerTest extends BaseControllerTest {
         doThrow(new ResourceNotFoundException("Review not found"))
                 .when(reviewService).attachMedia(eq(notFoundReviewId), any(AttachMediaRequestDto.class));
 
-        mockMvc.perform(post("/reviews/{id}/media/attach", notFoundReviewId)
+        mockMvc.perform(post("/admin/reviews/{id}/media/attach", notFoundReviewId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
@@ -111,7 +112,7 @@ class ReviewControllerTest extends BaseControllerTest {
         doThrow(new BadRequestException("This media file is already attached."))
                 .when(reviewService).attachMedia(eq(reviewId), any(AttachMediaRequestDto.class));
 
-        mockMvc.perform(post("/reviews/{id}/media/attach", reviewId)
+        mockMvc.perform(post("/admin/reviews/{id}/media/attach", reviewId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());

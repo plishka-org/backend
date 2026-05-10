@@ -17,6 +17,8 @@ import org.plishka.backend.service.about.AboutPageService;
 import org.plishka.backend.service.storage.ObjectStorageService;
 import org.plishka.backend.service.storage.model.StorageObjectMetadata;
 import org.plishka.backend.service.storage.validation.MediaFileTypeRules;
+import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class AboutPageServiceImpl implements AboutPageService {
     private final AboutPageMediaRepository mediaRepository;
     private final ObjectStorageService objectStorageService;
     private final MediaFileTypeRules mediaFileTypeRules;
+    private final S3ObjectKeyValidator s3ObjectKeyValidator;
 
     @Override
     @Transactional(readOnly = true)
@@ -40,7 +43,12 @@ public class AboutPageServiceImpl implements AboutPageService {
         List<AboutPageMediaDto> media = getMediaForPage();
 
         AboutPageResponse response = new AboutPageResponse(
-                new AboutPageContentDto(content.getHistoryText()),
+                new AboutPageContentDto(
+                        content.getHistoryTitle(),
+                        content.getHistoryText(),
+                        content.getCurrentTitle(),
+                        content.getCurrentText()
+                ),
                 media
         );
 
@@ -52,7 +60,20 @@ public class AboutPageServiceImpl implements AboutPageService {
     @Override
     @Transactional
     public void attachMedia(AttachMediaRequestDto request) {
-        String s3Key = request.s3Key();
+        S3ObjectKeyValidator.ValidatedS3ObjectKey validatedKey =
+                s3ObjectKeyValidator.validateAndParseS3Key(request.s3Key());
+
+        if (validatedKey.targetType() != org.plishka.backend.domain.media.MediaTargetType.ABOUT
+                || !validatedKey.targetId().equals(SINGLETON_CONTENT_ID)) {
+            throw new BadRequestException("S3 key does not match about target");
+        }
+
+        String s3Key = validatedKey.value();
+
+        AboutPageContent content = contentRepository.findByIdForUpdate(SINGLETON_CONTENT_ID)
+                .orElseThrow(() -> new IllegalStateException(
+                        "About page content not found. Please verify database initialization."
+                ));
 
         if (mediaRepository.existsByS3Key(s3Key)) {
             log.warn("Media with S3 key {} is already attached to About page", s3Key);
@@ -64,19 +85,22 @@ public class AboutPageServiceImpl implements AboutPageService {
         MediaType mediaType = mediaFileTypeRules.mediaTypeForContentType(metadata.contentType())
                 .orElseThrow(() -> new BadRequestException("Unsupported media content type from S3"));
 
-        int nextDisplayOrder = mediaRepository.findMaxDisplayOrderByAboutPageId(SINGLETON_CONTENT_ID) + 1;
+        if (mediaType != validatedKey.mediaType()) {
+            throw new BadRequestException("S3 key media type does not match file content type");
+        }
 
-        AboutPageMedia media = new AboutPageMedia();
-        media.setAboutPageId(SINGLETON_CONTENT_ID);
-        media.setS3Key(s3Key);
-        media.setMediaType(mediaType.name());
-        media.setDisplayOrder(nextDisplayOrder);
+        AboutPageMedia media = buildAboutPageMedia(content, s3Key, mediaType);
 
-        mediaRepository.save(media);
+        try {
+            mediaRepository.saveAndFlush(media);
+        } catch (DataIntegrityViolationException exception) {
+            log.warn("Failed to attach media {} because it conflicts with existing About media", s3Key, exception);
+            throw new BadRequestException("This media file is already attached or media order has changed.");
+        }
 
         objectStorageService.markObjectAsAttached(s3Key);
 
-        log.info("Successfully attached media {} to About page with order {}", s3Key, nextDisplayOrder);
+        log.info("Successfully attached media {} to About page with order {}", s3Key, media.getDisplayOrder());
     }
 
     private AboutPageContent findContentOrThrow() {
@@ -87,7 +111,7 @@ public class AboutPageServiceImpl implements AboutPageService {
     }
 
     private List<AboutPageMediaDto> getMediaForPage() {
-        return mediaRepository.findAllByAboutPageIdOrderByDisplayOrderAsc(SINGLETON_CONTENT_ID)
+        return mediaRepository.findAllByAboutPage_IdOrderByDisplayOrderAsc(SINGLETON_CONTENT_ID)
                 .stream()
                 .map(this::mapToMediaDto)
                 .toList();
@@ -99,5 +123,17 @@ public class AboutPageServiceImpl implements AboutPageService {
                 media.getS3Key(),
                 media.getMediaType()
         );
+    }
+
+    private AboutPageMedia buildAboutPageMedia(AboutPageContent content, String s3Key, MediaType mediaType) {
+        int nextDisplayOrder = mediaRepository.findMaxDisplayOrderByAboutPageId(SINGLETON_CONTENT_ID) + 1;
+
+        AboutPageMedia media = new AboutPageMedia();
+        media.setAboutPage(content);
+        media.setS3Key(s3Key);
+        media.setMediaType(mediaType);
+        media.setDisplayOrder(nextDisplayOrder);
+
+        return media;
     }
 }

@@ -14,7 +14,7 @@ public final class UserPrincipalMapper {
                 .toList();
 
         return AuthenticatedUserPrincipal.builder()
-                .userId(user.getUserId())
+                .userId(user.getId())
                 .email(user.getEmail())
                 .passwordHash(user.getPasswordHash())
                 .accountNonLocked(!user.isBanned())
