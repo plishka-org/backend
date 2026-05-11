@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.review.ReviewDto;
 import org.plishka.backend.service.review.ReviewService;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/reviews")
 @RequiredArgsConstructor
-@Validated
 public class ReviewController {
     private final ReviewService reviewService;
 
@@ -28,7 +26,7 @@ public class ReviewController {
             @Max(value = 100, message = "Size must be <= 100")
             int size
     ) {
-        return reviewService.getApprovedReviews(page, size);
+        return reviewService.getReviews(page, size);
     }
 
     @GetMapping("/featured")

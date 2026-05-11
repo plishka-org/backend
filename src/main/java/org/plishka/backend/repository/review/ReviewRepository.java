@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.plishka.backend.domain.review.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Repository;
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     Page<Review> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    @EntityGraph(attributePaths = "media")
     List<Review> findAllByIsFeaturedTrueOrderByCreatedAtDesc();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

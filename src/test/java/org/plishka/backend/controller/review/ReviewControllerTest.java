@@ -43,7 +43,7 @@ class ReviewControllerTest extends BaseControllerTest {
     @Test
     void getReviews_ShouldReturnPaginatedReviewsAndStatus200() throws Exception {
         PageResponse mockResponse = new PageResponse<>(List.of(), 0, 16, 0, 0, true);
-        when(reviewService.getApprovedReviews(0, 16)).thenReturn(mockResponse);
+        when(reviewService.getReviews(0, 16)).thenReturn(mockResponse);
 
         mockMvc.perform(get("/reviews")
                         .param("page", "0")

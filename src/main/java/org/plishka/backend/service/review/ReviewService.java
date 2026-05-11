@@ -6,7 +6,7 @@ import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.dto.review.ReviewDto;
 
 public interface ReviewService {
-    PageResponse<ReviewDto> getApprovedReviews(int page, int size);
+    PageResponse<ReviewDto> getReviews(int page, int size);
 
     List<ReviewDto> getFeaturedReviews();
 

@@ -21,7 +21,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             delete from User u
             where u.id in :userIds
             """)
-    int deleteAllByIdIn(List<Long> userIds);
+    int deleteAllByIdIn(@Param("userIds") List<Long> userIds);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

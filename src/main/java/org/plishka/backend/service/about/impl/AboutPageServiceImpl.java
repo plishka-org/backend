@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.about.AboutPageContent;
 import org.plishka.backend.domain.about.AboutPageMedia;
+import org.plishka.backend.domain.media.MediaTargetType;
 import org.plishka.backend.domain.media.MediaType;
 import org.plishka.backend.dto.about.AboutPageContentDto;
 import org.plishka.backend.dto.about.AboutPageMediaDto;
@@ -18,6 +19,7 @@ import org.plishka.backend.service.storage.ObjectStorageService;
 import org.plishka.backend.service.storage.model.StorageObjectMetadata;
 import org.plishka.backend.service.storage.validation.MediaFileTypeRules;
 import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator;
+import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator.ValidatedS3ObjectKey;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,47 +62,65 @@ public class AboutPageServiceImpl implements AboutPageService {
     @Override
     @Transactional
     public void attachMedia(AttachMediaRequestDto request) {
-        S3ObjectKeyValidator.ValidatedS3ObjectKey validatedKey =
-                s3ObjectKeyValidator.validateAndParseS3Key(request.s3Key());
+        ValidatedS3ObjectKey s3ObjectKey = validateAboutMediaKey(request.s3Key());
+        AboutPageContent content = lockContentOrThrow();
+        requireMediaNotAttached(s3ObjectKey.value());
 
-        if (validatedKey.targetType() != org.plishka.backend.domain.media.MediaTargetType.ABOUT
+        MediaType mediaType = resolveAndValidateMediaType(s3ObjectKey);
+        AboutPageMedia media = buildAboutPageMedia(content, s3ObjectKey.value(), mediaType);
+
+        saveMediaOrThrowConflict(media, s3ObjectKey.value());
+        objectStorageService.markObjectAsAttached(s3ObjectKey.value());
+
+        log.info("Successfully attached media {} to About page with order {}",
+                s3ObjectKey.value(), media.getDisplayOrder());
+    }
+
+    private ValidatedS3ObjectKey validateAboutMediaKey(String s3Key) {
+        ValidatedS3ObjectKey validatedKey = s3ObjectKeyValidator.validateAndParseS3Key(s3Key);
+
+        if (validatedKey.targetType() != MediaTargetType.ABOUT
                 || !validatedKey.targetId().equals(SINGLETON_CONTENT_ID)) {
             throw new BadRequestException("S3 key does not match about target");
         }
 
-        String s3Key = validatedKey.value();
+        return validatedKey;
+    }
 
-        AboutPageContent content = contentRepository.findByIdForUpdate(SINGLETON_CONTENT_ID)
+    private AboutPageContent lockContentOrThrow() {
+        return contentRepository.findByIdForUpdate(SINGLETON_CONTENT_ID)
                 .orElseThrow(() -> new IllegalStateException(
                         "About page content not found. Please verify database initialization."
                 ));
+    }
 
+    private void requireMediaNotAttached(String s3Key) {
         if (mediaRepository.existsByS3Key(s3Key)) {
             log.warn("Media with S3 key {} is already attached to About page", s3Key);
             throw new BadRequestException("This media file is already attached.");
         }
+    }
 
-        StorageObjectMetadata metadata = objectStorageService.getObjectMetadata(s3Key);
-
+    private MediaType resolveAndValidateMediaType(ValidatedS3ObjectKey s3ObjectKey) {
+        StorageObjectMetadata metadata = objectStorageService.getObjectMetadata(s3ObjectKey.value());
         MediaType mediaType = mediaFileTypeRules.mediaTypeForContentType(metadata.contentType())
                 .orElseThrow(() -> new BadRequestException("Unsupported media content type from S3"));
 
-        if (mediaType != validatedKey.mediaType()) {
+        if (mediaType != s3ObjectKey.mediaType()) {
             throw new BadRequestException("S3 key media type does not match file content type");
         }
 
-        AboutPageMedia media = buildAboutPageMedia(content, s3Key, mediaType);
+        return mediaType;
+    }
 
+    private void saveMediaOrThrowConflict(AboutPageMedia media, String s3Key) {
         try {
             mediaRepository.saveAndFlush(media);
         } catch (DataIntegrityViolationException exception) {
-            log.warn("Failed to attach media {} because it conflicts with existing About media", s3Key, exception);
+            log.warn("Failed to attach media {} because it conflicts with existing About media",
+                    s3Key, exception);
             throw new BadRequestException("This media file is already attached or media order has changed.");
         }
-
-        objectStorageService.markObjectAsAttached(s3Key);
-
-        log.info("Successfully attached media {} to About page with order {}", s3Key, media.getDisplayOrder());
     }
 
     private AboutPageContent findContentOrThrow() {
