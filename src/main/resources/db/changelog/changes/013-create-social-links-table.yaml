@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-178-create-social-links
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: social_links
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: url
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contacts_page_id
+                  type: BIGINT
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: social_links
+            indexName: idx_social_links_order
+            columns:
+              - column:
+                  name: display_order
+        - addForeignKeyConstraint:
+            baseTableName: social_links
+            baseColumnNames: contacts_page_id
+            constraintName: fk_social_links_contacts
+            referencedTableName: contacts_page
+            referencedColumnNames: id
+            onDelete: CASCADE

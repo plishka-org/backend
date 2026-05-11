@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-176-create-home-page-content
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: home_page_content
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE home_page_content ADD CONSTRAINT chk_home_page_singleton CHECK (id = 1);

@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-177-create-about-page-media
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: about_page_media
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: about_page_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: s3_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: media_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: about_page_media
+            indexName: idx_about_page_media_order
+            columns:
+              - column:
+                  name: display_order
+        - addForeignKeyConstraint:
+            baseTableName: about_page_media
+            baseColumnNames: about_page_id
+            constraintName: fk_about_media_about_content
+            referencedTableName: about_page_content
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - sql:
+            sql: ALTER TABLE about_page_media ADD CONSTRAINT chk_about_media_type CHECK (media_type IN ('IMAGE', 'VIDEO'));

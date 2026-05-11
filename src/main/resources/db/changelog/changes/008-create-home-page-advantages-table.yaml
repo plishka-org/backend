@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-176-create-home-page-advantages
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: home_page_advantages
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: icon_s3_key
+                  type: VARCHAR(512)
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: home_page_advantages
+            indexName: idx_home_page_adv_order
+            columns:
+              - column:
+                  name: display_order

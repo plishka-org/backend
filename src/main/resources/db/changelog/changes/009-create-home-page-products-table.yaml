@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-176-create-home-page-products
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: home_page_products
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: home_page_products
+            indexName: idx_home_page_prod_order
+            columns:
+              - column:
+                  name: display_order
+        - createIndex:
+            tableName: home_page_products
+            indexName: idx_home_page_prod_product_id
+            columns:
+              - column:
+                  name: product_id

@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-177-create-about-page-content
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: about_page_content
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: history_text
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: CURRENT_TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE about_page_content ADD CONSTRAINT chk_about_page_singleton CHECK (id = 1);
