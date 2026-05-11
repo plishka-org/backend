@@ -13,20 +13,33 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
+                  name: history_title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
                   name: history_text
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: current_title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: current_text
                   type: TEXT
                   constraints:
                     nullable: false
               - column:
                   name: created_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
               - column:
                   name: updated_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
         - sql:

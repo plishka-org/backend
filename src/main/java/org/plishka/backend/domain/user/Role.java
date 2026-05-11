@@ -23,8 +23,8 @@ import org.springframework.security.core.GrantedAuthority;
 public class Role implements GrantedAuthority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "role_id")
-    private Long roleId;
+    @Column(name = "id")
+    private Long id;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "name", nullable = false, length = 20)

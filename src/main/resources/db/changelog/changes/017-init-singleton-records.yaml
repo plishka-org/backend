@@ -15,6 +15,12 @@ databaseChangeLog:
               - column:
                   name: description
                   value: 'Коротка інформація про майстерню. Зв''яжіться з нами для замовлення!'
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
 
         - insert:
             tableName: about_page_content
@@ -23,8 +29,23 @@ databaseChangeLog:
                   name: id
                   valueNumeric: 1
               - column:
+                  name: history_title
+                  value: 'PLISHKA — ЦЕ ІСТОРІЯ, ЩО ПОЧАЛАСЯ З ДЕРЕВА'
+              - column:
                   name: history_text
-                  value: 'Наша домашня майстерня створює автентичні дерев''яні вироби з душею: від сувенірів до садових скульптур та альтанок.'
+                  value: 'Назва бренду народилася у 2022 році — прямо під час роботи над терасою. Стоячи на даху разом із командою, ми шукали слово, яке б передавало суть нашої справи: любов до дерева, майстерність і увагу до деталей. Ми хотіли, щоб назва звучала легко, запам’ятовувалась і однаково гарно сприймалась українською та англійською. Так з’явилась Plishka — від слова «плішка», що означає тріску дерева, базовий елемент, з якого починається щось більше.'
+              - column:
+                  name: current_title
+                  value: 'PLISHKA — СЬОГОДНІ'
+              - column:
+                  name: current_text
+                  value: 'Сьогодні Plishka — це не просто майстерня. Це про створення виробів із характером: натуральних, довговічних і продуманих до дрібниць. Кожен наш проєкт — це баланс естетики, функціональності та ручної роботи.'
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
 
         - insert:
             tableName: contacts_page
@@ -41,6 +62,12 @@ databaseChangeLog:
               - column:
                   name: address
                   value: 'Косівщина, Україна'
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
 
         - insert:
             tableName: system_settings
@@ -51,3 +78,9 @@ databaseChangeLog:
               - column:
                   name: is_shop_mode_enabled
                   valueBoolean: false
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)

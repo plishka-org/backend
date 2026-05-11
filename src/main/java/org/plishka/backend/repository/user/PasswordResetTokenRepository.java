@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
     @EntityGraph(attributePaths = "user")
@@ -20,7 +21,7 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
             from PasswordResetToken prt
             where prt.tokenHash = :tokenHash
             """)
-    Optional<PasswordResetToken> findByTokenHashForUpdate(String tokenHash);
+    Optional<PasswordResetToken> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 
     void deleteAllByUser(User user);
 

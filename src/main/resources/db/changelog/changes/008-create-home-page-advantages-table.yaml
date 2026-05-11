@@ -33,13 +33,11 @@ databaseChangeLog:
               - column:
                   name: created_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
               - column:
                   name: updated_at
                   type: TIMESTAMP(6)
-                  defaultValueComputed: CURRENT_TIMESTAMP(6)
                   constraints:
                     nullable: false
         - createIndex:

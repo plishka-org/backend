@@ -38,8 +38,8 @@ import org.hibernate.annotations.CreationTimestamp;
 public class EmailVerificationToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "email_verification_token_id")
-    private Long emailVerificationTokenId;
+    @Column(name = "id")
+    private Long id;
 
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;

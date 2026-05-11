@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface EmailVerificationTokenRepository extends JpaRepository<EmailVerificationToken, Long> {
     @EntityGraph(attributePaths = "user")
@@ -20,7 +21,7 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
             from EmailVerificationToken evt
             where evt.tokenHash = :tokenHash
             """)
-    Optional<EmailVerificationToken> findByTokenHashForUpdate(String tokenHash);
+    Optional<EmailVerificationToken> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 
     void deleteAllByUser(User user);
 

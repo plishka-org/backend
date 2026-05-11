@@ -7,7 +7,7 @@ databaseChangeLog:
             tableName: roles
             columns:
               - column:
-                  name: role_id
+                  name: id
                   type: BIGINT
                   autoIncrement: true
                   constraints:
@@ -27,7 +27,7 @@ databaseChangeLog:
             tableName: roles
             columns:
               - column:
-                  name: role_id
+                  name: id
                   valueNumeric: 1
               - column:
                   name: name
@@ -36,7 +36,7 @@ databaseChangeLog:
             tableName: roles
             columns:
               - column:
-                  name: role_id
+                  name: id
                   valueNumeric: 2
               - column:
                   name: name

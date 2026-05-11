@@ -52,18 +52,20 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/files/presign/upload"
+                                "/files/presign/upload",
+                                "/admin/about/media/attach",
+                                "/admin/reviews/*/media/attach"
                         ).hasRole("ADMIN")
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify",
                                 "/version",
-                                "/api/home",
-                                "/api/about",
-                                "/api/contacts-page",
-                                "/api/reviews",
-                                "/api/reviews/featured",
-                                "/api/settings"
+                                "/home",
+                                "/about",
+                                "/contacts-page",
+                                "/reviews",
+                                "/reviews/featured",
+                                "/settings"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

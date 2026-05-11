@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "roles")
@@ -18,9 +19,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             delete from User u
-            where u.userId in :userIds
+            where u.id in :userIds
             """)
-    int deleteAllByIdIn(List<Long> userIds);
+    int deleteAllByIdIn(@Param("userIds") List<Long> userIds);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -28,15 +29,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
             from User u
             where u.email = :email
             """)
-    Optional<User> findByEmailForUpdate(String email);
+    Optional<User> findByEmailForUpdate(@Param("email") String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select u
             from User u
-            where u.userId = :userId
+            where u.id = :userId
             """)
-    Optional<User> findByIdForUpdate(Long userId);
+    Optional<User> findByIdForUpdate(@Param("userId") Long userId);
 
     Optional<User> findByEmail(String email);
 
@@ -47,5 +48,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
             where u.isEmailVerified = false
               and u.createdAt < :threshold
             """)
-    List<User> findUnverifiedUsersForCleanupForUpdate(Instant threshold);
+    List<User> findUnverifiedUsersForCleanupForUpdate(@Param("threshold") Instant threshold);
 }

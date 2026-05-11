@@ -1,13 +1,13 @@
 package org.plishka.backend.dto.review;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record ReviewDto(
         Long id,
         String authorName,
         String content,
-        LocalDateTime createdAt,
+        Instant createdAt,
         List<ReviewMediaDto> media
 ) {
 }

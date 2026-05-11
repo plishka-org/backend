@@ -2,11 +2,16 @@ package org.plishka.backend.domain.review;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,20 +35,18 @@ public class Review {
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "is_approved", columnDefinition = "TINYINT", nullable = false)
-    private Boolean isApproved = false;
-
     @Column(name = "is_featured", columnDefinition = "TINYINT", nullable = false)
     private Boolean isFeatured = false;
 
-    @Column(name = "user_id")
-    private Long userId;
+    @OneToMany(mappedBy = "review", fetch = FetchType.LAZY)
+    @OrderBy("displayOrder ASC")
+    private List<ReviewMedia> media = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

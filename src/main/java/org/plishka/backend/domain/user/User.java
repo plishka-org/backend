@@ -35,8 +35,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Long userId;
+    @Column(name = "id")
+    private Long id;
 
     @Column(name = "name", nullable = false, length = 50)
     private String name;

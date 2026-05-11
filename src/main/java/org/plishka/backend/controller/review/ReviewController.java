@@ -1,5 +1,7 @@
 package org.plishka.backend.controller.review;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.common.PageResponse;
@@ -18,10 +20,13 @@ public class ReviewController {
 
     @GetMapping
     public PageResponse<ReviewDto> getReviews(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "16") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be >= 0") int page,
+            @RequestParam(defaultValue = "16")
+            @Min(value = 1, message = "Size must be >= 1")
+            @Max(value = 100, message = "Size must be <= 100")
+            int size
     ) {
-        return reviewService.getApprovedReviews(page, size);
+        return reviewService.getReviews(page, size);
     }
 
     @GetMapping("/featured")

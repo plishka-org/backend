@@ -49,7 +49,7 @@ public class JwtServiceImpl implements JwtService {
 
         return Jwts.builder()
                 .subject(user.getEmail())
-                .claim(USER_ID_CLAIM, user.getUserId())
+                .claim(USER_ID_CLAIM, user.getId())
                 .claim(ROLES_CLAIM, roles)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(accessTokenExpiration)))
