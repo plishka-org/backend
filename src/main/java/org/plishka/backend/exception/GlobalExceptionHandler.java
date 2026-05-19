@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.TokenStreamLocation;
 import tools.jackson.core.exc.StreamReadException;
@@ -144,6 +145,14 @@ public class GlobalExceptionHandler {
                 List.of(formatValidationMessage(exception.getHeaderName(), REQUIRED_HEADER_MISSING_MESSAGE)),
                 request
         );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ValidationErrorResponseDto> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request
+    ) {
+        return buildValidationErrorResponse(extractTypeMismatchErrors(exception), request);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -278,6 +287,18 @@ public class GlobalExceptionHandler {
         }
 
         return List.copyOf(fieldErrors);
+    }
+
+    private List<String> extractTypeMismatchErrors(MethodArgumentTypeMismatchException exception) {
+        Class<?> requiredType = exception.getRequiredType();
+        String typeName = requiredType != null ? requiredType.getSimpleName() : "unknown";
+
+        Object value = exception.getValue();
+        String message = value == null
+                ? "Invalid value null, expected %s".formatted(typeName)
+                : "Invalid value '%s', expected %s".formatted(value, typeName);
+
+        return List.of(formatValidationMessage(exception.getName(), message));
     }
 
     private List<String> extractRequestBodyReadErrors(HttpMessageNotReadableException exception) {
