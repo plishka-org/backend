@@ -292,7 +292,11 @@ public class GlobalExceptionHandler {
     private List<String> extractTypeMismatchErrors(MethodArgumentTypeMismatchException exception) {
         Class<?> requiredType = exception.getRequiredType();
         String typeName = requiredType != null ? requiredType.getSimpleName() : "unknown";
-        String message = "Invalid value '%s', expected %s".formatted(exception.getValue(), typeName);
+
+        Object value = exception.getValue();
+        String message = value == null
+                ? "Invalid value null, expected %s".formatted(typeName)
+                : "Invalid value '%s', expected %s".formatted(value, typeName);
 
         return List.of(formatValidationMessage(exception.getName(), message));
     }
