@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 001-create-users-table
-      author: codex
+      author: plishka-backend
       changes:
         - createTable:
             tableName: users

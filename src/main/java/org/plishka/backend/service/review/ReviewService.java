@@ -1,14 +1,14 @@
 package org.plishka.backend.service.review;
 
-import java.util.List;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
-import org.plishka.backend.dto.review.ReviewDto;
+import org.plishka.backend.dto.review.ReviewDetailDto;
+import org.plishka.backend.dto.review.ReviewSummaryDto;
 
 public interface ReviewService {
-    PageResponse<ReviewDto> getReviews(int page, int size);
+    PageResponse<ReviewSummaryDto> getReviews(int page, int size);
 
-    List<ReviewDto> getFeaturedReviews();
+    ReviewDetailDto getReview(Long id);
 
     void attachMedia(Long reviewId, AttachMediaRequestDto request);
 }

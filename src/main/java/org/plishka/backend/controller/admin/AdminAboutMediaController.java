@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/about/media")
+@RequestMapping("/admin/about")
 @RequiredArgsConstructor
 public class AdminAboutMediaController {
     private final AboutPageService aboutPageService;
 
-    @PostMapping("/attach")
+    @PostMapping("/media/attach")
     public void attachMedia(@Valid @RequestBody AttachMediaRequestDto request) {
         aboutPageService.attachMedia(request);
     }

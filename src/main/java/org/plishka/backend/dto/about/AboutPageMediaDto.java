@@ -3,7 +3,7 @@ package org.plishka.backend.dto.about;
 import org.plishka.backend.domain.media.MediaType;
 
 public record AboutPageMediaDto(
-        Long id,
+        Long aboutPageMediaId,
         String s3Key,
         MediaType mediaType
 ) {

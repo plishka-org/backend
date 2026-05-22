@@ -9,6 +9,7 @@ import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.service.file.MediaReferenceHandler;
 import org.plishka.backend.service.file.MediaReferenceService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MediaReferenceServiceImpl implements MediaReferenceService {
@@ -32,6 +33,16 @@ public class MediaReferenceServiceImpl implements MediaReferenceService {
         return findHandlerByS3Key(s3Key)
                 .map(handler -> handler.existsByS3Key(s3Key))
                 .orElse(false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findAllAttachedS3Keys() {
+        return handlersByTargetType.values()
+                .stream()
+                .flatMap(handler -> handler.findAttachedS3Keys().stream())
+                .distinct()
+                .toList();
     }
 
     private Map<MediaTargetType, MediaReferenceHandler> mapHandlersByTargetType(List<MediaReferenceHandler> handlers) {

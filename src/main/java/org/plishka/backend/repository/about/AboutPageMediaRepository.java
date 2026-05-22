@@ -13,6 +13,9 @@ public interface AboutPageMediaRepository extends JpaRepository<AboutPageMedia, 
 
     boolean existsByS3Key(String s3Key);
 
+    @Query("SELECT m.s3Key FROM AboutPageMedia m")
+    List<String> findAllS3Keys();
+
     @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM AboutPageMedia m WHERE m.aboutPage.id = :aboutPageId")
     Integer findMaxDisplayOrderByAboutPageId(@Param("aboutPageId") Long aboutPageId);
 }

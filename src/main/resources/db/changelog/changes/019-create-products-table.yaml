@@ -1,0 +1,67 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-182-create-products
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: products
+            columnNames: name
+            constraintName: uk_products_name
+        - createIndex:
+            tableName: products
+            indexName: idx_products_category_name_id
+            columns:
+              - column:
+                  name: category_id
+              - column:
+                  name: name
+              - column:
+                  name: id
+        - addForeignKeyConstraint:
+            baseTableName: products
+            baseColumnNames: category_id
+            constraintName: fk_products_category
+            referencedTableName: categories
+            referencedColumnNames: id
+        - sql:
+            sql: ALTER TABLE products ADD CONSTRAINT chk_products_price_positive CHECK (price > 0);

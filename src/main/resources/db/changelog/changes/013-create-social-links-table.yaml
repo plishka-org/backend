@@ -45,12 +45,10 @@ databaseChangeLog:
                   type: TIMESTAMP(6)
                   constraints:
                     nullable: false
-        - createIndex:
+        - addUniqueConstraint:
             tableName: social_links
-            indexName: idx_social_links_order
-            columns:
-              - column:
-                  name: display_order
+            columnNames: contacts_page_id, display_order
+            constraintName: uq_social_links_contacts_page_display_order
         - addForeignKeyConstraint:
             baseTableName: social_links
             baseColumnNames: contacts_page_id

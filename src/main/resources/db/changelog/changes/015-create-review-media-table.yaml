@@ -35,6 +35,9 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: primary_review_id
+                  type: BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary = TRUE THEN review_id ELSE NULL END)
+              - column:
                   name: display_order
                   type: INT
                   defaultValueNumeric: 0
@@ -58,12 +61,10 @@ databaseChangeLog:
             tableName: review_media
             columnNames: review_id, display_order
             constraintName: uk_review_media_review_id_display_order
-        - createIndex:
+        - addUniqueConstraint:
             tableName: review_media
-            indexName: idx_review_media_review_id
-            columns:
-              - column:
-                  name: review_id
+            columnNames: primary_review_id
+            constraintName: uk_review_media_single_primary
         - addForeignKeyConstraint:
             baseTableName: review_media
             baseColumnNames: review_id
@@ -73,3 +74,5 @@ databaseChangeLog:
             onDelete: CASCADE
         - sql:
             sql: ALTER TABLE review_media ADD CONSTRAINT chk_review_media_type CHECK (media_type IN ('IMAGE', 'VIDEO'));
+        - sql:
+            sql: ALTER TABLE review_media ADD CONSTRAINT chk_review_media_primary_image CHECK (is_primary = FALSE OR media_type = 'IMAGE');

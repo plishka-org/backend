@@ -1,0 +1,78 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-182-create-product-media
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: product_media
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: s3_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: media_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_primary
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: primary_product_id
+                  type: BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary = TRUE THEN product_id ELSE NULL END)
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: product_media
+            columnNames: s3_key
+            constraintName: uk_product_media_s3_key
+        - addUniqueConstraint:
+            tableName: product_media
+            columnNames: product_id, display_order
+            constraintName: uk_product_media_product_id_display_order
+        - addUniqueConstraint:
+            tableName: product_media
+            columnNames: primary_product_id
+            constraintName: uk_product_media_single_primary
+        - addForeignKeyConstraint:
+            baseTableName: product_media
+            baseColumnNames: product_id
+            constraintName: fk_product_media_product
+            referencedTableName: products
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - sql:
+            sql: ALTER TABLE product_media ADD CONSTRAINT chk_product_media_type CHECK (media_type IN ('IMAGE', 'VIDEO'));
+        - sql:
+            sql: ALTER TABLE product_media ADD CONSTRAINT chk_product_media_primary_image CHECK (is_primary = FALSE OR media_type = 'IMAGE');

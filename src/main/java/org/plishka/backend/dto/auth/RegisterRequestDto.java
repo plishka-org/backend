@@ -18,7 +18,7 @@ public record RegisterRequestDto(
 
         @NotBlank(message = "Email is required")
         @ValidEmail
-        @Size(min = 5, max = 128, message = "Email must be between 5 and 128 characters long")
+        @Size(min = 6, max = 128, message = "Email must be between 6 and 128 characters long")
         String email,
 
         @ValidPhone
