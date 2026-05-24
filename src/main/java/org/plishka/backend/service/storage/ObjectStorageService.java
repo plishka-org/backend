@@ -15,6 +15,8 @@ public interface ObjectStorageService {
 
     void markObjectAsAttached(String s3Key);
 
+    boolean isObjectMarkedAsAttached(String s3Key);
+
     List<String> findPendingUploadKeysOlderThan(Instant threshold);
 
     void deleteObject(String s3Key);

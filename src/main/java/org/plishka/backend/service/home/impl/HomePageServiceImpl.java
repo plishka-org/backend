@@ -1,19 +1,24 @@
 package org.plishka.backend.service.home.impl;
 
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.plishka.backend.domain.home.HomePageAdvantage;
 import org.plishka.backend.domain.home.HomePageContent;
 import org.plishka.backend.domain.home.HomePageProduct;
+import org.plishka.backend.domain.product.Product;
+import org.plishka.backend.domain.product.ProductMedia;
 import org.plishka.backend.dto.home.HomePageAdvantageDto;
-import org.plishka.backend.dto.home.HomePageContentDto;
 import org.plishka.backend.dto.home.HomePageProductDto;
 import org.plishka.backend.dto.home.HomePageResponse;
+import org.plishka.backend.dto.home.HomePageReviewDto;
+import org.plishka.backend.mapper.home.HomePageMapper;
 import org.plishka.backend.repository.home.HomePageAdvantageRepository;
 import org.plishka.backend.repository.home.HomePageContentRepository;
 import org.plishka.backend.repository.home.HomePageProductRepository;
 import org.plishka.backend.service.home.HomePageService;
+import org.plishka.backend.service.product.ProductMediaQueryService;
+import org.plishka.backend.service.review.FeaturedReviewQueryService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class HomePageServiceImpl implements HomePageService {
     private static final long SINGLETON_CONTENT_ID = 1L;
+    private static final int FEATURED_REVIEWS_LIMIT = 5;
 
     private final HomePageContentRepository contentRepository;
     private final HomePageAdvantageRepository advantageRepository;
     private final HomePageProductRepository homePageProductRepository;
+    private final ProductMediaQueryService productMediaQueryService;
+    private final FeaturedReviewQueryService featuredReviewQueryService;
+    private final HomePageMapper homePageMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,18 +43,21 @@ public class HomePageServiceImpl implements HomePageService {
 
         HomePageContent content = findContentOrThrow();
         List<HomePageAdvantageDto> advantages = getAdvantages();
-        List<HomePageProductDto> products = getProducts();
+        List<HomePageProductDto> products = getHomePageProducts();
+        List<HomePageReviewDto> featuredReviews = getFeaturedReviews();
 
-        HomePageResponse response = new HomePageResponse(
-                mapToContentDto(content),
+        HomePageResponse response = homePageMapper.toResponse(
+                homePageMapper.toContentDto(content),
                 advantages,
-                products
+                products,
+                featuredReviews
         );
 
-        log.info(
-                "Home page data fetched successfully: advantagesCount={}, productsCount={}",
+        log.debug(
+                "Home page data fetched successfully: advantagesCount={}, productsCount={}, featuredReviewsCount={}",
                 advantages.size(),
-                products.size()
+                products.size(),
+                featuredReviews.size()
         );
 
         return response;
@@ -61,40 +73,37 @@ public class HomePageServiceImpl implements HomePageService {
     private List<HomePageAdvantageDto> getAdvantages() {
         return advantageRepository.findAllByOrderByDisplayOrderAsc()
                 .stream()
-                .map(this::mapToAdvantageDto)
+                .map(homePageMapper::toAdvantageDto)
                 .toList();
     }
 
-    private List<HomePageProductDto> getProducts() {
-        return homePageProductRepository.findAllByOrderByDisplayOrderAsc()
+    private List<HomePageProductDto> getHomePageProducts() {
+        List<HomePageProduct> homePageProducts = homePageProductRepository.findAllByOrderByDisplayOrderAsc();
+        Map<Long, ProductMedia> primaryMediaByProductId = productMediaQueryService.findPrimaryMediaForProducts(
+                extractProducts(homePageProducts)
+        );
+
+        return homePageProducts.stream()
+                .map(homePageProduct -> homePageMapper.toHomePageProductDto(
+                        homePageProduct,
+                        primaryMediaByProductId.get(homePageProduct.getProduct().getId())
+                ))
+                .toList();
+    }
+
+    private List<Product> extractProducts(List<HomePageProduct> homePageProducts) {
+        return homePageProducts.stream()
+                .map(HomePageProduct::getProduct)
+                .toList();
+    }
+
+    private List<HomePageReviewDto> getFeaturedReviews() {
+        return featuredReviewQueryService.findFeaturedReviews(FEATURED_REVIEWS_LIMIT)
                 .stream()
-                .map(this::mapToProductDto)
+                .map(featuredReview -> homePageMapper.toReviewDto(
+                        featuredReview.review(),
+                        featuredReview.media()
+                ))
                 .toList();
-    }
-
-    private HomePageContentDto mapToContentDto(HomePageContent content) {
-        return new HomePageContentDto(
-                content.getTitle(),
-                content.getDescription()
-        );
-    }
-
-    private HomePageAdvantageDto mapToAdvantageDto(HomePageAdvantage advantage) {
-        return new HomePageAdvantageDto(
-                advantage.getId(),
-                advantage.getTitle(),
-                advantage.getDescription(),
-                advantage.getIconS3Key()
-        );
-    }
-
-    private HomePageProductDto mapToProductDto(HomePageProduct product) {
-        // TODO: PLIS-XXX - Fetch real product name and photoUrl from ProductRepository
-        // when the Product entity is implemented.
-        return new HomePageProductDto(
-                product.getProductId(),
-                "Виріб #" + product.getProductId(),
-                null
-        );
     }
 }

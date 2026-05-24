@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 004-create-refresh-tokens-table
-      author: codex
+      author: plishka-backend
       changes:
         - createTable:
             tableName: refresh_tokens

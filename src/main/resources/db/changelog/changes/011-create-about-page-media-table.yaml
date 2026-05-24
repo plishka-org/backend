@@ -52,12 +52,6 @@ databaseChangeLog:
             tableName: about_page_media
             columnNames: about_page_id, display_order
             constraintName: uk_about_page_media_about_page_id_display_order
-        - createIndex:
-            tableName: about_page_media
-            indexName: idx_about_page_media_order
-            columns:
-              - column:
-                  name: display_order
         - addForeignKeyConstraint:
             baseTableName: about_page_media
             baseColumnNames: about_page_id

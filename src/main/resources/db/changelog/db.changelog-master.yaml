@@ -16,6 +16,12 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/008-create-home-page-advantages-table.yaml
   - include:
+      file: db/changelog/changes/018-create-categories-table.yaml
+  - include:
+      file: db/changelog/changes/019-create-products-table.yaml
+  - include:
+      file: db/changelog/changes/020-create-product-media-table.yaml
+  - include:
       file: db/changelog/changes/009-create-home-page-products-table.yaml
   - include:
       file: db/changelog/changes/010-create-about-page-content-table.yaml

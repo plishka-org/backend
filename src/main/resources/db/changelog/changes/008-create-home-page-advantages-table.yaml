@@ -40,9 +40,7 @@ databaseChangeLog:
                   type: TIMESTAMP(6)
                   constraints:
                     nullable: false
-        - createIndex:
+        - addUniqueConstraint:
             tableName: home_page_advantages
-            indexName: idx_home_page_adv_order
-            columns:
-              - column:
-                  name: display_order
+            columnNames: display_order
+            constraintName: uq_home_page_advantages_display_order

@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.contacts.ContactsPage;
 import org.plishka.backend.domain.contacts.SocialLink;
 import org.plishka.backend.dto.contacts.ContactsPageResponse;
-import org.plishka.backend.dto.contacts.SocialLinkDto;
+import org.plishka.backend.mapper.contacts.ContactsPageMapper;
 import org.plishka.backend.repository.contacts.ContactsPageRepository;
 import org.plishka.backend.repository.contacts.SocialLinkRepository;
 import org.plishka.backend.service.contacts.ContactsPageService;
@@ -21,6 +21,7 @@ public class ContactsPageServiceImpl implements ContactsPageService {
 
     private final ContactsPageRepository contactsPageRepository;
     private final SocialLinkRepository socialLinkRepository;
+    private final ContactsPageMapper contactsPageMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -28,17 +29,10 @@ public class ContactsPageServiceImpl implements ContactsPageService {
         log.debug("Fetching contacts page data");
 
         ContactsPage contactsPage = findContactsPageOrThrow();
-        List<SocialLinkDto> socialLinks = getSocialLinks();
+        List<SocialLink> socialLinks = getSocialLinks();
+        ContactsPageResponse response = contactsPageMapper.toResponse(contactsPage, socialLinks);
 
-        ContactsPageResponse response = new ContactsPageResponse(
-                contactsPage.getPhoneNumber(),
-                contactsPage.getEmail(),
-                contactsPage.getAddress(),
-                contactsPage.getGoogleMapsUrl(),
-                socialLinks
-        );
-
-        log.info("Contacts page data fetched successfully: socialLinksCount={}", socialLinks.size());
+        log.debug("Contacts page data fetched successfully: socialLinksCount={}", socialLinks.size());
 
         return response;
     }
@@ -50,18 +44,7 @@ public class ContactsPageServiceImpl implements ContactsPageService {
                 ));
     }
 
-    private List<SocialLinkDto> getSocialLinks() {
-        return socialLinkRepository.findAllByContactsPageIdOrderByDisplayOrderAsc(SINGLETON_CONTENT_ID)
-                .stream()
-                .map(this::mapToSocialLinkDto)
-                .toList();
-    }
-
-    private SocialLinkDto mapToSocialLinkDto(SocialLink link) {
-        return new SocialLinkDto(
-                link.getId(),
-                link.getName(),
-                link.getUrl()
-        );
+    private List<SocialLink> getSocialLinks() {
+        return socialLinkRepository.findAllByContactsPageIdOrderByDisplayOrderAsc(SINGLETON_CONTENT_ID);
     }
 }

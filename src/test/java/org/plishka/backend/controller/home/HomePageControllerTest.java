@@ -32,6 +32,7 @@ class HomePageControllerTest extends BaseControllerTest {
         HomePageResponse mockResponse = new HomePageResponse(
                 new HomePageContentDto("Головна", "Опис головної"),
                 List.of(),
+                List.of(),
                 List.of()
         );
         when(homePageService.getHomePageData()).thenReturn(mockResponse);
@@ -42,6 +43,7 @@ class HomePageControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.content.title").value("Головна"))
                 .andExpect(jsonPath("$.content.description").value("Опис головної"))
                 .andExpect(jsonPath("$.advantages").isArray())
-                .andExpect(jsonPath("$.products").isArray());
+                .andExpect(jsonPath("$.products").isArray())
+                .andExpect(jsonPath("$.featuredReviews").isArray());
     }
 }

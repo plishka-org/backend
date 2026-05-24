@@ -7,7 +7,7 @@ import org.plishka.backend.validation.ValidName;
 
 public class NameValidator implements ConstraintValidator<ValidName, String> {
     private static final Pattern NAME_PATTERN = Pattern.compile(
-            "^[\\p{IsLatin}\\p{IsCyrillic}]+(?:[ '\\-’ʼ][\\p{IsLatin}\\p{IsCyrillic}]+)*$"
+            "^[\\p{IsLatin}\\p{IsCyrillic}]+(?:[ '\\-\\x{2019}\\x{02BC}][\\p{IsLatin}\\p{IsCyrillic}]+)*$"
     );
 
     @Override

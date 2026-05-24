@@ -1,5 +1,6 @@
 package org.plishka.backend.service.file;
 
+import java.util.List;
 import org.plishka.backend.domain.media.MediaTargetType;
 
 public interface MediaReferenceHandler {
@@ -8,4 +9,6 @@ public interface MediaReferenceHandler {
     void assertParentExists(Long targetId);
 
     boolean existsByS3Key(String s3Key);
+
+    List<String> findAttachedS3Keys();
 }

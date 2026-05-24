@@ -1,7 +1,7 @@
 package org.plishka.backend.dto.contacts;
 
 public record SocialLinkDto(
-        Long id,
+        Long socialLinkId,
         String name,
         String url
 ) {

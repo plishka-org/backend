@@ -41,17 +41,23 @@ databaseChangeLog:
                     nullable: false
         - createIndex:
             tableName: reviews
-            indexName: idx_reviews_created_at
+            indexName: idx_reviews_created_at_id
             columns:
               - column:
                   name: created_at
                   descending: true
+              - column:
+                  name: id
+                  descending: true
         - createIndex:
             tableName: reviews
-            indexName: idx_reviews_is_featured_created_at
+            indexName: idx_reviews_is_featured_created_at_id
             columns:
               - column:
                   name: is_featured
               - column:
                   name: created_at
+                  descending: true
+              - column:
+                  name: id
                   descending: true

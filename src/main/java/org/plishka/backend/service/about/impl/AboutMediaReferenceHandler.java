@@ -1,5 +1,6 @@
 package org.plishka.backend.service.about.impl;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.media.MediaTargetType;
@@ -28,7 +29,7 @@ public class AboutMediaReferenceHandler implements MediaReferenceHandler {
         log.debug("Verifying existence of About page with ID: {}", targetId);
 
         if (!aboutPageContentRepository.existsById(targetId)) {
-            log.warn("Attempted to reference media for non-existent About page (ID: {})", targetId);
+            log.debug("Attempted to reference media for non-existent About page (ID: {})", targetId);
             throw new ResourceNotFoundException("About page with id " + targetId + " not found");
         }
     }
@@ -38,5 +39,11 @@ public class AboutMediaReferenceHandler implements MediaReferenceHandler {
     public boolean existsByS3Key(String s3Key) {
         log.debug("Checking if media file with S3 key is already attached: {}", s3Key);
         return aboutPageMediaRepository.existsByS3Key(s3Key);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findAttachedS3Keys() {
+        return aboutPageMediaRepository.findAllS3Keys();
     }
 }

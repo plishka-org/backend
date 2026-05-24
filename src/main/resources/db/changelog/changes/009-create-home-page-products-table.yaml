@@ -34,15 +34,18 @@ databaseChangeLog:
                   type: TIMESTAMP(6)
                   constraints:
                     nullable: false
-        - createIndex:
+        - addUniqueConstraint:
             tableName: home_page_products
-            indexName: idx_home_page_prod_order
-            columns:
-              - column:
-                  name: display_order
-        - createIndex:
+            columnNames: product_id
+            constraintName: uk_home_page_products_product_id
+        - addUniqueConstraint:
             tableName: home_page_products
-            indexName: idx_home_page_prod_product_id
-            columns:
-              - column:
-                  name: product_id
+            columnNames: display_order
+            constraintName: uk_home_page_products_display_order
+        - addForeignKeyConstraint:
+            baseTableName: home_page_products
+            baseColumnNames: product_id
+            constraintName: fk_home_page_products_product
+            referencedTableName: products
+            referencedColumnNames: id
+            onDelete: CASCADE

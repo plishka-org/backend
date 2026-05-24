@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 002-create-roles-table
-      author: codex
+      author: plishka-backend
       changes:
         - createTable:
             tableName: roles

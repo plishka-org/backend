@@ -131,11 +131,6 @@ public class S3ObjectStorageService implements ObjectStorageService {
     }
 
     @Override
-    @Retryable(
-            retryFor = StorageOperationException.class,
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 200, multiplier = 2.0)
-    )
     public void markObjectAsAttached(String s3Key) {
         String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
         String bucket = storageProperties.s3().bucket();
@@ -155,6 +150,17 @@ public class S3ObjectStorageService implements ObjectStorageService {
             );
         } catch (SdkException exception) {
             throw new StorageOperationException("Failed to update file storage tags", exception);
+        }
+    }
+
+    @Override
+    public boolean isObjectMarkedAsAttached(String s3Key) {
+        String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
+
+        try {
+            return hasUploadStatusTag(normalizedKey, ATTACHED_UPLOAD_STATUS);
+        } catch (SdkException exception) {
+            throw new StorageOperationException("Failed to inspect file storage tags", exception);
         }
     }
 
@@ -179,7 +185,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
                         .filter(object -> object.lastModified() != null
                                 && object.lastModified().isBefore(threshold))
                         .map(S3Object::key)
-                        .filter(this::hasPendingUploadTag)
+                        .filter(s3Key -> hasUploadStatusTag(s3Key, PENDING_UPLOAD_STATUS))
                         .forEach(pendingUploadKeys::add);
             }
 
@@ -287,7 +293,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
                 .build();
     }
 
-    private boolean hasPendingUploadTag(String s3Key) {
+    private boolean hasUploadStatusTag(String s3Key, String expectedStatus) {
         GetObjectTaggingResponse response = s3Client.getObjectTagging(
                 GetObjectTaggingRequest.builder()
                         .bucket(storageProperties.s3().bucket())
@@ -296,7 +302,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
         );
 
         return response.tagSet().stream().anyMatch(tag ->
-                UPLOAD_STATUS_TAG_KEY.equals(tag.key()) && PENDING_UPLOAD_STATUS.equals(tag.value())
+                UPLOAD_STATUS_TAG_KEY.equals(tag.key()) && expectedStatus.equals(tag.value())
         );
     }
 }

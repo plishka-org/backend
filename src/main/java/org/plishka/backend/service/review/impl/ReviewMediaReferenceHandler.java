@@ -1,5 +1,6 @@
 package org.plishka.backend.service.review.impl;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.media.MediaTargetType;
@@ -28,7 +29,7 @@ public class ReviewMediaReferenceHandler implements MediaReferenceHandler {
         log.debug("Verifying existence of Review with ID: {}", targetId);
 
         if (!reviewRepository.existsById(targetId)) {
-            log.warn("Attempted to reference media for non-existent Review (ID: {})", targetId);
+            log.debug("Attempted to reference media for non-existent Review (ID: {})", targetId);
             throw new ResourceNotFoundException("Review with id " + targetId + " not found");
         }
     }
@@ -38,5 +39,11 @@ public class ReviewMediaReferenceHandler implements MediaReferenceHandler {
     public boolean existsByS3Key(String s3Key) {
         log.debug("Checking if media file with S3 key is already attached to a Review: {}", s3Key);
         return reviewMediaRepository.existsByS3Key(s3Key);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findAttachedS3Keys() {
+        return reviewMediaRepository.findAllS3Keys();
     }
 }

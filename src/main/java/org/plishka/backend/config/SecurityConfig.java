@@ -54,6 +54,7 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/files/presign/upload",
                                 "/admin/about/media/attach",
+                                "/admin/products/*/media/attach",
                                 "/admin/reviews/*/media/attach"
                         ).hasRole("ADMIN")
                         .requestMatchers(
@@ -63,8 +64,12 @@ public class SecurityConfig {
                                 "/home",
                                 "/about",
                                 "/contacts-page",
+                                "/categories",
+                                "/products",
+                                "/products/*",
+                                "/products/*/related",
                                 "/reviews",
-                                "/reviews/featured",
+                                "/reviews/*",
                                 "/settings"
                         ).permitAll()
                         .anyRequest().authenticated()

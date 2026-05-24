@@ -12,7 +12,9 @@ import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
 import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
 import org.plishka.backend.repository.user.UserRepository;
+import org.plishka.backend.service.file.MediaReferenceService;
 import org.plishka.backend.service.storage.ObjectStorageService;
+import org.plishka.backend.service.storage.tagging.RetryableMediaStorageTagger;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,8 @@ public class SchedulerService {
     private final BackendProperties backendProperties;
     private final StorageProperties storageProperties;
     private final ObjectStorageService objectStorageService;
+    private final MediaReferenceService mediaReferenceService;
+    private final RetryableMediaStorageTagger retryableMediaStorageTagger;
     private final Clock clock;
 
     @Transactional
@@ -91,14 +95,70 @@ public class SchedulerService {
         }
 
         Instant threshold = now().minus(storageProperties.cleanup().orphanUploadTtl());
-        List<String> orphanUploadKeys = objectStorageService.findPendingUploadKeysOlderThan(threshold);
+        List<String> pendingUploadKeys = objectStorageService.findPendingUploadKeysOlderThan(threshold);
 
-        if (orphanUploadKeys.isEmpty()) {
+        if (pendingUploadKeys.isEmpty()) {
             return;
         }
 
-        objectStorageService.deleteObjects(orphanUploadKeys);
-        log.info("Orphan upload cleanup: deleted {}", orphanUploadKeys.size());
+        List<String> deletablePendingUploadKeys = pendingUploadKeys.stream()
+                .filter(s3Key -> !mediaReferenceService.isAttached(s3Key))
+                .toList();
+
+        if (deletablePendingUploadKeys.isEmpty()) {
+            return;
+        }
+
+        objectStorageService.deleteObjects(deletablePendingUploadKeys);
+        logSkippedAttachedPendingUploads(pendingUploadKeys, deletablePendingUploadKeys);
+        log.info("Orphan upload cleanup: deleted {}", deletablePendingUploadKeys.size());
+    }
+
+    @Scheduled(cron = "0 5 4 * * SUN", zone = EUROPE_KYIV)
+    public void reconcileAttachedS3Tags() {
+        List<String> attachedS3Keys = mediaReferenceService.findAllAttachedS3Keys();
+        if (attachedS3Keys.isEmpty()) {
+            return;
+        }
+
+        int repairedCount = 0;
+        int failedCount = 0;
+
+        for (String s3Key : attachedS3Keys) {
+            try {
+                if (objectStorageService.isObjectMarkedAsAttached(s3Key)) {
+                    continue;
+                }
+
+                retryableMediaStorageTagger.markObjectAsAttached(s3Key);
+                repairedCount++;
+            } catch (RuntimeException exception) {
+                failedCount++;
+                log.warn("Attached media tag reconciliation failed: s3Key={}", s3Key, exception);
+            }
+        }
+
+        if (repairedCount > 0 || failedCount > 0) {
+            log.info(
+                    "Attached media tag reconciliation finished: checked={}, repaired={}, failed={}",
+                    attachedS3Keys.size(),
+                    repairedCount,
+                    failedCount
+            );
+        }
+    }
+
+    private void logSkippedAttachedPendingUploads(
+            List<String> pendingUploadKeys,
+            List<String> deletedPendingUploadKeys
+    ) {
+        int skippedAttachedPendingUploadCount = pendingUploadKeys.size() - deletedPendingUploadKeys.size();
+        if (skippedAttachedPendingUploadCount > 0) {
+            log.warn(
+                    "Orphan upload cleanup: skipped {} pending objects already attached in DB",
+                    skippedAttachedPendingUploadCount
+            );
+        }
     }
 
     private Instant now() {

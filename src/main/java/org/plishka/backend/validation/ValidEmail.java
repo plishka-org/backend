@@ -16,7 +16,7 @@ import org.plishka.backend.validation.impl.EmailValidator;
  * <ul>
  *   <li>{@code null}, an empty string, and a blank string are considered valid.</li>
  *   <li>Required value and total length must be enforced separately, for example with
- *   {@code @NotBlank} and {@code @Size(min = 5, max = 128)}.</li>
+ *   {@code @NotBlank} and {@code @Size(min = 6, max = 128)}.</li>
  *   <li>The value must contain exactly one {@code @} character.</li>
  *   <li>The local part must be non-empty, at most 64 characters long, must not start or end
  *   with a dot, must not contain consecutive dots, and may contain only Latin letters, digits,
