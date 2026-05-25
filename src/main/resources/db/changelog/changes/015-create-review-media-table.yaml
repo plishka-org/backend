@@ -35,9 +35,6 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: primary_review_id
-                  type: BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary = TRUE THEN review_id ELSE NULL END)
-              - column:
                   name: display_order
                   type: INT
                   defaultValueNumeric: 0
@@ -53,6 +50,12 @@ databaseChangeLog:
                   type: TIMESTAMP(6)
                   constraints:
                     nullable: false
+        - sql:
+            dbms: mysql
+            sql: ALTER TABLE review_media ADD COLUMN primary_review_id BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary = TRUE THEN review_id ELSE NULL END) VIRTUAL;
+        - sql:
+            dbms: h2
+            sql: ALTER TABLE review_media ADD COLUMN primary_review_id BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary = TRUE THEN review_id ELSE NULL END);
         - addUniqueConstraint:
             tableName: review_media
             columnNames: s3_key
