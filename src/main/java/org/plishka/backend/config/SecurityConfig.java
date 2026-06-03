@@ -72,6 +72,13 @@ public class SecurityConfig {
                                 "/reviews/*",
                                 "/settings"
                         ).permitAll()
+                        .requestMatchers(
+                                "/cart",
+                                "/cart/**",
+                                "/orders",
+                                "/users/me/orders",
+                                "/users/me/orders/**"
+                        ).authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
