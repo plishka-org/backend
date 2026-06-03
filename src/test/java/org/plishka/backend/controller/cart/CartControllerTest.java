@@ -23,7 +23,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -40,8 +39,7 @@ class CartControllerTest extends BaseControllerTest {
     private static final long CART_ITEM_ID = 7L;
     private static final long PRODUCT_ID = 10L;
     private static final long INVALID_PRODUCT_ID = -1L;
-    private static final long SOURCE_CART_ID = 15L;
-    private static final long INVALID_SOURCE_CART_ID = -1L;
+    private static final String SOURCE_CART_TOKEN = "550e8400-e29b-41d4-a716-446655440000";
     private static final String USER_EMAIL = "customer@example.com";
     private static final String PRODUCT_NAME = "Oak Garden Bench";
     private static final String CATEGORY_NAME = "Outdoor Tables and Benches";
@@ -178,21 +176,21 @@ class CartControllerTest extends BaseControllerTest {
     void mergeCart_ShouldReturnMergedCartAndStatus200() throws Exception {
         CartSummaryDto response = cartSummary();
 
-        when(cartService.mergeCart(USER_ID, SOURCE_CART_ID)).thenReturn(response);
+        when(cartService.mergeCart(USER_ID, SOURCE_CART_TOKEN)).thenReturn(response);
 
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .param("sourceCartId", String.valueOf(SOURCE_CART_ID))
+                        .param("sourceCartToken", SOURCE_CART_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].productId").value(PRODUCT_ID))
                 .andExpect(jsonPath("$.totalPrice").value(900.00));
 
-        verify(cartService).mergeCart(USER_ID, SOURCE_CART_ID);
+        verify(cartService).mergeCart(USER_ID, SOURCE_CART_TOKEN);
     }
 
     @Test
-    void mergeCart_ShouldReturn400_WhenSourceCartIdIsMissing() throws Exception {
+    void mergeCart_ShouldReturn400_WhenSourceCartTokenIsMissing() throws Exception {
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
                         .contentType(MediaType.APPLICATION_JSON))
@@ -200,22 +198,22 @@ class CartControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void mergeCart_ShouldReturn400_WhenSourceCartIdIsNotPositive() throws Exception {
+    void mergeCart_ShouldReturn400_WhenSourceCartTokenIsBlank() throws Exception {
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .param("sourceCartId", String.valueOf(INVALID_SOURCE_CART_ID))
+                        .param("sourceCartToken", "")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void mergeCart_ShouldReturn400_WhenServiceRejectsRequest() throws Exception {
-        when(cartService.mergeCart(USER_ID, SOURCE_CART_ID))
+        when(cartService.mergeCart(USER_ID, SOURCE_CART_TOKEN))
                 .thenThrow(new BadRequestException(SOURCE_CART_NOT_FOUND_MESSAGE));
 
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .param("sourceCartId", String.valueOf(SOURCE_CART_ID))
+                        .param("sourceCartToken", SOURCE_CART_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }

@@ -36,6 +36,9 @@ public class Cart {
     @JoinColumn(name = "user_id", unique = true)
     private User user;
 
+    @Column(name = "merge_token", unique = true, nullable = false, length = 36)
+    private String mergeToken;
+
     @OneToMany(mappedBy = "cart", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> cartItems = new ArrayList<>();
 

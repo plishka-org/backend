@@ -57,7 +57,16 @@ public abstract class BaseControllerTest {
                 NativeWebRequest webRequest,
                 WebDataBinderFactory binderFactory
         ) {
-            return webRequest.getAttribute(AUTHENTICATED_USER_PRINCIPAL_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
+            Object principal = webRequest.getAttribute(
+                    AUTHENTICATED_USER_PRINCIPAL_ATTRIBUTE,
+                    RequestAttributes.SCOPE_REQUEST
+            );
+            if (principal == null) {
+                throw new IllegalStateException(
+                        "Missing AuthenticatedUserPrincipal in test request. Use .with(authenticatedUser(...))"
+                );
+            }
+            return principal;
         }
     }
 }

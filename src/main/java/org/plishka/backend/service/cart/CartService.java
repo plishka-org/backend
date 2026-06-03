@@ -15,5 +15,5 @@ public interface CartService {
 
     void clearCart(Long userId);
 
-    CartSummaryDto mergeCart(Long userId, Long sourceCartId);
+    CartSummaryDto mergeCart(Long userId, String sourceCartToken);
 }

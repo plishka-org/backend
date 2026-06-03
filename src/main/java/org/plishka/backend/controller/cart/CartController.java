@@ -1,6 +1,7 @@
 package org.plishka.backend.controller.cart;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.cart.AddCartItemRequestDto;
@@ -63,8 +64,8 @@ public class CartController {
     @PostMapping("/merge")
     public CartSummaryDto mergeCart(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
-            @Positive @RequestParam Long sourceCartId
+            @NotBlank @RequestParam String sourceCartToken
     ) {
-        return cartService.mergeCart(principal.getUserId(), sourceCartId);
+        return cartService.mergeCart(principal.getUserId(), sourceCartToken);
     }
 }

@@ -1,6 +1,5 @@
 package org.plishka.backend.mapper.order;
 
-import java.math.BigDecimal;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.plishka.backend.config.MapStructConfig;
@@ -23,10 +22,6 @@ public interface OrderMapper {
     @Mapping(source = "product.id", target = "productId")
     @Mapping(source = "productNameSnapshot", target = "productName")
     @Mapping(source = "categoryNameSnapshot", target = "categoryName")
-    @Mapping(target = "subtotal", source = "orderItem")
+    @Mapping(source = "lineTotal", target = "subtotal")
     OrderItemDetailDto toItemDetailDto(OrderItem orderItem);
-
-    default BigDecimal calculateSubtotal(OrderItem orderItem) {
-        return orderItem.getUnitPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
-    }
 }

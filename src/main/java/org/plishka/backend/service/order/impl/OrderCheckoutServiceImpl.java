@@ -1,7 +1,6 @@
 package org.plishka.backend.service.order.impl;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.cart.Cart;
@@ -17,6 +16,7 @@ import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.order.OrderRepository;
 import org.plishka.backend.service.order.OrderCheckoutService;
+import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +27,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final OrderNumberGenerator orderNumberGenerator;
 
     @Override
     @Transactional
@@ -49,7 +50,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private Order createOrderFromCart(Cart cart, CreateOrderRequestDto requestDto) {
         Order order = new Order();
         order.setUser(cart.getUser());
-        order.setOrderNumber(generateOrderNumber());
+        order.setOrderNumber(orderNumberGenerator.generate());
         order.setCustomerName(requestDto.customerName());
         order.setDeliveryCity(requestDto.deliveryCity());
         order.setPhone(requestDto.phone());
@@ -92,10 +93,6 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private Cart findCartByUserIdOrThrow(Long userId) {
         return cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user"));
-    }
-
-    private String generateOrderNumber() {
-        return "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     private BigDecimal calculateTotalPrice(Cart cart) {

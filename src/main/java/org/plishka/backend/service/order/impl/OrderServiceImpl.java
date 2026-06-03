@@ -1,7 +1,6 @@
 package org.plishka.backend.service.order.impl;
 
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.order.Order;
@@ -13,6 +12,7 @@ import org.plishka.backend.dto.order.OrderSummaryDto;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.order.OrderRepository;
+import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.order.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final OrderNumberGenerator orderNumberGenerator;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,7 +87,7 @@ public class OrderServiceImpl implements OrderService {
     private Order createOrderFromExisting(Order originalOrder) {
         Order newOrder = new Order();
         newOrder.setUser(originalOrder.getUser());
-        newOrder.setOrderNumber(generateOrderNumber());
+        newOrder.setOrderNumber(orderNumberGenerator.generate());
         newOrder.setCustomerName(originalOrder.getCustomerName());
         newOrder.setDeliveryCity(originalOrder.getDeliveryCity());
         newOrder.setPhone(originalOrder.getPhone());
@@ -131,7 +132,4 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order with ID " + orderId + " not found"));
     }
 
-    private String generateOrderNumber() {
-        return "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-    }
 }

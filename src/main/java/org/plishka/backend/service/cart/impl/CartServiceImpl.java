@@ -2,6 +2,7 @@ package org.plishka.backend.service.cart.impl;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.cart.Cart;
@@ -115,11 +116,11 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public CartSummaryDto mergeCart(Long userId, Long sourceCartId) {
-        log.debug("Merging cart id={} into user id={} cart", sourceCartId, userId);
+    public CartSummaryDto mergeCart(Long userId, String sourceCartToken) {
+        log.debug("Merging source cart into user id={} cart", userId);
 
         Cart targetCart = findOrCreateCart(userId);
-        Cart sourceCart = findCartByIdOrThrow(sourceCartId);
+        Cart sourceCart = findCartByMergeTokenOrThrow(sourceCartToken);
         validateCartCanBeMerged(sourceCart, targetCart, userId);
 
         sourceCart.getCartItems().forEach(sourceItem ->
@@ -129,7 +130,7 @@ public class CartServiceImpl implements CartService {
         cartRepository.save(targetCart);
         cartRepository.delete(sourceCart);
 
-        log.debug("Successfully merged cart id={} into user id={} cart", sourceCartId, userId);
+        log.debug("Successfully merged source cart into user id={} cart", userId);
 
         return getCart(userId);
     }
@@ -209,6 +210,7 @@ public class CartServiceImpl implements CartService {
         
         Cart newCart = new Cart();
         newCart.setUser(user);
+        newCart.setMergeToken(generateMergeToken());
         return cartRepository.save(newCart);
     }
 
@@ -221,9 +223,9 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user id=" + userId));
     }
 
-    private Cart findCartByIdOrThrow(Long cartId) {
-        return cartRepository.findById(cartId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found with id=" + cartId));
+    private Cart findCartByMergeTokenOrThrow(String mergeToken) {
+        return cartRepository.findByMergeToken(mergeToken)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
     }
 
     private CartItem findCartItemByCartAndProductOrThrow(Long cartId, Long productId) {
@@ -248,6 +250,10 @@ public class CartServiceImpl implements CartService {
         if (sourceCart.getUser() != null) {
             throw new BadRequestException("Source cart already belongs to current user");
         }
+    }
+
+    private String generateMergeToken() {
+        return UUID.randomUUID().toString();
     }
 
     private BigDecimal calculateTotalPrice(List<CartItemSummaryDto> items) {

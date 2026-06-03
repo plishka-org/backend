@@ -17,4 +17,6 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
             WHERE c.user.id = :userId
             """)
     Optional<Cart> findByUserId(@Param("userId") Long userId);
+
+    Optional<Cart> findByMergeToken(String mergeToken);
 }
