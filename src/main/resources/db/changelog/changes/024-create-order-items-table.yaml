@@ -72,3 +72,15 @@ databaseChangeLog:
             referencedTableName: products
             referencedColumnNames: id
             onDelete: RESTRICT
+        - createIndex:
+            tableName: order_items
+            indexName: idx_order_items_order_id
+            columns:
+              - column:
+                  name: order_id
+        - createIndex:
+            tableName: order_items
+            indexName: idx_order_items_product_id
+            columns:
+              - column:
+                  name: product_id

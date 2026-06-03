@@ -22,6 +22,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderNumber = :orderNumber")
+    @Query("""
+            SELECT DISTINCT o FROM Order o
+            LEFT JOIN FETCH o.orderItems oi
+            LEFT JOIN FETCH oi.product p
+            LEFT JOIN FETCH p.category
+            WHERE o.user.id = :userId AND o.orderNumber = :orderNumber
+            """)
     Optional<Order> findByUserIdAndOrderNumber(@Param("userId") Long userId, @Param("orderNumber") String orderNumber);
 }

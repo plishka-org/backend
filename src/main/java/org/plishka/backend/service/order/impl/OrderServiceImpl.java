@@ -117,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
 
     private void validateOrderOwnership(Order order, Long userId) {
         if (!order.getUser().getId().equals(userId)) {
-            throw new ResourceNotFoundException("Order not found or does not belong to user");
+            throw new ResourceNotFoundException("Order with ID " + order.getId() + " not found");
         }
     }
 

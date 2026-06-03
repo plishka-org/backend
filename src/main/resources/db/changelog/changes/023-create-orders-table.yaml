@@ -73,5 +73,17 @@ databaseChangeLog:
             referencedTableName: users
             referencedColumnNames: id
             onDelete: RESTRICT
+        - createIndex:
+            tableName: orders
+            indexName: idx_orders_user_id_created_at_id
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true
         - sql:
             sql: ALTER TABLE orders ADD CONSTRAINT chk_orders_status CHECK (status IN ('PENDING'));
