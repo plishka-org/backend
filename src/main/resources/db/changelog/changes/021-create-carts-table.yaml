@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-477-create-carts-table
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: carts
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: carts
+            columnNames: user_id
+            constraintName: uk_carts_user_id
+        - addForeignKeyConstraint:
+            baseTableName: carts
+            baseColumnNames: user_id
+            constraintName: fk_carts_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
