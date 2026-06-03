@@ -2,6 +2,7 @@ package org.plishka.backend.service.cart;
 
 import org.plishka.backend.dto.cart.AddCartItemRequestDto;
 import org.plishka.backend.dto.cart.CartSummaryDto;
+import org.plishka.backend.dto.cart.MergeCartRequestDto;
 import org.plishka.backend.dto.cart.UpdateCartItemRequestDto;
 
 public interface CartService {
@@ -15,5 +16,5 @@ public interface CartService {
 
     void clearCart(Long userId);
 
-    CartSummaryDto mergeCart(Long userId, String sourceCartToken);
+    CartSummaryDto mergeCart(Long userId, MergeCartRequestDto requestDto);
 }

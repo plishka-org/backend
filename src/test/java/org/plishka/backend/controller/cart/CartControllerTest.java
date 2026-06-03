@@ -7,6 +7,7 @@ import org.plishka.backend.controller.BaseControllerTest;
 import org.plishka.backend.dto.cart.AddCartItemRequestDto;
 import org.plishka.backend.dto.cart.CartItemSummaryDto;
 import org.plishka.backend.dto.cart.CartSummaryDto;
+import org.plishka.backend.dto.cart.MergeCartRequestDto;
 import org.plishka.backend.dto.cart.UpdateCartItemRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
@@ -39,7 +40,6 @@ class CartControllerTest extends BaseControllerTest {
     private static final long CART_ITEM_ID = 7L;
     private static final long PRODUCT_ID = 10L;
     private static final long INVALID_PRODUCT_ID = -1L;
-    private static final String SOURCE_CART_TOKEN = "550e8400-e29b-41d4-a716-446655440000";
     private static final String USER_EMAIL = "customer@example.com";
     private static final String PRODUCT_NAME = "Oak Garden Bench";
     private static final String CATEGORY_NAME = "Outdoor Tables and Benches";
@@ -50,8 +50,6 @@ class CartControllerTest extends BaseControllerTest {
     private static final int UPDATED_QUANTITY = 3;
     private static final int INVALID_QUANTITY = 0;
     private static final String PRODUCT_NOT_FOUND_MESSAGE = "Product not found";
-    private static final String SOURCE_CART_NOT_FOUND_MESSAGE = "Source cart not found";
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -174,47 +172,53 @@ class CartControllerTest extends BaseControllerTest {
 
     @Test
     void mergeCart_ShouldReturnMergedCartAndStatus200() throws Exception {
+        MergeCartRequestDto request = mergeRequest(QUANTITY);
         CartSummaryDto response = cartSummary();
 
-        when(cartService.mergeCart(USER_ID, SOURCE_CART_TOKEN)).thenReturn(response);
+        when(cartService.mergeCart(eq(USER_ID), any(MergeCartRequestDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .param("sourceCartToken", SOURCE_CART_TOKEN)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].productId").value(PRODUCT_ID))
                 .andExpect(jsonPath("$.totalPrice").value(900.00));
 
-        verify(cartService).mergeCart(USER_ID, SOURCE_CART_TOKEN);
+        verify(cartService).mergeCart(eq(USER_ID), any(MergeCartRequestDto.class));
     }
 
     @Test
-    void mergeCart_ShouldReturn400_WhenSourceCartTokenIsMissing() throws Exception {
+    void mergeCart_ShouldReturn400_WhenItemsListIsMissing() throws Exception {
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void mergeCart_ShouldReturn400_WhenSourceCartTokenIsBlank() throws Exception {
+    void mergeCart_ShouldReturn400_WhenItemQuantityIsNotPositive() throws Exception {
+        MergeCartRequestDto request = mergeRequest(INVALID_QUANTITY);
+
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .param("sourceCartToken", "")
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void mergeCart_ShouldReturn400_WhenServiceRejectsRequest() throws Exception {
-        when(cartService.mergeCart(USER_ID, SOURCE_CART_TOKEN))
-                .thenThrow(new BadRequestException(SOURCE_CART_NOT_FOUND_MESSAGE));
+        MergeCartRequestDto request = mergeRequest(QUANTITY);
+
+        when(cartService.mergeCart(eq(USER_ID), any(MergeCartRequestDto.class)))
+                .thenThrow(new BadRequestException("Cart merge failed"));
 
         mockMvc.perform(post("/cart/merge")
                         .with(authenticatedUser(principal()))
-                        .param("sourceCartToken", SOURCE_CART_TOKEN)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -230,6 +234,10 @@ class CartControllerTest extends BaseControllerTest {
                         .with(authenticatedUser(principal()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)));
+    }
+
+    private static MergeCartRequestDto mergeRequest(Integer quantity) {
+        return new MergeCartRequestDto(List.of(addItemRequest(quantity)));
     }
 
     private static AddCartItemRequestDto addItemRequest(Integer quantity) {

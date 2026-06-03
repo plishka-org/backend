@@ -16,9 +16,6 @@ databaseChangeLog:
               - column:
                   name: user_id
                   type: BIGINT
-              - column:
-                  name: merge_token
-                  type: VARCHAR(36)
                   constraints:
                     nullable: false
               - column:
@@ -35,10 +32,6 @@ databaseChangeLog:
             tableName: carts
             columnNames: user_id
             constraintName: uk_carts_user_id
-        - addUniqueConstraint:
-            tableName: carts
-            columnNames: merge_token
-            constraintName: uk_carts_merge_token
         - addForeignKeyConstraint:
             baseTableName: carts
             baseColumnNames: user_id

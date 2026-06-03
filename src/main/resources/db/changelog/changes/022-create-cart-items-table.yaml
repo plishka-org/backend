@@ -61,3 +61,9 @@ databaseChangeLog:
             referencedTableName: products
             referencedColumnNames: id
             onDelete: RESTRICT
+        - createIndex:
+            tableName: cart_items
+            indexName: idx_cart_items_cart_id
+            columns:
+              - column:
+                  name: cart_id
