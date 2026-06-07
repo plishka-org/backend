@@ -1,10 +1,17 @@
 package org.plishka.backend.controller;
 
+import java.util.List;
 import org.plishka.backend.config.TimeConfig;
+import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.security.CustomUserDetailsService;
 import org.plishka.backend.service.auth.JwtService;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 @Import(TimeConfig.class)
 public abstract class BaseControllerTest {
@@ -13,4 +20,33 @@ public abstract class BaseControllerTest {
 
     @MockitoBean
     protected CustomUserDetailsService customUserDetailsService;
+
+    protected static RequestPostProcessor authenticatedUser(Long userId, String email) {
+        return authenticatedUser(userPrincipal(userId, email, true, true, "ROLE_USER"));
+    }
+
+    protected static RequestPostProcessor authenticatedUser(AuthenticatedUserPrincipal principal) {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                principal.getAuthorities()
+        ));
+    }
+
+    protected static AuthenticatedUserPrincipal userPrincipal(
+            Long userId,
+            String email,
+            boolean enabled,
+            boolean accountNonLocked,
+            String role
+    ) {
+        return AuthenticatedUserPrincipal.builder()
+                .userId(userId)
+                .email(email)
+                .passwordHash("hash")
+                .enabled(enabled)
+                .accountNonLocked(accountNonLocked)
+                .authorities(List.of(new SimpleGrantedAuthority(role)))
+                .build();
+    }
 }

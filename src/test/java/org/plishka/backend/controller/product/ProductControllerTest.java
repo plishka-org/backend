@@ -42,7 +42,7 @@ class ProductControllerTest extends BaseControllerTest {
     private static final long PRODUCT_MEDIA_ID = 5L;
     private static final int FIRST_PAGE = 0;
     private static final int PRODUCT_PAGE_SIZE = 16;
-    private static final int DEFAULT_PRODUCT_PAGE_SIZE = 6;
+    private static final int DEFAULT_PRODUCT_PAGE_SIZE = 16;
     private static final int RELATED_PRODUCT_PAGE_SIZE = 4;
     private static final String PRODUCT_NAME = "Oak Garden Bench";
     private static final String PRODUCT_DESCRIPTION = "Handmade oak garden bench";

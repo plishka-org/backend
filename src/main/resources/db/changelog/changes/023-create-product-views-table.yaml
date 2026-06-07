@@ -1,0 +1,67 @@
+databaseChangeLog:
+  - changeSet:
+      id: 023-create-product-views-table
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: product_views
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_product_views
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: viewed_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: product_views
+            columnNames: user_id, product_id
+            constraintName: uk_product_views_user_product
+        - addForeignKeyConstraint:
+            baseTableName: product_views
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_product_views_user
+            onDelete: CASCADE
+        - createIndex:
+            tableName: product_views
+            indexName: idx_product_views_product_id
+            columns:
+              - column:
+                  name: product_id
+        - addForeignKeyConstraint:
+            baseTableName: product_views
+            baseColumnNames: product_id
+            referencedTableName: products
+            referencedColumnNames: id
+            constraintName: fk_product_views_product
+            onDelete: CASCADE
+        - createIndex:
+            tableName: product_views
+            indexName: idx_product_views_user_viewed_at
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: viewed_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true
