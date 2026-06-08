@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UserAccountServiceImpl implements UserAccountService {
     private static final String CURRENT_PASSWORD_INCORRECT_MESSAGE = "Current password is incorrect";
+    private static final String NEW_PASSWORD_SAME_AS_CURRENT_MESSAGE =
+            "New password must be different from current password";
 
     private final EligibleUserProvider eligibleUserProvider;
     private final UserRepository userRepository;
@@ -30,6 +32,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     public void changePassword(Long userId, ChangePasswordRequestDto request) {
         User user = eligibleUserProvider.getEligibleUserForUpdateOrThrow(userId);
         validateCurrentPassword(request.currentPassword(), user);
+        validateNewPasswordIsDifferent(request);
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         refreshTokenRepository.deleteAllByUserId(user.getId());
@@ -50,6 +53,12 @@ public class UserAccountServiceImpl implements UserAccountService {
     private void validateCurrentPassword(String currentPassword, User user) {
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new BadRequestException(CURRENT_PASSWORD_INCORRECT_MESSAGE);
+        }
+    }
+
+    private void validateNewPasswordIsDifferent(ChangePasswordRequestDto request) {
+        if (request.currentPassword().equals(request.newPassword())) {
+            throw new BadRequestException(NEW_PASSWORD_SAME_AS_CURRENT_MESSAGE);
         }
     }
 }

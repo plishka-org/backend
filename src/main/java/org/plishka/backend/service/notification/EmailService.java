@@ -32,6 +32,13 @@ public class EmailService {
         asyncEmailSender.sendEmailAsync(email, subject, text);
     }
 
+    public void sendEmailChangedNotificationEmail(String oldEmail, String newEmail) {
+        String subject = "Your account email was changed";
+        String text = buildEmailChangedNotificationText(newEmail);
+
+        asyncEmailSender.sendEmailAsync(oldEmail, subject, text);
+    }
+
     public void sendCallbackRequestEmail(CallbackRequestCreatedEvent event) {
         String subject = "New callback request";
         String text = buildCallbackRequestEmailText(event);
@@ -94,6 +101,21 @@ public class EmailService {
                 Plishka
                 """
                 .formatted(verificationLink, backendProperties.auth().emailVerificationTokenTtl().toHours());
+    }
+
+    private String buildEmailChangedNotificationText(String newEmail) {
+        return """
+                Hello,
+
+                Your account email has been changed to:
+                %s
+
+                If you did not make this change, reset your password immediately.
+
+                Best regards,
+                Plishka
+                """
+                .formatted(newEmail);
     }
 
     private String buildCallbackRequestEmailText(CallbackRequestCreatedEvent event) {

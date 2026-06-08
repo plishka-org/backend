@@ -9,6 +9,7 @@ import org.plishka.backend.config.properties.FrontendProperties;
 import org.plishka.backend.domain.user.EmailChangeToken;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.event.auth.EmailChangeRequestedEvent;
+import org.plishka.backend.event.auth.EmailChangedEvent;
 import org.plishka.backend.exception.EmailAlreadyExistsException;
 import org.plishka.backend.exception.InvalidVerificationTokenException;
 import org.plishka.backend.repository.user.EmailChangeTokenRepository;
@@ -79,6 +80,7 @@ public class EmailChangeServiceImpl implements EmailChangeService {
             throw new InvalidVerificationTokenException("Email change token has expired");
         }
 
+        final String oldEmail = user.getEmail();
         String newEmail = lockedToken.getNewEmail();
         validateEmailIsAvailable(newEmail);
 
@@ -93,6 +95,7 @@ public class EmailChangeServiceImpl implements EmailChangeService {
             throw exception;
         }
         emailChangeTokenRepository.deleteAllByUser(user);
+        applicationEventPublisher.publishEvent(new EmailChangedEvent(oldEmail, newEmail));
 
         log.info("Email change verified successfully: userId={}, newEmail={}", user.getId(), newEmail);
     }

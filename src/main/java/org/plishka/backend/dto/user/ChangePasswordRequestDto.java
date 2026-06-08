@@ -3,10 +3,13 @@ package org.plishka.backend.dto.user;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.plishka.backend.validation.FieldMatch;
+import org.plishka.backend.validation.FieldNotMatch;
 import org.plishka.backend.validation.ValidPassword;
 
 @FieldMatch(first = "newPassword", second = "confirmPassword",
         message = "New password and confirm password must match exactly")
+@FieldNotMatch(first = "currentPassword", second = "newPassword",
+        message = "New password must be different from current password")
 public record ChangePasswordRequestDto(
         @NotBlank(message = "Current password is required")
         String currentPassword,
