@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: 024-create-callback-requests-table
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: callback_requests
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_callback_requests
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: name
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone
+                  type: VARCHAR(13)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: VARCHAR(300)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: callback_requests
+            indexName: idx_callback_requests_user_created_at
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true
+        - addForeignKeyConstraint:
+            baseTableName: callback_requests
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_callback_requests_user
+            onDelete: SET NULL

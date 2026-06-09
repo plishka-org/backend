@@ -66,9 +66,12 @@ backend:
     password-reset-token-ttl: ${BACKEND_AUTH_PASSWORD_RESET_TOKEN_TTL}
   cleanup:
     unverified-user-ttl: ${BACKEND_CLEANUP_UNVERIFIED_USER_TTL}
+  callback:
+    admin-email: ${BACKEND_CALLBACK_ADMIN_EMAIL}
 
 frontend:
   reset-password-url: ${FRONTEND_RESET_PASSWORD_URL}
+  email-change-verification-url: ${FRONTEND_EMAIL_CHANGE_VERIFICATION_URL}
 
 storage:
   s3:

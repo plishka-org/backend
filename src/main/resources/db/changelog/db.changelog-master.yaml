@@ -39,3 +39,11 @@ databaseChangeLog:
       file: db/changelog/changes/016-create-system-settings-table.yaml
   - include:
       file: db/changelog/changes/017-init-singleton-records.yaml
+  - include:
+      file: db/changelog/changes/021-create-email-change-tokens-table.yaml
+  - include:
+      file: db/changelog/changes/022-create-favorites-table.yaml
+  - include:
+      file: db/changelog/changes/023-create-product-views-table.yaml
+  - include:
+      file: db/changelog/changes/024-create-callback-requests-table.yaml

@@ -2,6 +2,8 @@ package org.plishka.backend.event.listener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.plishka.backend.event.auth.EmailChangeRequestedEvent;
+import org.plishka.backend.event.auth.EmailChangedEvent;
 import org.plishka.backend.event.auth.EmailVerificationRequestedEvent;
 import org.plishka.backend.event.auth.PasswordResetRequestedEvent;
 import org.plishka.backend.service.notification.EmailService;
@@ -30,4 +32,21 @@ public class AuthEventListener {
                 event.resetPasswordLink()
         );
     }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleEmailChangeRequested(EmailChangeRequestedEvent event) {
+        emailService.sendEmailChangeVerificationEmail(
+                event.email(),
+                event.verificationLink()
+        );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleEmailChanged(EmailChangedEvent event) {
+        emailService.sendEmailChangedNotificationEmail(
+                event.oldEmail(),
+                event.newEmail()
+        );
+    }
+
 }

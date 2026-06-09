@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/products")
 @RequiredArgsConstructor
 public class ProductController {
-    private static final int DEFAULT_PAGE_SIZE = 6;
+    private static final int DEFAULT_PAGE_SIZE = 16;
     private static final int DEFAULT_RELATED_PRODUCTS_PAGE_SIZE = 4;
 
     private final ProductService productService;

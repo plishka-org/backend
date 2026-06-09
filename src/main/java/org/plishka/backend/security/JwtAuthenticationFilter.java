@@ -69,18 +69,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            if (!isAuthenticationAllowed(userDetails)) {
-                log.debug(
-                        "JWT authentication rejected due to user state: username={}, "
-                                + "enabled={}, accountNonLocked={}",
-                        userDetails.getUsername(),
-                        userDetails.isEnabled(),
-                        userDetails.isAccountNonLocked()
-                );
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             userDetails,
@@ -96,7 +84,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean isAuthenticationAllowed(UserDetails userDetails) {
-        return userDetails.isEnabled() && userDetails.isAccountNonLocked();
-    }
 }

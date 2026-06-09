@@ -9,9 +9,11 @@ import org.plishka.backend.dto.auth.RefreshTokenRequestDto;
 import org.plishka.backend.dto.auth.RegisterRequestDto;
 import org.plishka.backend.dto.auth.ResendVerificationEmailRequestDto;
 import org.plishka.backend.dto.auth.ResetPasswordRequestDto;
+import org.plishka.backend.dto.auth.VerifyEmailChangeRequestDto;
 import org.plishka.backend.dto.common.MessageResponseDto;
 import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.service.auth.AuthService;
+import org.plishka.backend.service.user.EmailChangeService;
 import org.plishka.backend.validation.ValidDeviceId;
 import org.plishka.backend.validation.ValidEmailActionToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private static final String DEVICE_ID_HEADER = "Device-Id";
     private final AuthService authService;
+    private final EmailChangeService emailChangeService;
 
     @PostMapping("/register")
     public MessageResponseDto register(@Valid @RequestBody RegisterRequestDto requestDto) {
@@ -40,6 +43,12 @@ public class AuthController {
     public MessageResponseDto verifyEmail(@RequestParam @ValidEmailActionToken String token) {
         authService.verifyEmail(token);
         return new MessageResponseDto("Email verified successfully.");
+    }
+
+    @PostMapping("/verify-email-change")
+    public MessageResponseDto verifyEmailChange(@Valid @RequestBody VerifyEmailChangeRequestDto requestDto) {
+        emailChangeService.verifyEmailChange(requestDto.token());
+        return new MessageResponseDto("Email changed successfully.");
     }
 
     @PostMapping("/resend-verification")
