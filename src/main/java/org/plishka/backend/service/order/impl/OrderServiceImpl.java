@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.order.Order;
 import org.plishka.backend.domain.order.OrderItem;
-import org.plishka.backend.domain.order.OrderStatus;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.dto.order.OrderSummaryDto;
@@ -92,7 +91,6 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setDeliveryCity(originalOrder.getDeliveryCity());
         newOrder.setPhone(originalOrder.getPhone());
         newOrder.setNotes(originalOrder.getNotes());
-        newOrder.setStatus(OrderStatus.PENDING);
         newOrder.setTotalPrice(originalOrder.getTotalPrice());
 
         originalOrder.getOrderItems().forEach(originalItem -> {
@@ -106,7 +104,7 @@ public class OrderServiceImpl implements OrderService {
     private OrderItem copyOrderItem(Order newOrder, OrderItem originalItem) {
         OrderItem newItem = new OrderItem();
         newItem.setOrder(newOrder);
-        newItem.setProduct(originalItem.getProduct());
+        newItem.setProductId(originalItem.getProductId());
         newItem.setProductNameSnapshot(originalItem.getProductNameSnapshot());
         newItem.setCategoryNameSnapshot(originalItem.getCategoryNameSnapshot());
         newItem.setQuantity(originalItem.getQuantity());

@@ -5,12 +5,12 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
-import org.plishka.backend.domain.order.OrderStatus;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.order.CreateOrderRequestDto;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.dto.order.OrderItemDetailDto;
 import org.plishka.backend.dto.order.OrderSummaryDto;
+import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.service.order.OrderCheckoutService;
@@ -59,6 +59,8 @@ class OrderControllerTest extends BaseControllerTest {
     private static final String SUBTOTAL = "900.00";
     private static final String TOTAL_PRICE = "900.00";
     private static final String ORDER_NOT_FOUND_MESSAGE = "Order not found";
+    private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+    private static final String IDEMPOTENCY_KEY = "11f2cbe7-3915-44f6-9bcd-3a1c70a47e92";
     private static final Instant CREATED_AT = Instant.parse("2026-05-31T10:15:30Z");
 
     @Autowired
@@ -85,7 +87,6 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value(ORDER_ID))
                 .andExpect(jsonPath("$.orderNumber").value(ORDER_NUMBER))
-                .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.items[0].productId").value(PRODUCT_ID));
 
         verify(orderService).getOrderById(ORDER_ID, USER_ID);
@@ -201,7 +202,8 @@ class OrderControllerTest extends BaseControllerTest {
         CreateOrderRequestDto request = createOrderRequest(CUSTOMER_NAME);
         OrderDetailDto response = orderDetail();
 
-        when(orderCheckoutService.checkout(eq(USER_ID), any(CreateOrderRequestDto.class))).thenReturn(response);
+        when(orderCheckoutService.checkout(eq(USER_ID), eq(IDEMPOTENCY_KEY), any(CreateOrderRequestDto.class)))
+                .thenReturn(response);
 
         performCreateOrder(request)
                 .andExpect(status().isOk())
@@ -209,7 +211,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.customerName").value(CUSTOMER_NAME))
                 .andExpect(jsonPath("$.totalPrice").value(900.00));
 
-        verify(orderCheckoutService).checkout(eq(USER_ID), any(CreateOrderRequestDto.class));
+        verify(orderCheckoutService).checkout(eq(USER_ID), eq(IDEMPOTENCY_KEY), any(CreateOrderRequestDto.class));
     }
 
     @Test
@@ -218,6 +220,28 @@ class OrderControllerTest extends BaseControllerTest {
 
         performCreateOrder(request)
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createOrder_ShouldReturn400_WhenIdempotencyKeyHeaderIsMissing() throws Exception {
+        CreateOrderRequestDto request = createOrderRequest(CUSTOMER_NAME);
+
+        mockMvc.perform(post("/orders")
+                        .with(authenticatedUser(principal()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createOrder_ShouldReturn409_WhenIdempotencyKeyReusedWithDifferentPayload() throws Exception {
+        CreateOrderRequestDto request = createOrderRequest(CUSTOMER_NAME);
+
+        when(orderCheckoutService.checkout(eq(USER_ID), eq(IDEMPOTENCY_KEY), any(CreateOrderRequestDto.class)))
+                .thenThrow(new ConflictException("Idempotency key was already used with a different request payload"));
+
+        performCreateOrder(request)
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -258,6 +282,7 @@ class OrderControllerTest extends BaseControllerTest {
     private ResultActions performCreateOrder(CreateOrderRequestDto request) throws Exception {
         return mockMvc.perform(post("/orders")
                         .with(authenticatedUser(principal()))
+                        .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)));
     }
@@ -276,7 +301,6 @@ class OrderControllerTest extends BaseControllerTest {
                 ORDER_ID,
                 ORDER_NUMBER,
                 CUSTOMER_NAME,
-                OrderStatus.PENDING,
                 new BigDecimal(TOTAL_PRICE),
                 DELIVERY_CITY,
                 PHONE,
@@ -290,7 +314,6 @@ class OrderControllerTest extends BaseControllerTest {
         return new OrderSummaryDto(
                 ORDER_ID,
                 ORDER_NUMBER,
-                OrderStatus.PENDING,
                 new BigDecimal(TOTAL_PRICE),
                 CREATED_AT
         );

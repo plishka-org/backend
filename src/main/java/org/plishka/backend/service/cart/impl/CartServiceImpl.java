@@ -21,7 +21,6 @@ import org.plishka.backend.dto.cart.UpdateCartItemRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.cart.CartItemMapper;
-import org.plishka.backend.repository.cart.CartItemRepository;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.user.UserRepository;
@@ -36,7 +35,6 @@ public class CartServiceImpl implements CartService {
     private static final int MAX_ITEM_QUANTITY = 1000;
 
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final CartItemMapper cartItemMapper;
@@ -62,7 +60,7 @@ public class CartServiceImpl implements CartService {
         log.debug("Adding product id={} to cart for user id={}, quantity={}",
                 requestDto.productId(), userId, requestDto.quantity());
 
-        Cart cart = findOrCreateCart(userId);
+        Cart cart = findOrCreateCartForUpdate(userId);
         Product product = findProductOrThrow(requestDto.productId());
         addItemToCart(cart, product, requestDto.quantity());
         cartRepository.save(cart);
@@ -77,11 +75,13 @@ public class CartServiceImpl implements CartService {
         log.debug("Updating product id={} in cart for user id={}, new quantity={}",
                 productId, userId, requestDto.quantity());
 
-        CartItem cartItem = findCartItemByUserAndProductOrThrow(userId, productId);
+        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+        CartItem cartItem = findCartItem(cart, productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found in cart"));
         cartItem.setQuantity(requestDto.quantity());
 
         log.debug("Successfully updated product quantity in cart for user id={}", userId);
-        return getCart(userId);
+        return toCartSummaryDto(cart);
     }
 
     @Override
@@ -89,13 +89,15 @@ public class CartServiceImpl implements CartService {
     public CartSummaryDto removeItem(Long userId, Long productId) {
         log.debug("Removing product id={} from cart for user id={}", productId, userId);
 
-        int deletedRows = cartItemRepository.deleteByUserIdAndProductId(userId, productId);
-        if (deletedRows == 0) {
+        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+        boolean removed = cart.getCartItems()
+                .removeIf(item -> item.getProduct().getId().equals(productId));
+        if (!removed) {
             throw new ResourceNotFoundException("Product not found in cart");
         }
 
         log.debug("Successfully removed product from cart for user id={}", userId);
-        return getCart(userId);
+        return toCartSummaryDto(cart);
     }
 
     @Override
@@ -103,7 +105,7 @@ public class CartServiceImpl implements CartService {
     public void clearCart(Long userId) {
         log.debug("Clearing cart for user id={}", userId);
 
-        Cart cart = findCartByUserIdOrThrow(userId);
+        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
@@ -116,11 +118,7 @@ public class CartServiceImpl implements CartService {
         log.debug("Merging client cart with {} item(s) into user id={} cart",
                 requestDto.items().size(), userId);
 
-        if (requestDto.items().isEmpty()) {
-            return getCart(userId);
-        }
-
-        Cart targetCart = findOrCreateCartForMerge(userId);
+        Cart targetCart = findOrCreateCartForUpdate(userId);
         Map<Long, Integer> aggregatedItems = aggregateItemsByProductId(requestDto.items());
         Map<Long, Product> productsById = findProductsByIdOrThrow(aggregatedItems.keySet());
 
@@ -198,7 +196,6 @@ public class CartServiceImpl implements CartService {
         cartItem.setCart(cart);
         cartItem.setProduct(product);
         cartItem.setQuantity(quantity);
-        cartItem.setUnitPrice(product.getPrice());
         return cartItem;
     }
 
@@ -213,14 +210,14 @@ public class CartServiceImpl implements CartService {
         return new CartSummaryDto(List.of(), BigDecimal.ZERO);
     }
 
-    private Cart findOrCreateCart(Long userId) {
-        return cartRepository.findByUserId(userId)
+    private Cart findOrCreateCartForUpdate(Long userId) {
+        return cartRepository.findByUserIdForUpdate(userId)
                 .orElseGet(() -> createNewCart(userId));
     }
 
-    private Cart findOrCreateCartForMerge(Long userId) {
+    private Cart findCartByUserIdForUpdateOrThrow(Long userId) {
         return cartRepository.findByUserIdForUpdate(userId)
-                .orElseGet(() -> createNewCart(userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user id=" + userId));
     }
 
     private Cart createNewCart(Long userId) {
@@ -235,16 +232,6 @@ public class CartServiceImpl implements CartService {
 
     private Cart findCartByUserIdOrNull(Long userId) {
         return cartRepository.findByUserId(userId).orElse(null);
-    }
-
-    private Cart findCartByUserIdOrThrow(Long userId) {
-        return cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user id=" + userId));
-    }
-
-    private CartItem findCartItemByUserAndProductOrThrow(Long userId, Long productId) {
-        return cartItemRepository.findByUserIdAndProductId(userId, productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found in cart"));
     }
 
     private Product findProductOrThrow(Long productId) {

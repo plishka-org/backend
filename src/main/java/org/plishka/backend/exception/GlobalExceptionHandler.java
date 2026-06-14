@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.dto.common.ErrorResponseDto;
 import org.plishka.backend.dto.common.ValidationErrorResponseDto;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -44,18 +45,31 @@ public class GlobalExceptionHandler {
     private static final String MALFORMED_REQUEST_BODY_MESSAGE = "Malformed JSON request body";
     private static final String EMAIL_SERVICE_UNAVAILABLE_MESSAGE = "Email service is temporarily unavailable";
     private static final String INTERNAL_SERVER_ERROR_MESSAGE = "An unexpected error occurred";
+    private static final String DATA_CONFLICT_MESSAGE = "The request conflicts with the current state of the resource";
     private static final String REQUIRED_HEADER_MISSING_MESSAGE = "Required header is missing";
     private static final String REQUIRED_PARAMETER_MISSING_MESSAGE = "Required request parameter is missing";
     private static final String GLOBAL_ERROR_FIELD = "global";
 
     private final Clock clock;
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
+    @ExceptionHandler({
+            EmailAlreadyExistsException.class,
+            ConflictException.class
+    })
     public ResponseEntity<ErrorResponseDto> handleConflict(
-            EmailAlreadyExistsException exception,
+            RuntimeException exception,
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDto> handleDataIntegrityViolation(
+            DataIntegrityViolationException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Data integrity violation while processing {}", request.getRequestURI(), exception);
+        return buildErrorResponse(HttpStatus.CONFLICT, DATA_CONFLICT_MESSAGE, request);
     }
 
     @ExceptionHandler({

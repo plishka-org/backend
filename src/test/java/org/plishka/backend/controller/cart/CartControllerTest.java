@@ -198,6 +198,24 @@ class CartControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void mergeCart_ShouldReturn400_WhenItemsListIsEmpty() throws Exception {
+        mockMvc.perform(post("/cart/merge")
+                        .with(authenticatedUser(principal()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void mergeCart_ShouldReturn400_WhenItemsListContainsNullElement() throws Exception {
+        mockMvc.perform(post("/cart/merge")
+                        .with(authenticatedUser(principal()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[null]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void mergeCart_ShouldReturn400_WhenItemQuantityIsNotPositive() throws Exception {
         MergeCartRequestDto request = mergeRequest(INVALID_QUANTITY);
 

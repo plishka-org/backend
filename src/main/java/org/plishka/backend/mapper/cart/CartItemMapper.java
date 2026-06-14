@@ -13,10 +13,11 @@ public interface CartItemMapper {
     @Mapping(target = "productId", source = "product.id")
     @Mapping(target = "productName", source = "product.name")
     @Mapping(target = "categoryName", source = "product.category.name")
+    @Mapping(target = "unitPrice", source = "product.price")
     @Mapping(target = "subtotal", source = "cartItem")
     CartItemSummaryDto toSummaryDto(CartItem cartItem);
 
     default BigDecimal calculateSubtotal(CartItem cartItem) {
-        return cartItem.getUnitPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+        return cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
     }
 }

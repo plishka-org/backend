@@ -13,9 +13,7 @@ import org.springframework.stereotype.Repository;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
             SELECT DISTINCT o FROM Order o
-            LEFT JOIN FETCH o.orderItems oi
-            LEFT JOIN FETCH oi.product p
-            LEFT JOIN FETCH p.category
+            LEFT JOIN FETCH o.orderItems
             WHERE o.id = :id
             """)
     Optional<Order> findByIdWithItems(@Param("id") Long id);
@@ -24,10 +22,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("""
             SELECT DISTINCT o FROM Order o
-            LEFT JOIN FETCH o.orderItems oi
-            LEFT JOIN FETCH oi.product p
-            LEFT JOIN FETCH p.category
+            LEFT JOIN FETCH o.orderItems
             WHERE o.user.id = :userId AND o.orderNumber = :orderNumber
             """)
     Optional<Order> findByUserIdAndOrderNumber(@Param("userId") Long userId, @Param("orderNumber") String orderNumber);
+
+    @Query("""
+            SELECT DISTINCT o FROM Order o
+            LEFT JOIN FETCH o.orderItems
+            WHERE o.user.id = :userId AND o.idempotencyKey = :idempotencyKey
+            """)
+    Optional<Order> findByUserIdAndIdempotencyKey(
+            @Param("userId") Long userId,
+            @Param("idempotencyKey") String idempotencyKey
+    );
 }

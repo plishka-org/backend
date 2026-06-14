@@ -19,7 +19,6 @@ public interface OrderMapper {
     OrderSummaryDto toSummaryDto(Order order);
 
     @Mapping(source = "id", target = "orderItemId")
-    @Mapping(source = "product.id", target = "productId")
     @Mapping(source = "productNameSnapshot", target = "productName")
     @Mapping(source = "categoryNameSnapshot", target = "categoryName")
     @Mapping(source = "lineTotal", target = "subtotal")

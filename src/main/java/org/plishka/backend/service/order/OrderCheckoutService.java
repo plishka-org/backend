@@ -4,5 +4,5 @@ import org.plishka.backend.dto.order.CreateOrderRequestDto;
 import org.plishka.backend.dto.order.OrderDetailDto;
 
 public interface OrderCheckoutService {
-    OrderDetailDto checkout(Long userId, CreateOrderRequestDto requestDto);
+    OrderDetailDto checkout(Long userId, String idempotencyKey, CreateOrderRequestDto requestDto);
 }

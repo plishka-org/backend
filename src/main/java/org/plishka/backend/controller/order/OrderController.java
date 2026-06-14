@@ -1,7 +1,9 @@
 package org.plishka.backend.controller.order;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.common.PaginationRequestDto;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -58,9 +61,13 @@ public class OrderController {
     @PostMapping("/orders")
     public OrderDetailDto createOrder(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+            @RequestHeader("Idempotency-Key")
+            @NotBlank(message = "Idempotency-Key header must not be blank")
+            @Size(max = 64, message = "Idempotency-Key header must not exceed 64 characters")
+            String idempotencyKey,
             @Valid @RequestBody CreateOrderRequestDto requestDto
     ) {
-        return orderCheckoutService.checkout(principal.getUserId(), requestDto);
+        return orderCheckoutService.checkout(principal.getUserId(), idempotencyKey, requestDto);
     }
 
     @PostMapping("/users/me/orders/{orderId}/repeat")

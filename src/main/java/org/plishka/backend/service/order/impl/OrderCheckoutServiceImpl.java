@@ -1,22 +1,25 @@
 package org.plishka.backend.service.order.impl;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.cart.Cart;
 import org.plishka.backend.domain.cart.CartItem;
 import org.plishka.backend.domain.order.Order;
 import org.plishka.backend.domain.order.OrderItem;
-import org.plishka.backend.domain.order.OrderStatus;
+import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.dto.order.CreateOrderRequestDto;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.order.OrderRepository;
 import org.plishka.backend.service.order.OrderCheckoutService;
 import org.plishka.backend.service.order.OrderNumberGenerator;
+import org.plishka.backend.util.TokenHashUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderCheckoutServiceImpl implements OrderCheckoutService {
+    private static final char REQUEST_HASH_FIELD_SEPARATOR = '\u001F';
+
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
@@ -31,17 +36,29 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
 
     @Override
     @Transactional
-    public OrderDetailDto checkout(Long userId, CreateOrderRequestDto requestDto) {
+    public OrderDetailDto checkout(Long userId, String idempotencyKey, CreateOrderRequestDto requestDto) {
         log.debug("Starting checkout for user id={}", userId);
 
-        Cart cart = findCartByUserIdOrThrow(userId);
+        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+
+        String requestHash = calculateRequestHash(requestDto);
+        Order existingOrder = findOrderByIdempotencyKey(userId, idempotencyKey);
+        if (existingOrder != null) {
+            validateRequestHashMatches(existingOrder, requestHash);
+            log.debug("Returning existing order id={} for idempotent retry by user id={}",
+                    existingOrder.getId(), userId);
+            return orderMapper.toDetailDto(existingOrder);
+        }
+
         validateCartNotEmpty(cart);
 
         Order order = createOrderFromCart(cart, requestDto);
+        order.setIdempotencyKey(idempotencyKey);
+        order.setRequestHash(requestHash);
         Order savedOrder = orderRepository.saveAndFlush(order);
-        
+
         clearCart(cart);
-        
+
         log.debug("Order created with id={} for user id={}", savedOrder.getId(), userId);
 
         return orderMapper.toDetailDto(savedOrder);
@@ -55,27 +72,50 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         order.setDeliveryCity(requestDto.deliveryCity());
         order.setPhone(requestDto.phone());
         order.setNotes(requestDto.notes());
-        order.setStatus(OrderStatus.PENDING);
-        order.setTotalPrice(calculateTotalPrice(cart));
 
         cart.getCartItems().forEach(cartItem -> {
             OrderItem orderItem = createOrderItem(order, cartItem);
             order.getOrderItems().add(orderItem);
         });
+        order.setTotalPrice(calculateTotalPrice(order));
 
         return order;
     }
 
     private OrderItem createOrderItem(Order order, CartItem cartItem) {
+        Product product = cartItem.getProduct();
+        BigDecimal unitPrice = product.getPrice();
+
         OrderItem orderItem = new OrderItem();
         orderItem.setOrder(order);
-        orderItem.setProduct(cartItem.getProduct());
-        orderItem.setProductNameSnapshot(cartItem.getProduct().getName());
-        orderItem.setCategoryNameSnapshot(cartItem.getProduct().getCategory().getName());
+        orderItem.setProductId(product.getId());
+        orderItem.setProductNameSnapshot(product.getName());
+        orderItem.setCategoryNameSnapshot(product.getCategory().getName());
         orderItem.setQuantity(cartItem.getQuantity());
-        orderItem.setUnitPrice(cartItem.getUnitPrice());
-        orderItem.setLineTotal(cartItem.getUnitPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+        orderItem.setUnitPrice(unitPrice);
+        orderItem.setLineTotal(unitPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         return orderItem;
+    }
+
+    private Order findOrderByIdempotencyKey(Long userId, String idempotencyKey) {
+        return orderRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey).orElse(null);
+    }
+
+    private void validateRequestHashMatches(Order existingOrder, String requestHash) {
+        if (!Objects.equals(existingOrder.getRequestHash(), requestHash)) {
+            throw new ConflictException("Idempotency key was already used with a different request payload");
+        }
+    }
+
+    private String calculateRequestHash(CreateOrderRequestDto requestDto) {
+        String canonicalPayload = String.join(
+                String.valueOf(REQUEST_HASH_FIELD_SEPARATOR),
+                requestDto.customerName(),
+                requestDto.deliveryCity(),
+                requestDto.phone(),
+                Objects.toString(requestDto.notes(), "")
+        );
+        return TokenHashUtil.sha256(canonicalPayload);
     }
 
     private void validateCartNotEmpty(Cart cart) {
@@ -90,14 +130,14 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         cartRepository.save(cart);
     }
 
-    private Cart findCartByUserIdOrThrow(Long userId) {
-        return cartRepository.findByUserId(userId)
+    private Cart findCartByUserIdForUpdateOrThrow(Long userId) {
+        return cartRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user"));
     }
 
-    private BigDecimal calculateTotalPrice(Cart cart) {
-        return cart.getCartItems().stream()
-                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+    private BigDecimal calculateTotalPrice(Order order) {
+        return order.getOrderItems().stream()
+                .map(OrderItem::getLineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

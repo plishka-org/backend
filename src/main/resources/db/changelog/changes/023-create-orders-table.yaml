@@ -24,14 +24,14 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: idempotency_key
+                  type: VARCHAR(64)
+              - column:
+                  name: request_hash
+                  type: VARCHAR(64)
+              - column:
                   name: customer_name
                   type: VARCHAR(100)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: status
-                  type: VARCHAR(20)
-                  defaultValue: PENDING
                   constraints:
                     nullable: false
               - column:
@@ -66,6 +66,10 @@ databaseChangeLog:
             tableName: orders
             columnNames: order_number
             constraintName: uk_orders_order_number
+        - addUniqueConstraint:
+            tableName: orders
+            columnNames: user_id, idempotency_key
+            constraintName: uk_orders_user_id_idempotency_key
         - addForeignKeyConstraint:
             baseTableName: orders
             baseColumnNames: user_id
@@ -85,5 +89,3 @@ databaseChangeLog:
               - column:
                   name: id
                   descending: true
-        - sql:
-            sql: ALTER TABLE orders ADD CONSTRAINT chk_orders_status CHECK (status IN ('PENDING'));
