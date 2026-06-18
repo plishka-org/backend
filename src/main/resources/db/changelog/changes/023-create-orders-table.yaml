@@ -26,9 +26,13 @@ databaseChangeLog:
               - column:
                   name: idempotency_key
                   type: VARCHAR(64)
+                  constraints:
+                    nullable: false
               - column:
                   name: request_hash
                   type: VARCHAR(64)
+                  constraints:
+                    nullable: false
               - column:
                   name: customer_name
                   type: VARCHAR(100)
@@ -89,3 +93,5 @@ databaseChangeLog:
               - column:
                   name: id
                   descending: true
+        - sql:
+            sql: ALTER TABLE orders ADD CONSTRAINT chk_orders_total_price CHECK (total_price > 0);

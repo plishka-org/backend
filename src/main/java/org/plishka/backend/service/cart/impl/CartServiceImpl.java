@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.cart.Cart;
 import org.plishka.backend.domain.cart.CartItem;
 import org.plishka.backend.domain.product.Product;
+import org.plishka.backend.domain.user.User;
 import org.plishka.backend.dto.cart.AddCartItemRequestDto;
 import org.plishka.backend.dto.cart.CartItemSummaryDto;
 import org.plishka.backend.dto.cart.CartSummaryDto;
@@ -28,11 +29,29 @@ import org.plishka.backend.service.cart.CartService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Cart service implementation.
+ *
+ * <p>Concurrency invariant for cart writes: all mutations of a user's cart must be
+ * serialized through a pessimistic lock on the Cart aggregate root.
+ *
+ * <p>If the cart does not exist yet, the User row must be locked first, then the
+ * cart must be looked up again before creating it. A missing Cart row cannot be
+ * locked, so two concurrent first-writes would otherwise both insert and collide
+ * on the unique constraint.
+ *
+ * <p>After acquiring the Cart lock, load the full cart aggregate separately
+ * (items -&gt; product -&gt; category). Do not combine the write lock with a fetch
+ * graph, because the database may lock the joined rows as part of the locking read.
+ *
+ * <p>Do not mutate cart_items through bulk DML; update them through the managed Cart
+ * collection so Hibernate state stays consistent with the lock protocol.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CartServiceImpl implements CartService {
-    private static final int MAX_ITEM_QUANTITY = 1000;
+    private static final int MAX_ITEM_QUANTITY = 50;
 
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
@@ -44,7 +63,7 @@ public class CartServiceImpl implements CartService {
     public CartSummaryDto getCart(Long userId) {
         log.debug("Fetching cart for user id={}", userId);
 
-        Cart cart = findCartByUserIdOrNull(userId);
+        Cart cart = cartRepository.findAggregateByUserId(userId).orElse(null);
         if (cart == null) {
             log.debug("Cart not found for user id={}, returning empty cart", userId);
             return emptyCartSummary();
@@ -60,7 +79,7 @@ public class CartServiceImpl implements CartService {
         log.debug("Adding product id={} to cart for user id={}, quantity={}",
                 requestDto.productId(), userId, requestDto.quantity());
 
-        Cart cart = findOrCreateCartForUpdate(userId);
+        Cart cart = getOrCreateLockedCartAggregate(userId);
         Product product = findProductOrThrow(requestDto.productId());
         addItemToCart(cart, product, requestDto.quantity());
         cartRepository.save(cart);
@@ -75,7 +94,7 @@ public class CartServiceImpl implements CartService {
         log.debug("Updating product id={} in cart for user id={}, new quantity={}",
                 productId, userId, requestDto.quantity());
 
-        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+        Cart cart = getLockedCartAggregate(userId);
         CartItem cartItem = findCartItem(cart, productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found in cart"));
         cartItem.setQuantity(requestDto.quantity());
@@ -89,7 +108,7 @@ public class CartServiceImpl implements CartService {
     public CartSummaryDto removeItem(Long userId, Long productId) {
         log.debug("Removing product id={} from cart for user id={}", productId, userId);
 
-        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+        Cart cart = getLockedCartAggregate(userId);
         boolean removed = cart.getCartItems()
                 .removeIf(item -> item.getProduct().getId().equals(productId));
         if (!removed) {
@@ -105,7 +124,7 @@ public class CartServiceImpl implements CartService {
     public void clearCart(Long userId) {
         log.debug("Clearing cart for user id={}", userId);
 
-        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+        Cart cart = getLockedCartAggregate(userId);
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
@@ -118,7 +137,7 @@ public class CartServiceImpl implements CartService {
         log.debug("Merging client cart with {} item(s) into user id={} cart",
                 requestDto.items().size(), userId);
 
-        Cart targetCart = findOrCreateCartForUpdate(userId);
+        Cart targetCart = getOrCreateLockedCartAggregate(userId);
         Map<Long, Integer> aggregatedItems = aggregateItemsByProductId(requestDto.items());
         Map<Long, Product> productsById = findProductsByIdOrThrow(aggregatedItems.keySet());
 
@@ -210,28 +229,39 @@ public class CartServiceImpl implements CartService {
         return new CartSummaryDto(List.of(), BigDecimal.ZERO);
     }
 
-    private Cart findOrCreateCartForUpdate(Long userId) {
-        return cartRepository.findByUserIdForUpdate(userId)
-                .orElseGet(() -> createNewCart(userId));
-    }
-
-    private Cart findCartByUserIdForUpdateOrThrow(Long userId) {
-        return cartRepository.findByUserIdForUpdate(userId)
+    private Cart getLockedCartAggregate(Long userId) {
+        cartRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user id=" + userId));
+        return loadCartAggregateOrThrow(userId);
     }
 
-    private Cart createNewCart(Long userId) {
-        log.debug("Creating new cart for user id={}", userId);
-        var user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
+    private Cart getOrCreateLockedCartAggregate(Long userId) {
+        ensureCartExistsWithLock(userId);
+        return loadCartAggregateOrThrow(userId);
+    }
 
+    private void ensureCartExistsWithLock(Long userId) {
+        if (cartRepository.findByUserIdForUpdate(userId).isPresent()) {
+            return;
+        }
+
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
+        if (cartRepository.findByUserIdForUpdate(userId).isEmpty()) {
+            createNewCart(user);
+        }
+    }
+
+    private void createNewCart(User user) {
+        log.debug("Creating new cart for user id={}", user.getId());
         Cart newCart = new Cart();
         newCart.setUser(user);
-        return cartRepository.save(newCart);
+        cartRepository.save(newCart);
     }
 
-    private Cart findCartByUserIdOrNull(Long userId) {
-        return cartRepository.findByUserId(userId).orElse(null);
+    private Cart loadCartAggregateOrThrow(Long userId) {
+        return cartRepository.findAggregateByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user id=" + userId));
     }
 
     private Product findProductOrThrow(Long productId) {

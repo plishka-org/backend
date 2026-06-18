@@ -11,5 +11,5 @@ public interface OrderService {
 
     PageResponse<OrderSummaryDto> getUserOrders(Long userId, int page, int size);
 
-    OrderDetailDto repeatOrder(Long orderId, Long userId);
+    OrderDetailDto repeatOrder(Long orderId, Long userId, String idempotencyKey);
 }

@@ -82,3 +82,11 @@ databaseChangeLog:
             columns:
               - column:
                   name: product_id
+        - sql:
+            sql: ALTER TABLE order_items ADD CONSTRAINT chk_order_items_quantity CHECK (quantity BETWEEN 1 AND 50);
+        - sql:
+            sql: ALTER TABLE order_items ADD CONSTRAINT chk_order_items_unit_price CHECK (unit_price > 0);
+        - sql:
+            sql: ALTER TABLE order_items ADD CONSTRAINT chk_order_items_line_total CHECK (line_total > 0);
+        - sql:
+            sql: ALTER TABLE order_items ADD CONSTRAINT chk_order_items_line_total_consistency CHECK (line_total = unit_price * quantity);

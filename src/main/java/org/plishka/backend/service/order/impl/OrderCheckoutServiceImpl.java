@@ -1,53 +1,63 @@
 package org.plishka.backend.service.order.impl;
 
 import java.math.BigDecimal;
-import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.cart.Cart;
-import org.plishka.backend.domain.cart.CartItem;
 import org.plishka.backend.domain.order.Order;
 import org.plishka.backend.domain.order.OrderItem;
-import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.dto.order.CreateOrderRequestDto;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.exception.BadRequestException;
-import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.order.OrderRepository;
 import org.plishka.backend.service.order.OrderCheckoutService;
+import org.plishka.backend.service.order.OrderIdempotencyGuard;
+import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
-import org.plishka.backend.util.TokenHashUtil;
+import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Order checkout service implementation.
+ *
+ * <p>Checkout participates in the cart write lock protocol described in
+ * {@code CartServiceImpl}. Creating an order consumes the current cart state and
+ * clears cart_items, so checkout must acquire the same Cart aggregate lock as
+ * CartServiceImpl before reading items or clearing the cart.
+ *
+ * <p>Keep the lock acquisition and aggregate loading strategy aligned with
+ * CartServiceImpl: lock the Cart root first, then load items -&gt; product -&gt;
+ * category separately.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class OrderCheckoutServiceImpl implements OrderCheckoutService {
-    private static final char REQUEST_HASH_FIELD_SEPARATOR = '\u001F';
-
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final OrderNumberGenerator orderNumberGenerator;
+    private final OrderIdempotencyGuard orderIdempotencyGuard;
+    private final OrderItemFactory orderItemFactory;
 
     @Override
     @Transactional
     public OrderDetailDto checkout(Long userId, String idempotencyKey, CreateOrderRequestDto requestDto) {
         log.debug("Starting checkout for user id={}", userId);
 
-        Cart cart = findCartByUserIdForUpdateOrThrow(userId);
+        Cart cart = findLockedCartAggregateOrThrow(userId);
 
         String requestHash = calculateRequestHash(requestDto);
-        Order existingOrder = findOrderByIdempotencyKey(userId, idempotencyKey);
-        if (existingOrder != null) {
-            validateRequestHashMatches(existingOrder, requestHash);
+        Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(userId, idempotencyKey, requestHash);
+        if (existingOrder.isPresent()) {
             log.debug("Returning existing order id={} for idempotent retry by user id={}",
-                    existingOrder.getId(), userId);
-            return orderMapper.toDetailDto(existingOrder);
+                    existingOrder.get().getId(), userId);
+            return orderMapper.toDetailDto(existingOrder.get());
         }
 
         validateCartNotEmpty(cart);
@@ -74,7 +84,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         order.setNotes(requestDto.notes());
 
         cart.getCartItems().forEach(cartItem -> {
-            OrderItem orderItem = createOrderItem(order, cartItem);
+            OrderItem orderItem = orderItemFactory.create(order, cartItem.getProduct(), cartItem.getQuantity());
             order.getOrderItems().add(orderItem);
         });
         order.setTotalPrice(calculateTotalPrice(order));
@@ -82,40 +92,13 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         return order;
     }
 
-    private OrderItem createOrderItem(Order order, CartItem cartItem) {
-        Product product = cartItem.getProduct();
-        BigDecimal unitPrice = product.getPrice();
-
-        OrderItem orderItem = new OrderItem();
-        orderItem.setOrder(order);
-        orderItem.setProductId(product.getId());
-        orderItem.setProductNameSnapshot(product.getName());
-        orderItem.setCategoryNameSnapshot(product.getCategory().getName());
-        orderItem.setQuantity(cartItem.getQuantity());
-        orderItem.setUnitPrice(unitPrice);
-        orderItem.setLineTotal(unitPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
-        return orderItem;
-    }
-
-    private Order findOrderByIdempotencyKey(Long userId, String idempotencyKey) {
-        return orderRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey).orElse(null);
-    }
-
-    private void validateRequestHashMatches(Order existingOrder, String requestHash) {
-        if (!Objects.equals(existingOrder.getRequestHash(), requestHash)) {
-            throw new ConflictException("Idempotency key was already used with a different request payload");
-        }
-    }
-
     private String calculateRequestHash(CreateOrderRequestDto requestDto) {
-        String canonicalPayload = String.join(
-                String.valueOf(REQUEST_HASH_FIELD_SEPARATOR),
+        return RequestHashUtil.hash(
                 requestDto.customerName(),
                 requestDto.deliveryCity(),
                 requestDto.phone(),
-                Objects.toString(requestDto.notes(), "")
+                requestDto.notes()
         );
-        return TokenHashUtil.sha256(canonicalPayload);
     }
 
     private void validateCartNotEmpty(Cart cart) {
@@ -130,8 +113,10 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         cartRepository.save(cart);
     }
 
-    private Cart findCartByUserIdForUpdateOrThrow(Long userId) {
-        return cartRepository.findByUserIdForUpdate(userId)
+    private Cart findLockedCartAggregateOrThrow(Long userId) {
+        cartRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user"));
+        return cartRepository.findAggregateByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user"));
     }
 

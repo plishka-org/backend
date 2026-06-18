@@ -52,7 +52,7 @@ class ProductControllerTest extends BaseControllerTest {
     private static final String RELATED_PRODUCT_CATEGORY_NAME = "Decor Items";
     private static final String RELATED_PRODUCT_PRICE = "320.00";
     private static final String PRODUCT_SORT = "name,desc";
-    private static final String UNSUPPORTED_PRODUCT_SORT = "price,asc";
+    private static final String UNSUPPORTED_PRODUCT_SORT = "rating,desc";
     private static final String CATEGORY_IDS_PARAM = "1,2,3";
     private static final String PRODUCT_MEDIA_KEY =
             "products/10/images/2026/05/550e8400-e29b-41d4-a716-446655440000.jpg";

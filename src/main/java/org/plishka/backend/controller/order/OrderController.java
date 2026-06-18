@@ -73,8 +73,12 @@ public class OrderController {
     @PostMapping("/users/me/orders/{orderId}/repeat")
     public OrderDetailDto repeatOrder(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
-            @Positive @PathVariable Long orderId
+            @Positive @PathVariable Long orderId,
+            @RequestHeader("Idempotency-Key")
+            @NotBlank(message = "Idempotency-Key header must not be blank")
+            @Size(max = 64, message = "Idempotency-Key header must not exceed 64 characters")
+            String idempotencyKey
     ) {
-        return orderService.repeatOrder(orderId, principal.getUserId());
+        return orderService.repeatOrder(orderId, principal.getUserId(), idempotencyKey);
     }
 }

@@ -14,11 +14,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
             SELECT DISTINCT o FROM Order o
             LEFT JOIN FETCH o.orderItems
-            WHERE o.id = :id
+            WHERE o.id = :id AND o.user.id = :userId
             """)
-    Optional<Order> findByIdWithItems(@Param("id") Long id);
+    Optional<Order> findByIdAndUserIdWithItems(@Param("id") Long id, @Param("userId") Long userId);
 
-    Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    Page<Order> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
 
     @Query("""
             SELECT DISTINCT o FROM Order o

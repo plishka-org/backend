@@ -1,18 +1,32 @@
 package org.plishka.backend.service.order.impl;
 
+import java.math.BigDecimal;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.order.Order;
 import org.plishka.backend.domain.order.OrderItem;
+import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.dto.order.OrderSummaryDto;
+import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.order.OrderRepository;
+import org.plishka.backend.repository.product.ProductRepository;
+import org.plishka.backend.service.order.OrderIdempotencyGuard;
+import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.order.OrderService;
+import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -22,17 +36,22 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderServiceImpl implements OrderService {
+    private static final String PRODUCT_UNAVAILABLE_MESSAGE =
+            "Order cannot be repeated because one of its products is no longer available";
+
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
     private final OrderMapper orderMapper;
     private final OrderNumberGenerator orderNumberGenerator;
+    private final OrderIdempotencyGuard orderIdempotencyGuard;
+    private final OrderItemFactory orderItemFactory;
 
     @Override
     @Transactional(readOnly = true)
     public OrderDetailDto getOrderById(Long orderId, Long userId) {
         log.debug("Fetching order id={} for user id={}", orderId, userId);
 
-        Order order = findOrderByIdWithItemsOrThrow(orderId);
-        validateOrderOwnership(order, userId);
+        Order order = findOwnedOrderWithItemsOrThrow(orderId, userId);
 
         log.debug("Successfully fetched order id={} for user id={}", orderId, userId);
         return orderMapper.toDetailDto(order);
@@ -55,7 +74,7 @@ public class OrderServiceImpl implements OrderService {
     public PageResponse<OrderSummaryDto> getUserOrders(Long userId, int page, int size) {
         log.debug("Fetching orders for user id={}, page={}, size={}", userId, page, size);
 
-        Page<Order> ordersPage = orderRepository.findByUserIdOrderByCreatedAtDesc(
+        Page<Order> ordersPage = orderRepository.findByUserIdOrderByCreatedAtDescIdDesc(
                 userId,
                 PageRequest.of(page, size)
         );
@@ -68,22 +87,31 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderDetailDto repeatOrder(Long orderId, Long userId) {
+    public OrderDetailDto repeatOrder(Long orderId, Long userId, String idempotencyKey) {
         log.debug("Repeating order id={} for user id={}", orderId, userId);
 
-        Order originalOrder = findOrderByIdWithItemsOrThrow(orderId);
-        validateOrderOwnership(originalOrder, userId);
+        String requestHash = RequestHashUtil.hash(String.valueOf(orderId));
+        Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(userId, idempotencyKey, requestHash);
+        if (existingOrder.isPresent()) {
+            log.debug("Returning existing order id={} for idempotent repeat by user id={}",
+                    existingOrder.get().getId(), userId);
+            return orderMapper.toDetailDto(existingOrder.get());
+        }
 
-        Order newOrder = createOrderFromExisting(originalOrder);
-        Order savedOrder = orderRepository.save(newOrder);
-        
+        Order originalOrder = findOwnedOrderWithItemsOrThrow(orderId, userId);
+
+        Order newOrder = createRepeatedOrder(originalOrder);
+        newOrder.setIdempotencyKey(idempotencyKey);
+        newOrder.setRequestHash(requestHash);
+        Order savedOrder = orderRepository.saveAndFlush(newOrder);
+
         log.debug("Successfully repeated order id={} as new order id={} for user id={}",
                 orderId, savedOrder.getId(), userId);
 
         return orderMapper.toDetailDto(savedOrder);
     }
 
-    private Order createOrderFromExisting(Order originalOrder) {
+    private Order createRepeatedOrder(Order originalOrder) {
         Order newOrder = new Order();
         newOrder.setUser(originalOrder.getUser());
         newOrder.setOrderNumber(orderNumberGenerator.generate());
@@ -91,32 +119,35 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setDeliveryCity(originalOrder.getDeliveryCity());
         newOrder.setPhone(originalOrder.getPhone());
         newOrder.setNotes(originalOrder.getNotes());
-        newOrder.setTotalPrice(originalOrder.getTotalPrice());
 
+        Map<Long, Product> currentProducts = loadCurrentProductsOrThrow(originalOrder.getOrderItems());
         originalOrder.getOrderItems().forEach(originalItem -> {
-            OrderItem newItem = copyOrderItem(newOrder, originalItem);
+            Product product = currentProducts.get(originalItem.getProductId());
+            OrderItem newItem = orderItemFactory.create(newOrder, product, originalItem.getQuantity());
             newOrder.getOrderItems().add(newItem);
         });
+        newOrder.setTotalPrice(calculateTotalPrice(newOrder));
 
         return newOrder;
     }
 
-    private OrderItem copyOrderItem(Order newOrder, OrderItem originalItem) {
-        OrderItem newItem = new OrderItem();
-        newItem.setOrder(newOrder);
-        newItem.setProductId(originalItem.getProductId());
-        newItem.setProductNameSnapshot(originalItem.getProductNameSnapshot());
-        newItem.setCategoryNameSnapshot(originalItem.getCategoryNameSnapshot());
-        newItem.setQuantity(originalItem.getQuantity());
-        newItem.setUnitPrice(originalItem.getUnitPrice());
-        newItem.setLineTotal(originalItem.getLineTotal());
-        return newItem;
-    }
+    private Map<Long, Product> loadCurrentProductsOrThrow(List<OrderItem> originalItems) {
+        Set<Long> productIds = originalItems.stream()
+                .map(OrderItem::getProductId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
-    private void validateOrderOwnership(Order order, Long userId) {
-        if (!order.getUser().getId().equals(userId)) {
-            throw new ResourceNotFoundException("Order with ID " + order.getId() + " not found");
+        if (productIds.stream().anyMatch(Objects::isNull)) {
+            throw new BadRequestException(PRODUCT_UNAVAILABLE_MESSAGE);
         }
+
+        Map<Long, Product> productsById = productRepository.findAllByIdIn(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        if (productsById.size() != productIds.size()) {
+            throw new BadRequestException(PRODUCT_UNAVAILABLE_MESSAGE);
+        }
+
+        return productsById;
     }
 
     private List<OrderSummaryDto> toOrderSummaries(List<Order> orders) {
@@ -125,9 +156,14 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
-    private Order findOrderByIdWithItemsOrThrow(Long orderId) {
-        return orderRepository.findByIdWithItems(orderId)
+    private Order findOwnedOrderWithItemsOrThrow(Long orderId, Long userId) {
+        return orderRepository.findByIdAndUserIdWithItems(orderId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order with ID " + orderId + " not found"));
     }
 
+    private BigDecimal calculateTotalPrice(Order order) {
+        return order.getOrderItems().stream()
+                .map(OrderItem::getLineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }

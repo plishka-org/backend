@@ -62,3 +62,5 @@ databaseChangeLog:
             columns:
               - column:
                   name: cart_id
+        - sql:
+            sql: ALTER TABLE cart_items ADD CONSTRAINT chk_cart_items_quantity CHECK (quantity BETWEEN 1 AND 50);

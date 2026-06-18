@@ -11,7 +11,7 @@ public record AddCartItemRequestDto(
 
         @NotNull(message = "Quantity is required")
         @Positive(message = "Quantity must be positive")
-        @Max(value = 1000, message = "Maximum quantity per item is 1000")
+        @Max(value = 50, message = "Maximum quantity per item is 50")
         Integer quantity
 ) {
 }

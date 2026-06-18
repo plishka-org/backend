@@ -248,25 +248,27 @@ class OrderControllerTest extends BaseControllerTest {
     void repeatOrder_ShouldReturnRepeatedOrderAndStatus200() throws Exception {
         OrderDetailDto response = orderDetail();
 
-        when(orderService.repeatOrder(ORDER_ID, USER_ID)).thenReturn(response);
+        when(orderService.repeatOrder(ORDER_ID, USER_ID, IDEMPOTENCY_KEY)).thenReturn(response);
 
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", ORDER_ID)
                         .with(authenticatedUser(principal()))
+                        .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value(ORDER_ID))
                 .andExpect(jsonPath("$.items[0].quantity").value(QUANTITY));
 
-        verify(orderService).repeatOrder(ORDER_ID, USER_ID);
+        verify(orderService).repeatOrder(ORDER_ID, USER_ID, IDEMPOTENCY_KEY);
     }
 
     @Test
     void repeatOrder_ShouldReturn404_WhenOrderNotFound() throws Exception {
-        when(orderService.repeatOrder(NOT_FOUND_ORDER_ID, USER_ID))
+        when(orderService.repeatOrder(NOT_FOUND_ORDER_ID, USER_ID, IDEMPOTENCY_KEY))
                 .thenThrow(new ResourceNotFoundException(ORDER_NOT_FOUND_MESSAGE));
 
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", NOT_FOUND_ORDER_ID)
                         .with(authenticatedUser(principal()))
+                        .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
@@ -274,6 +276,15 @@ class OrderControllerTest extends BaseControllerTest {
     @Test
     void repeatOrder_ShouldReturn400_WhenOrderIdIsNotPositive() throws Exception {
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", INVALID_ORDER_ID)
+                        .with(authenticatedUser(principal()))
+                        .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void repeatOrder_ShouldReturn400_WhenIdempotencyKeyHeaderIsMissing() throws Exception {
+        mockMvc.perform(post("/users/me/orders/{orderId}/repeat", ORDER_ID)
                         .with(authenticatedUser(principal()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());

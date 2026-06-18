@@ -40,10 +40,10 @@ public class Order {
     @Column(name = "order_number", unique = true, nullable = false, length = 50)
     private String orderNumber;
 
-    @Column(name = "idempotency_key", length = 64)
+    @Column(name = "idempotency_key", nullable = false, length = 64)
     private String idempotencyKey;
 
-    @Column(name = "request_hash", length = 64)
+    @Column(name = "request_hash", nullable = false, length = 64)
     private String requestHash;
 
     @Column(name = "customer_name", nullable = false, length = 100)
