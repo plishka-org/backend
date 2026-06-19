@@ -22,6 +22,7 @@ import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.order.OrderRepository;
 import org.plishka.backend.repository.product.ProductRepository;
+import org.plishka.backend.repository.user.UserRepository;
 import org.plishka.backend.service.order.OrderIdempotencyGuard;
 import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
@@ -32,6 +33,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Order service implementation.
+ *
+ * <p>Concurrency invariant for repeat orders: {@link #repeatOrder} must lock the
+ * User row first so that concurrent repeats for the same user are serialized.
+ * Repeat does not touch the cart, so without this lock two near-simultaneous
+ * requests could both miss the existing order, both insert with the same
+ * idempotency key, and the second would fail on the unique constraint instead of
+ * returning the already-created order (i.e. the endpoint would stop being
+ * idempotent under contention).
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -41,6 +53,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
     private final OrderMapper orderMapper;
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderIdempotencyGuard orderIdempotencyGuard;
@@ -89,6 +102,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderDetailDto repeatOrder(Long orderId, Long userId, String idempotencyKey) {
         log.debug("Repeating order id={} for user id={}", orderId, userId);
+
+        lockUserOrThrow(userId);
 
         String requestHash = RequestHashUtil.hash(String.valueOf(orderId));
         Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(userId, idempotencyKey, requestHash);
@@ -154,6 +169,11 @@ public class OrderServiceImpl implements OrderService {
         return orders.stream()
                 .map(orderMapper::toSummaryDto)
                 .toList();
+    }
+
+    private void lockUserOrThrow(Long userId) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
     }
 
     private Order findOwnedOrderWithItemsOrThrow(Long orderId, Long userId) {

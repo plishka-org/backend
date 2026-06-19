@@ -265,7 +265,7 @@ public class CartServiceImpl implements CartService {
     }
 
     private Product findProductOrThrow(Long productId) {
-        return productRepository.findById(productId)
+        return productRepository.findByIdWithCategory(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 
