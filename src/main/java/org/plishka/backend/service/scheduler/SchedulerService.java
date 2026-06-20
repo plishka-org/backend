@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.config.properties.StorageProperties;
 import org.plishka.backend.domain.user.User;
+import org.plishka.backend.repository.user.EmailChangeTokenRepository;
 import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
 import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
@@ -26,6 +27,7 @@ public class SchedulerService {
     private static final String EUROPE_KYIV = "Europe/Kyiv";
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final EmailChangeTokenRepository emailChangeTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserRepository userRepository;
@@ -85,6 +87,16 @@ public class SchedulerService {
 
         if (deletedCount > 0) {
             log.info("PasswordResetToken cleanup: deleted {}", deletedCount);
+        }
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 20 3 * * *", zone = EUROPE_KYIV)
+    public void cleanupExpiredEmailChangeTokens() {
+        int deletedCount = emailChangeTokenRepository.deleteAllByExpiresAtBefore(now());
+
+        if (deletedCount > 0) {
+            log.info("EmailChangeToken cleanup: deleted {}", deletedCount);
         }
     }
 

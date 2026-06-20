@@ -1,9 +1,7 @@
 package org.plishka.backend.service.auth.impl;
 
-import java.text.Normalizer;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +37,7 @@ import org.plishka.backend.service.auth.AuthService;
 import org.plishka.backend.service.auth.JwtService;
 import org.plishka.backend.util.TokenGenerator;
 import org.plishka.backend.util.TokenHashUtil;
+import org.plishka.backend.util.UserInputNormalizer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -76,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void register(RegisterRequestDto request) {
-        String normalizedEmail = normalizeEmail(request.email());
+        String normalizedEmail = UserInputNormalizer.normalizeEmail(request.email());
         User user = buildUser(request, normalizedEmail);
 
         try {
@@ -128,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void resendVerificationEmail(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
 
         userRepository.findByEmailForUpdate(normalizedEmail)
                 .filter(user -> !user.isEmailVerified())
@@ -158,7 +157,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void forgotPassword(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
 
         userRepository.findByEmailForUpdate(normalizedEmail)
                 .filter(User::isEmailVerified)
@@ -216,7 +215,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto login(LoginRequestDto request, String deviceId) {
-        String normalizedEmail = normalizeEmail(request.email());
+        String normalizedEmail = UserInputNormalizer.normalizeEmail(request.email());
 
         User user = findUserByEmailOrThrow(normalizedEmail);
         validatePasswordOrThrow(request.password(), user);
@@ -297,9 +296,9 @@ public class AuthServiceImpl implements AuthService {
 
     private User buildUser(RegisterRequestDto request, String normalizedEmail) {
         return User.builder()
-                .name(normalizeName(request.name()))
+                .name(UserInputNormalizer.normalizeName(request.name()))
                 .email(normalizedEmail)
-                .phone(normalizePhone(request.phone()))
+                .phone(UserInputNormalizer.normalizePhone(request.phone()))
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .roles(Set.of(
                         roleRepository.findByName(Role.RoleName.USER)
@@ -448,20 +447,8 @@ public class AuthServiceImpl implements AuthService {
         return frontendProperties.resetPasswordUrl() + RESET_PASSWORD_TOKEN_FRAGMENT + rawResetToken;
     }
 
-    private String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String normalizePhone(String phone) {
-        return phone == null || phone.isBlank() ? null : phone.trim();
-    }
-
     private String normalizeDeviceId(String deviceId) {
         return UUID.fromString(deviceId.trim()).toString();
-    }
-
-    private String normalizeName(String name) {
-        return Normalizer.normalize(name, Normalizer.Form.NFC).trim();
     }
 
     private Instant now() {

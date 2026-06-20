@@ -33,9 +33,12 @@ backend:
     password-reset-token-ttl: 3h
   cleanup:
     unverified-user-ttl: 24h
+  callback:
+    admin-email: admin@example.com
 
 frontend:
   reset-password-url: http://localhost:3000/reset-password
+  email-change-verification-url: http://localhost:3000/verify-email-change
 
 storage:
   s3:

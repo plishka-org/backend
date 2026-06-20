@@ -1,6 +1,7 @@
 package org.plishka.backend.config.properties;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -26,7 +27,11 @@ public record BackendProperties(
 
         @NotNull(message = "backend.cleanup must not be null")
         @Valid
-        Cleanup cleanup
+        Cleanup cleanup,
+
+        @NotNull(message = "backend.callback must not be null")
+        @Valid
+        Callback callback
 ) {
     public record Auth(
             @NotNull(message = "backend.auth.email-verification-token-ttl must not be null")
@@ -43,6 +48,13 @@ public record BackendProperties(
             @NotNull(message = "backend.cleanup.unverified-user-ttl must not be null")
             @DurationMin(nanos = 1, message = "backend.cleanup.unverified-user-ttl must be greater than 0")
             Duration unverifiedUserTtl
+    ) {
+    }
+
+    public record Callback(
+            @NotBlank(message = "backend.callback.admin-email must not be blank")
+            @Email(message = "backend.callback.admin-email must be a valid email address")
+            String adminEmail
     ) {
     }
 }

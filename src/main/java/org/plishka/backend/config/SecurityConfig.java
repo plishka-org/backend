@@ -1,12 +1,15 @@
 package org.plishka.backend.config;
 
 import lombok.RequiredArgsConstructor;
+import org.plishka.backend.security.ActiveUserAuthorizationManager;
 import org.plishka.backend.security.CustomAccessDeniedHandler;
 import org.plishka.backend.security.CustomAuthenticationEntryPoint;
 import org.plishka.backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManagers;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +27,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final ActiveUserAuthorizationManager activeUserAuthorizationManager;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
@@ -38,11 +42,18 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/users/me",
+                                "/users/me/**",
+                                "/callback",
+                                "/products/*/view"
+                        ).access(activeUserAuthorizationManager)
+                        .requestMatchers(
                                 HttpMethod.POST,
                                 "/auth/register",
                                 "/auth/resend-verification",
                                 "/auth/forgot-password",
                                 "/auth/reset-password",
+                                "/auth/verify-email-change",
                                 "/auth/login",
                                 "/auth/refresh"
                         ).permitAll()
@@ -56,7 +67,10 @@ public class SecurityConfig {
                                 "/admin/about/media/attach",
                                 "/admin/products/*/media/attach",
                                 "/admin/reviews/*/media/attach"
-                        ).hasRole("ADMIN")
+                        ).access(AuthorizationManagers.allOf(
+                                activeUserAuthorizationManager,
+                                AuthorityAuthorizationManager.hasRole("ADMIN")
+                        ))
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify",
@@ -72,14 +86,7 @@ public class SecurityConfig {
                                 "/reviews/*",
                                 "/settings"
                         ).permitAll()
-                        .requestMatchers(
-                                "/cart",
-                                "/cart/**",
-                                "/orders",
-                                "/users/me/orders",
-                                "/users/me/orders/**"
-                        ).authenticated()
-                        .anyRequest().authenticated()
+                        .anyRequest().access(activeUserAuthorizationManager)
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

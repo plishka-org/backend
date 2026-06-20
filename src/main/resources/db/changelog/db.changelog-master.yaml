@@ -40,10 +40,18 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/017-init-singleton-records.yaml
   - include:
-      file: db/changelog/changes/021-create-carts-table.yaml
+      file: db/changelog/changes/021-create-email-change-tokens-table.yaml
   - include:
-      file: db/changelog/changes/022-create-cart-items-table.yaml
+      file: db/changelog/changes/022-create-favorites-table.yaml
   - include:
-      file: db/changelog/changes/023-create-orders-table.yaml
+      file: db/changelog/changes/023-create-product-views-table.yaml
   - include:
-      file: db/changelog/changes/024-create-order-items-table.yaml
+      file: db/changelog/changes/024-create-callback-requests-table.yaml
+  - include:
+      file: db/changelog/changes/025-create-carts-table.yaml
+  - include:
+      file: db/changelog/changes/026-create-cart-items-table.yaml
+  - include:
+      file: db/changelog/changes/027-create-orders-table.yaml
+  - include:
+      file: db/changelog/changes/028-create-order-items-table.yaml

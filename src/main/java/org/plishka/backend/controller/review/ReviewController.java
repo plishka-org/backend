@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
-    private static final int DEFAULT_PAGE_SIZE = 4;
+    private static final int DEFAULT_PAGE_SIZE = 16;
 
     private final ReviewService reviewService;
 

@@ -1,12 +1,10 @@
 package org.plishka.backend.service.product.impl;
 
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.media.MediaTargetType;
 import org.plishka.backend.domain.product.Product;
-import org.plishka.backend.domain.product.ProductMedia;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.dto.product.ProductDetailDto;
@@ -15,8 +13,8 @@ import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.product.ProductMapper;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.service.file.MediaAttachmentService;
-import org.plishka.backend.service.product.ProductMediaQueryService;
 import org.plishka.backend.service.product.ProductService;
+import org.plishka.backend.service.product.ProductSummaryAssembler;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -34,8 +32,8 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final MediaAttachmentService mediaAttachmentService;
-    private final ProductMediaQueryService productMediaQueryService;
     private final ProductMapper productMapper;
+    private final ProductSummaryAssembler productSummaryAssembler;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,7 +53,7 @@ public class ProductServiceImpl implements ProductService {
 
         ProductListCriteria criteria = ProductListCriteria.from(categoryIds, requestedSort);
         Page<Product> productsPage = findProductsPage(criteria, page, size);
-        List<ProductSummaryDto> productSummaries = toProductSummariesWithPrimaryMedia(productsPage.getContent());
+        List<ProductSummaryDto> productSummaries = productSummaryAssembler.toDtos(productsPage.getContent());
 
         log.debug("Successfully fetched {} products", productsPage.getNumberOfElements());
 
@@ -81,7 +79,7 @@ public class ProductServiceImpl implements ProductService {
 
         Long categoryId = findSourceProductCategoryIdOrThrow(id);
         Page<Product> relatedProductsPage = findRelatedProducts(categoryId, id, page, size);
-        List<ProductSummaryDto> relatedProductSummaries = toProductSummariesWithPrimaryMedia(
+        List<ProductSummaryDto> relatedProductSummaries = productSummaryAssembler.toDtos(
                 relatedProductsPage.getContent()
         );
 
@@ -117,16 +115,6 @@ public class ProductServiceImpl implements ProductService {
                 sourceProductId,
                 pageRequest
         );
-    }
-
-    private List<ProductSummaryDto> toProductSummariesWithPrimaryMedia(List<Product> products) {
-        Map<Long, ProductMedia> primaryMediaByProductId = productMediaQueryService.findPrimaryMediaForProducts(
-                products
-        );
-
-        return products.stream()
-                .map(product -> productMapper.toSummaryDto(product, primaryMediaByProductId.get(product.getId())))
-                .toList();
     }
 
     private Long findSourceProductCategoryIdOrThrow(Long productId) {

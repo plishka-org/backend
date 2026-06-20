@@ -12,13 +12,13 @@ import org.plishka.backend.dto.order.OrderItemDetailDto;
 import org.plishka.backend.dto.order.OrderSummaryDto;
 import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.exception.ResourceNotFoundException;
-import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.service.order.OrderCheckoutService;
 import org.plishka.backend.service.order.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -33,8 +33,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(OrderController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 class OrderControllerTest extends BaseControllerTest {
     private static final long USER_ID = 1L;
     private static final long ORDER_ID = 25L;
@@ -82,7 +83,7 @@ class OrderControllerTest extends BaseControllerTest {
         when(orderService.getOrderById(ORDER_ID, USER_ID)).thenReturn(response);
 
         mockMvc.perform(get("/users/me/orders/{orderId}", ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value(ORDER_ID))
@@ -98,7 +99,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .thenThrow(new ResourceNotFoundException(ORDER_NOT_FOUND_MESSAGE));
 
         mockMvc.perform(get("/users/me/orders/{orderId}", NOT_FOUND_ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
@@ -106,7 +107,7 @@ class OrderControllerTest extends BaseControllerTest {
     @Test
     void getOrder_ShouldReturn400_WhenOrderIdIsNotPositive() throws Exception {
         mockMvc.perform(get("/users/me/orders/{orderId}", INVALID_ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
@@ -118,7 +119,7 @@ class OrderControllerTest extends BaseControllerTest {
         when(orderService.getOrderByOrderNumber(ORDER_NUMBER, USER_ID)).thenReturn(response);
 
         mockMvc.perform(get("/users/me/orders/number/{orderNumber}", ORDER_NUMBER)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value(ORDER_ID))
@@ -133,7 +134,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .thenThrow(new ResourceNotFoundException(ORDER_NOT_FOUND_MESSAGE));
 
         mockMvc.perform(get("/users/me/orders/number/{orderNumber}", NOT_FOUND_ORDER_NUMBER)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
@@ -152,7 +153,7 @@ class OrderControllerTest extends BaseControllerTest {
         when(orderService.getUserOrders(USER_ID, FIRST_PAGE, CUSTOM_ORDER_PAGE_SIZE)).thenReturn(response);
 
         mockMvc.perform(get("/users/me/orders")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .param("page", String.valueOf(FIRST_PAGE))
                         .param("size", String.valueOf(CUSTOM_ORDER_PAGE_SIZE))
                         .contentType(MediaType.APPLICATION_JSON))
@@ -179,7 +180,7 @@ class OrderControllerTest extends BaseControllerTest {
         when(orderService.getUserOrders(USER_ID, FIRST_PAGE, ORDER_PAGE_SIZE)).thenReturn(response);
 
         mockMvc.perform(get("/users/me/orders")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pageNumber").value(FIRST_PAGE))
@@ -191,7 +192,7 @@ class OrderControllerTest extends BaseControllerTest {
     @Test
     void getUserOrders_ShouldReturn400_WhenPageIsNegative() throws Exception {
         mockMvc.perform(get("/users/me/orders")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .param("page", "-1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -227,7 +228,7 @@ class OrderControllerTest extends BaseControllerTest {
         CreateOrderRequestDto request = createOrderRequest(CUSTOMER_NAME);
 
         mockMvc.perform(post("/orders")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -251,7 +252,7 @@ class OrderControllerTest extends BaseControllerTest {
         when(orderService.repeatOrder(ORDER_ID, USER_ID, IDEMPOTENCY_KEY)).thenReturn(response);
 
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -267,7 +268,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .thenThrow(new ResourceNotFoundException(ORDER_NOT_FOUND_MESSAGE));
 
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", NOT_FOUND_ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
@@ -276,7 +277,7 @@ class OrderControllerTest extends BaseControllerTest {
     @Test
     void repeatOrder_ShouldReturn400_WhenOrderIdIsNotPositive() throws Exception {
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", INVALID_ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -285,14 +286,14 @@ class OrderControllerTest extends BaseControllerTest {
     @Test
     void repeatOrder_ShouldReturn400_WhenIdempotencyKeyHeaderIsMissing() throws Exception {
         mockMvc.perform(post("/users/me/orders/{orderId}/repeat", ORDER_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
 
     private ResultActions performCreateOrder(CreateOrderRequestDto request) throws Exception {
         return mockMvc.perform(post("/orders")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)));
@@ -340,16 +341,5 @@ class OrderControllerTest extends BaseControllerTest {
                 new BigDecimal(UNIT_PRICE),
                 new BigDecimal(SUBTOTAL)
         );
-    }
-
-    private static AuthenticatedUserPrincipal principal() {
-        return AuthenticatedUserPrincipal.builder()
-                .userId(USER_ID)
-                .email(USER_EMAIL)
-                .passwordHash("password")
-                .accountNonLocked(true)
-                .enabled(true)
-                .authorities(List.of())
-                .build();
     }
 }

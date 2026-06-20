@@ -11,12 +11,12 @@ import org.plishka.backend.dto.cart.MergeCartRequestDto;
 import org.plishka.backend.dto.cart.UpdateCartItemRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
-import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.service.cart.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -33,8 +33,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(CartController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 class CartControllerTest extends BaseControllerTest {
     private static final long USER_ID = 1L;
     private static final long CART_ITEM_ID = 7L;
@@ -66,7 +67,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.getCart(USER_ID)).thenReturn(response);
 
         mockMvc.perform(get("/cart")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isArray())
@@ -151,7 +152,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.removeItem(USER_ID, PRODUCT_ID)).thenReturn(response);
 
         mockMvc.perform(delete("/cart/items/{productId}", PRODUCT_ID)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isEmpty())
@@ -163,7 +164,7 @@ class CartControllerTest extends BaseControllerTest {
     @Test
     void clearCart_ShouldReturn200() throws Exception {
         mockMvc.perform(delete("/cart")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -178,7 +179,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.mergeCart(eq(USER_ID), any(MergeCartRequestDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/cart/merge")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -191,7 +192,7 @@ class CartControllerTest extends BaseControllerTest {
     @Test
     void mergeCart_ShouldReturn400_WhenItemsListIsMissing() throws Exception {
         mockMvc.perform(post("/cart/merge")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -200,7 +201,7 @@ class CartControllerTest extends BaseControllerTest {
     @Test
     void mergeCart_ShouldReturn400_WhenItemsListIsEmpty() throws Exception {
         mockMvc.perform(post("/cart/merge")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"items\":[]}"))
                 .andExpect(status().isBadRequest());
@@ -209,7 +210,7 @@ class CartControllerTest extends BaseControllerTest {
     @Test
     void mergeCart_ShouldReturn400_WhenItemsListContainsNullElement() throws Exception {
         mockMvc.perform(post("/cart/merge")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"items\":[null]}"))
                 .andExpect(status().isBadRequest());
@@ -220,7 +221,7 @@ class CartControllerTest extends BaseControllerTest {
         MergeCartRequestDto request = mergeRequest(INVALID_QUANTITY);
 
         mockMvc.perform(post("/cart/merge")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -234,7 +235,7 @@ class CartControllerTest extends BaseControllerTest {
                 .thenThrow(new BadRequestException("Cart merge failed"));
 
         mockMvc.perform(post("/cart/merge")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -242,14 +243,14 @@ class CartControllerTest extends BaseControllerTest {
 
     private ResultActions performAddItem(AddCartItemRequestDto request) throws Exception {
         return mockMvc.perform(post("/cart/items")
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)));
     }
 
     private ResultActions performUpdateItem(Long productId, UpdateCartItemRequestDto request) throws Exception {
         return mockMvc.perform(put("/cart/items/{productId}", productId)
-                        .with(authenticatedUser(principal()))
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)));
     }
@@ -294,16 +295,5 @@ class CartControllerTest extends BaseControllerTest {
                 new BigDecimal(UNIT_PRICE),
                 new BigDecimal(subtotal)
         );
-    }
-
-    private static AuthenticatedUserPrincipal principal() {
-        return AuthenticatedUserPrincipal.builder()
-                .userId(USER_ID)
-                .email(USER_EMAIL)
-                .passwordHash("password")
-                .accountNonLocked(true)
-                .enabled(true)
-                .authorities(List.of())
-                .build();
     }
 }

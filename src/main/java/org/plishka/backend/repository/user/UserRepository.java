@@ -23,6 +23,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
             """)
     int deleteAllByIdIn(@Param("userIds") List<Long> userIds);
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            delete from User u
+            where u.id = :userId
+            """)
+    void deleteByIdDirect(@Param("userId") Long userId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select u
@@ -40,6 +47,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdForUpdate(@Param("userId") Long userId);
 
     Optional<User> findByEmail(String email);
+
+    boolean existsByEmail(String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
