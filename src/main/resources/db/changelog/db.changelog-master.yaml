@@ -47,3 +47,11 @@ databaseChangeLog:
       file: db/changelog/changes/023-create-product-views-table.yaml
   - include:
       file: db/changelog/changes/024-create-callback-requests-table.yaml
+  - include:
+      file: db/changelog/changes/025-create-carts-table.yaml
+  - include:
+      file: db/changelog/changes/026-create-cart-items-table.yaml
+  - include:
+      file: db/changelog/changes/027-create-orders-table.yaml
+  - include:
+      file: db/changelog/changes/028-create-order-items-table.yaml

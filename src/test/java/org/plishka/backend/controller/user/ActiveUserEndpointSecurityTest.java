@@ -35,6 +35,7 @@ class ActiveUserEndpointSecurityTest extends BaseControllerTest {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_VALID_TOKEN = "Bearer " + VALID_TOKEN;
     private static final String DEVICE_ID = "device-1";
+    private static final String IDEMPOTENCY_KEY = "11f2cbe7-3915-44f6-9bcd-3a1c70a47e92";
     private static final String PRODUCT_MEDIA_KEY =
             "products/10/images/2026/05/550e8400-e29b-41d4-a716-446655440000.jpg";
 
@@ -132,6 +133,27 @@ class ActiveUserEndpointSecurityTest extends BaseControllerTest {
                                 }
                                 """),
                 get("/users/me/callback-requests"),
+                get("/cart"),
+                post("/cart/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productId": %d,
+                                  "quantity": 1
+                                }
+                                """.formatted(PRODUCT_ID)),
+                get("/users/me/orders"),
+                post("/orders")
+                        .header("Idempotency-Key", IDEMPOTENCY_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customerName": "Serhii",
+                                  "deliveryCity": "Kyiv",
+                                  "phone": "+380501234567",
+                                  "notes": "Please call before delivery"
+                                }
+                                """),
                 adminProductMediaAttachRequest()
         );
     }
