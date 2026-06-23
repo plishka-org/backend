@@ -7,6 +7,7 @@ import lombok.Builder;
 public record CallbackRequestCreatedEvent(
         Long callbackRequestId,
         Long userId,
+        String userEmail,
         String name,
         String phone,
         String message,
