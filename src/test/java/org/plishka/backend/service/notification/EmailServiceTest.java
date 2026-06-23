@@ -1,30 +1,30 @@
 package org.plishka.backend.service.notification;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.event.callback.CallbackRequestCreatedEvent;
 import org.plishka.backend.event.order.OrderCreatedEvent;
-import org.plishka.backend.service.notification.email.EmailDisplayFormatter;
 import org.plishka.backend.service.notification.email.EmailService;
+import org.plishka.backend.service.notification.email.EmailSubjects;
+import org.plishka.backend.service.notification.email.EmailTemplateBuilder;
 import org.plishka.backend.service.notification.email.transport.AsyncEmailSender;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
@@ -38,162 +38,103 @@ class EmailServiceTest {
     private AsyncEmailSender asyncEmailSender;
 
     @Mock
+    private EmailTemplateBuilder templateBuilder;
+
+    @Mock
     private BackendProperties backendProperties;
 
     private EmailService emailService;
 
     @BeforeEach
     void setUp() {
-        lenient().when(backendProperties.auth()).thenReturn(new BackendProperties.Auth(Duration.ofHours(24), Duration.ofHours(3)));
         lenient().when(backendProperties.admin()).thenReturn(new BackendProperties.Admin(ADMIN_EMAIL));
 
-        emailService = new EmailService(
-                asyncEmailSender,
-                new EmailDisplayFormatter(),
-                backendProperties
-        );
+        emailService = new EmailService(asyncEmailSender, templateBuilder, backendProperties);
     }
 
     @Test
-    void sendEmailVerificationEmail_ShouldQueueEmailWithVerificationData() {
+    void sendEmailVerificationEmail_ShouldQueueEmailWithSubjectAndBody() {
+        when(templateBuilder.buildEmailVerificationText(VERIFICATION_LINK)).thenReturn("verification body");
+
         emailService.sendEmailVerificationEmail(USER_EMAIL, VERIFICATION_LINK);
 
-        String text = captureQueuedText(USER_EMAIL, "Підтвердження email");
-
-        assertTrue(text.contains(VERIFICATION_LINK));
-        assertTrue(text.contains("24 год."));
-        assertTrue(text.contains("Дякуємо за реєстрацію в Plishka."));
+        verify(templateBuilder).buildEmailVerificationText(VERIFICATION_LINK);
+        verify(asyncEmailSender).sendEmailAsync(USER_EMAIL, EmailSubjects.EMAIL_VERIFICATION, "verification body");
     }
 
     @Test
-    void sendPasswordResetEmail_ShouldQueueEmailWithResetData() {
+    void sendPasswordResetEmail_ShouldQueueEmailWithSubjectAndBody() {
+        when(templateBuilder.buildPasswordResetEmailText(RESET_LINK)).thenReturn("reset body");
+
         emailService.sendPasswordResetEmail(USER_EMAIL, RESET_LINK);
 
-        String text = captureQueuedText(USER_EMAIL, "Відновлення пароля");
-
-        assertTrue(text.contains(RESET_LINK));
-        assertTrue(text.contains("3 год."));
+        verify(templateBuilder).buildPasswordResetEmailText(RESET_LINK);
+        verify(asyncEmailSender).sendEmailAsync(USER_EMAIL, EmailSubjects.PASSWORD_RESET, "reset body");
     }
 
     @Test
-    void sendEmailChangeVerificationEmail_ShouldQueueEmailWithVerificationData() {
+    void sendEmailChangeVerificationEmail_ShouldQueueEmailWithSubjectAndBody() {
+        when(templateBuilder.buildEmailChangeVerificationText(VERIFICATION_LINK)).thenReturn("change body");
+
         emailService.sendEmailChangeVerificationEmail(USER_EMAIL, VERIFICATION_LINK);
 
-        String text = captureQueuedText(USER_EMAIL, "Підтвердження нової email-адреси");
-
-        assertTrue(text.contains(VERIFICATION_LINK));
-        assertTrue(text.contains("24 год."));
+        verify(templateBuilder).buildEmailChangeVerificationText(VERIFICATION_LINK);
+        verify(asyncEmailSender).sendEmailAsync(USER_EMAIL, EmailSubjects.EMAIL_CHANGE_VERIFICATION, "change body");
     }
 
     @Test
-    void sendEmailChangedNotificationEmail_ShouldQueueEmailWithNewEmail() {
+    void sendEmailChangedNotificationEmail_ShouldQueueEmailWithSubjectAndBody() {
+        when(templateBuilder.buildEmailChangedNotificationText("new@example.com")).thenReturn("changed body");
+
         emailService.sendEmailChangedNotificationEmail("old@example.com", "new@example.com");
 
-        String text = captureQueuedText("old@example.com", "Email вашого акаунта змінено");
-
-        assertTrue(text.contains("new@example.com"));
+        verify(templateBuilder).buildEmailChangedNotificationText("new@example.com");
+        verify(asyncEmailSender).sendEmailAsync("old@example.com", EmailSubjects.EMAIL_CHANGED, "changed body");
     }
 
     @Test
     void sendOrderCreatedNotifications_ShouldQueueCustomerAndAdminEmails() {
-        emailService.sendOrderCreatedNotifications(sampleOrderEvent());
-
-        String customerText = captureQueuedText("customer@example.com", "Ваше замовлення ORD-123");
-        String adminText = captureQueuedText(ADMIN_EMAIL, "Нове замовлення ORD-123");
-
-        assertTrue(customerText.contains("ORD-123"));
-        assertTrue(customerText.contains("Іван"));
-        assertTrue(customerText.contains("Київ"));
-        assertTrue(customerText.contains("Подзвонити"));
-        assertTrue(customerText.contains("Стілець"));
-        assertTrue(customerText.contains("900.00 грн"));
-
-        assertTrue(adminText.contains("ID замовлення: 100"));
-        assertTrue(adminText.contains("ID користувача: 1"));
-        assertTrue(adminText.contains("customer@example.com"));
-    }
-
-    @Test
-    void sendOrderCreatedNotifications_ShouldUseUnknownUserLabelWhenUserIdMissing() {
-        OrderCreatedEvent event = OrderCreatedEvent.builder()
-                .orderId(100L)
-                .orderNumber("ORD-123")
-                .userId(null)
-                .userEmail("customer@example.com")
-                .customerName("Іван")
-                .deliveryCity("Київ")
-                .phone("+380501234567")
-                .notes("Подзвонити")
-                .totalPrice(new BigDecimal("900.00"))
-                .createdAt(CREATED_AT)
-                .items(List.of())
-                .build();
+        OrderCreatedEvent event = sampleOrderEvent();
+        when(templateBuilder.buildOrderEmailText(event)).thenReturn("order user body");
+        when(templateBuilder.buildOrderAdminEmailText(event)).thenReturn("order admin body");
 
         emailService.sendOrderCreatedNotifications(event);
 
-        String adminText = captureQueuedText(ADMIN_EMAIL, "Нове замовлення ORD-123");
-
-        assertTrue(adminText.contains("ID користувача: " + EmailDisplayFormatter.UNKNOWN_USER_ID));
-    }
-
-    @Test
-    void sendOrderCreatedNotifications_ShouldUseEmptyPlaceholderForBlankNotes() {
-        OrderCreatedEvent event = OrderCreatedEvent.builder()
-                .orderId(100L)
-                .orderNumber("ORD-123")
-                .userId(1L)
-                .userEmail("customer@example.com")
-                .customerName("Іван")
-                .deliveryCity("Київ")
-                .phone("+380501234567")
-                .notes("  ")
-                .totalPrice(new BigDecimal("900.00"))
-                .createdAt(CREATED_AT)
-                .items(List.of())
-                .build();
-
-        emailService.sendOrderCreatedNotifications(event);
-
-        String text = captureQueuedText("customer@example.com", "Ваше замовлення ORD-123");
-
-        assertTrue(text.contains("Коментар: " + EmailDisplayFormatter.EMPTY_VALUE));
-        assertTrue(text.contains("Товари:\n" + EmailDisplayFormatter.EMPTY_VALUE));
+        verify(asyncEmailSender).sendEmailAsync(
+                "customer@example.com",
+                EmailSubjects.orderConfirmationUser("ORD-123"),
+                "order user body"
+        );
+        verify(asyncEmailSender).sendEmailAsync(
+                ADMIN_EMAIL,
+                EmailSubjects.orderNotificationAdmin("ORD-123"),
+                "order admin body"
+        );
     }
 
     @Test
     void sendCallbackCreatedNotifications_ShouldQueueUserAndAdminEmails() {
-        emailService.sendCallbackCreatedNotifications(sampleCallbackEvent());
-
-        String userText = captureQueuedText(USER_EMAIL, "Ми отримали вашу заявку на дзвінок");
-        String adminText = captureQueuedText(ADMIN_EMAIL, "Нова заявка на дзвінок");
-
-        assertTrue(userText.contains("Іван"));
-        assertTrue(userText.contains("Подзвоніть, будь ласка"));
-        assertTrue(adminText.contains("ID користувача: 1"));
-        assertTrue(adminText.contains(USER_EMAIL));
-    }
-
-    @Test
-    void sendCallbackCreatedNotifications_ShouldUseUnknownUserLabelWhenUserIdMissing() {
-        CallbackRequestCreatedEvent event = CallbackRequestCreatedEvent.builder()
-                .callbackRequestId(10L)
-                .userId(null)
-                .userEmail(USER_EMAIL)
-                .name("Іван")
-                .phone("+380501234567")
-                .message("Подзвоніть, будь ласка")
-                .createdAt(CREATED_AT)
-                .build();
+        CallbackRequestCreatedEvent event = sampleCallbackEvent();
+        when(templateBuilder.buildCallbackConfirmationUserText(event)).thenReturn("callback user body");
+        when(templateBuilder.buildCallbackNotificationAdminText(event)).thenReturn("callback admin body");
 
         emailService.sendCallbackCreatedNotifications(event);
 
-        String adminText = captureQueuedText(ADMIN_EMAIL, "Нова заявка на дзвінок");
-
-        assertTrue(adminText.contains("ID користувача: " + EmailDisplayFormatter.UNKNOWN_USER_ID));
+        verify(asyncEmailSender).sendEmailAsync(
+                USER_EMAIL,
+                EmailSubjects.CALLBACK_CONFIRMATION_USER,
+                "callback user body"
+        );
+        verify(asyncEmailSender).sendEmailAsync(
+                ADMIN_EMAIL,
+                EmailSubjects.CALLBACK_NOTIFICATION_ADMIN,
+                "callback admin body"
+        );
     }
 
     @Test
     void queueEmail_ShouldNotPropagateRejectedExecutionException() {
+        when(templateBuilder.buildEmailVerificationText(VERIFICATION_LINK)).thenReturn("verification body");
         doThrow(new RejectedExecutionException("executor saturated"))
                 .when(asyncEmailSender)
                 .sendEmailAsync(any(), any(), any());
@@ -202,21 +143,14 @@ class EmailServiceTest {
 
         verify(asyncEmailSender).sendEmailAsync(
                 eq(USER_EMAIL),
-                eq("Підтвердження email"),
-                any()
+                eq(EmailSubjects.EMAIL_VERIFICATION),
+                eq("verification body")
         );
     }
 
-    private String captureQueuedText(String to, String subject) {
-        ArgumentCaptor<String> textCaptor = ArgumentCaptor.forClass(String.class);
-
-        verify(asyncEmailSender).sendEmailAsync(
-                eq(to),
-                eq(subject),
-                textCaptor.capture()
-        );
-
-        return textCaptor.getValue();
+    @Test
+    void orderConfirmationSubject_ShouldIncludeOrderNumber() {
+        assertEquals("Ваше замовлення ORD-123", EmailSubjects.orderConfirmationUser("ORD-123"));
     }
 
     private static OrderCreatedEvent sampleOrderEvent() {

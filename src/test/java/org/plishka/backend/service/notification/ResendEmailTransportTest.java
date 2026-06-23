@@ -7,44 +7,44 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.plishka.backend.config.properties.ResendProperties;
 import org.plishka.backend.exception.InvalidEmailRecipientException;
-import org.plishka.backend.service.notification.email.transport.resend.ResendEmailClient;
+import org.plishka.backend.service.notification.email.transport.resend.ResendEmailTransport;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
-class ResendEmailClientTest {
+class ResendEmailTransportTest {
     private static final String SUBJECT = "Subject";
 
     @Mock
     private ObjectMapper objectMapper;
 
-    private ResendEmailClient resendEmailClient;
+    private ResendEmailTransport resendEmailTransport;
 
     @BeforeEach
     void setUp() {
-        resendEmailClient = new ResendEmailClient(
+        resendEmailTransport = new ResendEmailTransport(
                 objectMapper,
                 new ResendProperties("test-api-key", "Plishka <noreply@example.com>")
         );
     }
 
     @Test
-    void send_ShouldRejectBlankRecipient() {
+    void sendEmail_ShouldRejectBlankRecipient() {
         InvalidEmailRecipientException exception = assertThrows(
                 InvalidEmailRecipientException.class,
-                () -> resendEmailClient.sendEmail("  ", SUBJECT, "text")
+                () -> resendEmailTransport.sendEmail("  ", SUBJECT, "text")
         );
 
         assertEquals("Email recipient must not be blank", exception.getMessage());
     }
 
     @Test
-    void send_ShouldRejectNullRecipient() {
+    void sendEmail_ShouldRejectNullRecipient() {
         assertThrows(
                 InvalidEmailRecipientException.class,
-                () -> resendEmailClient.sendEmail(null, SUBJECT, "text")
+                () -> resendEmailTransport.sendEmail(null, SUBJECT, "text")
         );
     }
 }

@@ -20,7 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Slf4j
-public class ResendEmailClient implements EmailTransport {
+public class ResendEmailTransport implements EmailTransport {
     private static final URI RESEND_EMAILS_URI = URI.create("https://api.resend.com/emails");
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
@@ -30,7 +30,7 @@ public class ResendEmailClient implements EmailTransport {
     private final String apiKey;
     private final String fromEmail;
 
-    public ResendEmailClient(ObjectMapper objectMapper, ResendProperties resendProperties) {
+    public ResendEmailTransport(ObjectMapper objectMapper, ResendProperties resendProperties) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .build();
