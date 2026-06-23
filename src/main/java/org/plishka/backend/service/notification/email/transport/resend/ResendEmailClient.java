@@ -1,4 +1,4 @@
-package org.plishka.backend.service.notification;
+package org.plishka.backend.service.notification.email.transport.resend;
 
 import java.io.IOException;
 import java.net.URI;
@@ -6,16 +6,21 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.config.properties.ResendProperties;
+import org.plishka.backend.exception.InvalidEmailRecipientException;
 import org.plishka.backend.exception.ResendEmailException;
+import org.plishka.backend.service.notification.email.transport.EmailTransport;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Slf4j
-public class ResendEmailClient {
+public class ResendEmailClient implements EmailTransport {
     private static final URI RESEND_EMAILS_URI = URI.create("https://api.resend.com/emails");
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
@@ -34,7 +39,12 @@ public class ResendEmailClient {
         this.fromEmail = resendProperties.fromEmail();
     }
 
+    @Override
     public void sendEmail(String to, String subject, String text) {
+        if (!StringUtils.hasText(to)) {
+            throw new InvalidEmailRecipientException("Email recipient must not be blank");
+        }
+
         try {
             String requestBodyJson = buildRequestBodyJson(to, subject, text);
             HttpRequest request = buildHttpRequest(requestBodyJson);
@@ -60,10 +70,11 @@ public class ResendEmailClient {
         }
 
         log.warn(
-                "Resend email request failed: status={}, to={}, subject={}",
+                "Resend email request failed: status={}, to={}, subject={}, body={}",
                 response.statusCode(),
                 to,
-                subject
+                subject,
+                response.body()
         );
 
         throw new ResendEmailException("Resend email request failed with status " + response.statusCode());
@@ -83,21 +94,12 @@ public class ResendEmailClient {
     }
 
     private String buildRequestBodyJson(String to, String subject, String text) {
-        SendEmailRequest requestBody = new SendEmailRequest(
-                fromEmail,
-                List.of(to),
-                subject,
-                text
-        );
+        Map<String, Object> requestBody = new LinkedHashMap<>();
+        requestBody.put("from", fromEmail);
+        requestBody.put("to", List.of(to));
+        requestBody.put("subject", subject);
+        requestBody.put("text", text);
 
         return objectMapper.writeValueAsString(requestBody);
-    }
-
-    private record SendEmailRequest(
-            String from,
-            List<String> to,
-            String subject,
-            String text
-    ) {
     }
 }
