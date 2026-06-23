@@ -1,0 +1,384 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-191-seed-dev-integration-data
+      author: plishka-backend
+      context: "@dev"
+      comment: Dev-only catalog and verified user data for frontend integration checks.
+      changes:
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10001
+              - column:
+                  name: name
+                  value: "Tables"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10002
+              - column:
+                  name: name
+                  value: "Benches"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10003
+              - column:
+                  name: name
+                  value: "Decor"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10004
+              - column:
+                  name: name
+                  value: "Serving Boards"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10001
+              - column:
+                  name: name
+                  value: "Dev Oak Dining Table"
+              - column:
+                  name: description
+                  value: "Solid oak dining table for frontend integration checks."
+              - column:
+                  name: price
+                  valueNumeric: 420.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10001
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10002
+              - column:
+                  name: name
+                  value: "Dev Walnut Coffee Table"
+              - column:
+                  name: description
+                  value: "Low walnut coffee table with rounded edges."
+              - column:
+                  name: price
+                  valueNumeric: 260.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10001
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10003
+              - column:
+                  name: name
+                  value: "Dev Garden Bench"
+              - column:
+                  name: description
+                  value: "Outdoor wooden bench suitable for catalog and cart checks."
+              - column:
+                  name: price
+                  valueNumeric: 180.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10002
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10004
+              - column:
+                  name: name
+                  value: "Dev Hallway Bench"
+              - column:
+                  name: description
+                  value: "Compact bench for entryway layouts and related products."
+              - column:
+                  name: price
+                  valueNumeric: 145.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10002
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10005
+              - column:
+                  name: name
+                  value: "Dev Carved Wall Decor"
+              - column:
+                  name: description
+                  value: "Decorative carved wooden wall panel for product detail checks."
+              - column:
+                  name: price
+                  valueNumeric: 95.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10003
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10006
+              - column:
+                  name: name
+                  value: "Dev Wooden Candle Holder"
+              - column:
+                  name: description
+                  value: "Small decor item used to verify sorting and pagination."
+              - column:
+                  name: price
+                  valueNumeric: 35.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10003
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10007
+              - column:
+                  name: name
+                  value: "Dev Oak Serving Board"
+              - column:
+                  name: description
+                  value: "Handmade serving board for checkout and order item checks."
+              - column:
+                  name: price
+                  valueNumeric: 48.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10004
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10008
+              - column:
+                  name: name
+                  value: "Dev Walnut Serving Tray"
+              - column:
+                  name: description
+                  value: "Walnut tray with handles for favorites and cart checks."
+              - column:
+                  name: price
+                  valueNumeric: 62.00
+              - column:
+                  name: category_id
+                  valueNumeric: 10004
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+
+        - insert:
+            tableName: home_page_products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10001
+              - column:
+                  name: product_id
+                  valueNumeric: 10001
+              - column:
+                  name: display_order
+                  valueNumeric: 1
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: home_page_products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10002
+              - column:
+                  name: product_id
+                  valueNumeric: 10003
+              - column:
+                  name: display_order
+                  valueNumeric: 2
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: home_page_products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10003
+              - column:
+                  name: product_id
+                  valueNumeric: 10005
+              - column:
+                  name: display_order
+                  valueNumeric: 3
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: home_page_products
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10004
+              - column:
+                  name: product_id
+                  valueNumeric: 10007
+              - column:
+                  name: display_order
+                  valueNumeric: 4
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 10001
+              - column:
+                  name: name
+                  value: "Dev User"
+              - column:
+                  name: email
+                  value: "dev.user@plishka.local"
+              - column:
+                  name: phone
+                  value: "+380501112233"
+              - column:
+                  name: password_hash
+                  value: '$2a$10$LBhbmCMfku//neWZCByzNeIH/IoQSWNgKiw5z6jnEaCdmLFqdwMHq'
+              - column:
+                  name: is_banned
+                  valueBoolean: false
+              - column:
+                  name: is_email_verified
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+        - insert:
+            tableName: users_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueNumeric: 10001
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+
+        - update:
+            tableName: system_settings
+            columns:
+              - column:
+                  name: is_shop_mode_enabled
+                  valueBoolean: true
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP(6)
+            where: id = 1

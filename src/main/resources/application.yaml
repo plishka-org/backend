@@ -3,6 +3,9 @@ spring:
     name: plishka-backend
     project_version: 1
 
+  liquibase:
+    contexts: ${SPRING_LIQUIBASE_CONTEXTS:}
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -73,6 +76,9 @@ backend:
 frontend:
   reset-password-url: ${FRONTEND_RESET_PASSWORD_URL}
   email-change-verification-url: ${FRONTEND_EMAIL_CHANGE_VERIFICATION_URL}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
 storage:
   s3:
