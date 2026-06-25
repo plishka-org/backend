@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.plishka.backend.exception.ResendEmailException;
+import org.plishka.backend.exception.RetryableEmailException;
 import org.plishka.backend.service.notification.email.transport.AsyncEmailSender;
 import org.plishka.backend.service.notification.email.transport.RetryableEmailSender;
 
@@ -38,7 +38,7 @@ class AsyncEmailSenderTest {
 
     @Test
     void sendEmailAsync_ShouldNotPropagateSendFailures() {
-        doThrow(new ResendEmailException("provider down"))
+        doThrow(new RetryableEmailException("provider down"))
                 .when(retryableEmailSender)
                 .sendEmail(USER_EMAIL, SUBJECT, TEXT);
 

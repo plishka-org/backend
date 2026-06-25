@@ -43,7 +43,6 @@ import tools.jackson.databind.exc.UnrecognizedPropertyException;
 public class GlobalExceptionHandler {
     private static final String VALIDATION_FAILED_MESSAGE = "Validation failed";
     private static final String MALFORMED_REQUEST_BODY_MESSAGE = "Malformed JSON request body";
-    private static final String EMAIL_SERVICE_UNAVAILABLE_MESSAGE = "Email service is temporarily unavailable";
     private static final String INTERNAL_SERVER_ERROR_MESSAGE = "An unexpected error occurred";
     private static final String DATA_CONFLICT_MESSAGE = "The request conflicts with the current state of the resource";
     private static final String REQUIRED_HEADER_MISSING_MESSAGE = "Required header is missing";
@@ -114,15 +113,6 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request);
-    }
-
-    @ExceptionHandler(ResendEmailException.class)
-    public ResponseEntity<ErrorResponseDto> handleServiceUnavailable(
-            ResendEmailException exception,
-            HttpServletRequest request
-    ) {
-        log.warn("Email provider error while processing {}", request.getRequestURI(), exception);
-        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, EMAIL_SERVICE_UNAVAILABLE_MESSAGE, request);
     }
 
     @ExceptionHandler(StorageOperationException.class)

@@ -12,7 +12,8 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.config.properties.ResendProperties;
 import org.plishka.backend.exception.InvalidEmailRecipientException;
-import org.plishka.backend.exception.ResendEmailException;
+import org.plishka.backend.exception.NonRetryableEmailException;
+import org.plishka.backend.exception.RetryableEmailException;
 import org.plishka.backend.service.notification.email.transport.EmailTransport;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -58,26 +59,30 @@ public class ResendEmailTransport implements EmailTransport {
 
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new ResendEmailException("Email sending was interrupted", exception);
+            throw new NonRetryableEmailException("Email sending was interrupted");
         } catch (IOException exception) {
-            throw new ResendEmailException("Failed to call Resend API", exception);
+            throw new RetryableEmailException("Failed to call Resend API", exception);
         }
     }
 
     private void throwIfRequestFailed(HttpResponse<String> response, String to, String subject) {
+        int status = response.statusCode();
         if (isSuccessful(response)) {
             return;
         }
 
         log.warn(
-                "Resend email request failed: status={}, to={}, subject={}, body={}",
-                response.statusCode(),
+                "Resend email request failed: status={}, to={}, subject={}",
+                status,
                 to,
-                subject,
-                response.body()
+                subject
         );
 
-        throw new ResendEmailException("Resend email request failed with status " + response.statusCode());
+        if (status == 429 || status >= 500) {
+            throw new RetryableEmailException("Resend temporary failure with status " + status);
+        }
+
+        throw new NonRetryableEmailException("Resend permanent failure with status " + status);
     }
 
     private boolean isSuccessful(HttpResponse<String> response) {
