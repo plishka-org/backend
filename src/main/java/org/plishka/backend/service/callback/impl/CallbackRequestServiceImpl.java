@@ -51,6 +51,7 @@ public class CallbackRequestServiceImpl implements CallbackRequestService {
         applicationEventPublisher.publishEvent(CallbackRequestCreatedEvent.builder()
                 .callbackRequestId(savedRequest.getId())
                 .userId(user.getId())
+                .userEmail(user.getEmail())
                 .name(savedRequest.getName())
                 .phone(savedRequest.getPhone())
                 .message(savedRequest.getMessage())

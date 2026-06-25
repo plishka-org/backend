@@ -1,25 +1,23 @@
 package org.plishka.backend.event.listener;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.event.auth.EmailChangeRequestedEvent;
 import org.plishka.backend.event.auth.EmailChangedEvent;
 import org.plishka.backend.event.auth.EmailVerificationRequestedEvent;
 import org.plishka.backend.event.auth.PasswordResetRequestedEvent;
-import org.plishka.backend.service.notification.EmailService;
+import org.plishka.backend.service.notification.NotificationService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuthEventListener {
-    private final EmailService emailService;
+    private final NotificationService notificationService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleEmailVerificationRequested(EmailVerificationRequestedEvent event) {
-        emailService.sendEmailVerificationEmail(
+        notificationService.notifyEmailVerificationRequested(
                 event.email(),
                 event.verificationLink()
         );
@@ -27,7 +25,7 @@ public class AuthEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePasswordResetRequested(PasswordResetRequestedEvent event) {
-        emailService.sendPasswordResetEmail(
+        notificationService.notifyPasswordResetRequested(
                 event.email(),
                 event.resetPasswordLink()
         );
@@ -35,7 +33,7 @@ public class AuthEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleEmailChangeRequested(EmailChangeRequestedEvent event) {
-        emailService.sendEmailChangeVerificationEmail(
+        notificationService.notifyEmailChangeRequested(
                 event.email(),
                 event.verificationLink()
         );
@@ -43,10 +41,9 @@ public class AuthEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleEmailChanged(EmailChangedEvent event) {
-        emailService.sendEmailChangedNotificationEmail(
+        notificationService.notifyEmailChanged(
                 event.oldEmail(),
                 event.newEmail()
         );
     }
-
 }

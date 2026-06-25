@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.domain.user.Role;
 import org.plishka.backend.repository.user.RoleRepository;
-import org.plishka.backend.service.notification.ResendEmailClient;
+import org.plishka.backend.service.notification.email.transport.resend.ResendEmailTransport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -18,7 +18,7 @@ class BackendApplicationTests {
     private RoleRepository roleRepository;
 
     @MockitoBean
-    private ResendEmailClient resendEmailClient;
+    private ResendEmailTransport resendEmailTransport;
 
     @Test
     void contextLoads() {

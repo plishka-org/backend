@@ -70,8 +70,8 @@ backend:
     password-reset-token-ttl: ${BACKEND_AUTH_PASSWORD_RESET_TOKEN_TTL}
   cleanup:
     unverified-user-ttl: ${BACKEND_CLEANUP_UNVERIFIED_USER_TTL}
-  callback:
-    admin-email: ${BACKEND_CALLBACK_ADMIN_EMAIL}
+  admin:
+    email: ${BACKEND_ADMIN_EMAIL}
 
 frontend:
   base-url: ${FRONTEND_BASE_URL}
