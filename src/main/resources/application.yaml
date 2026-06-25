@@ -74,8 +74,7 @@ backend:
     admin-email: ${BACKEND_CALLBACK_ADMIN_EMAIL}
 
 frontend:
-  reset-password-url: ${FRONTEND_RESET_PASSWORD_URL}
-  email-change-verification-url: ${FRONTEND_EMAIL_CHANGE_VERIFICATION_URL}
+  base-url: ${FRONTEND_BASE_URL}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:}

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,6 +39,16 @@ class AuthControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private EmailChangeService emailChangeService;
+
+    @Test
+    void verifyEmail_ShouldRedirectToLoginWithVerifiedFlag() throws Exception {
+        mockMvc.perform(get("/auth/verify")
+                        .param("token", EMAIL_CHANGE_TOKEN))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost:3000/#/login?verified=true"));
+
+        verify(authService).verifyEmail(EMAIL_CHANGE_TOKEN);
+    }
 
     @Test
     void verifyEmailChange_ShouldAcceptTokenFromPostBody() throws Exception {

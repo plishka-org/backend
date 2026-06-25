@@ -8,12 +8,8 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "frontend")
 public record FrontendProperties(
-        @NotBlank(message = "frontend.reset-password-url must not be blank")
-        @URL(message = "frontend.reset-password-url must be a valid URL")
-        String resetPasswordUrl,
-
-        @NotBlank(message = "frontend.email-change-verification-url must not be blank")
-        @URL(message = "frontend.email-change-verification-url must be a valid URL")
-        String emailChangeVerificationUrl
+        @NotBlank(message = "frontend.base-url must not be blank")
+        @URL(message = "frontend.base-url must be a valid URL")
+        String baseUrl
 ) {
 }

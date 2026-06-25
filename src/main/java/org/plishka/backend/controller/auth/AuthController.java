@@ -1,7 +1,9 @@
 package org.plishka.backend.controller.auth;
 
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.plishka.backend.config.properties.FrontendProperties;
 import org.plishka.backend.dto.auth.AuthResponseDto;
 import org.plishka.backend.dto.auth.ForgotPasswordRequestDto;
 import org.plishka.backend.dto.auth.LoginRequestDto;
@@ -16,6 +18,8 @@ import org.plishka.backend.service.auth.AuthService;
 import org.plishka.backend.service.user.EmailChangeService;
 import org.plishka.backend.validation.ValidDeviceId;
 import org.plishka.backend.validation.ValidEmailActionToken;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,8 +34,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private static final String DEVICE_ID_HEADER = "Device-Id";
+    private static final String EMAIL_VERIFIED_REDIRECT_PATH = "/#/login?verified=true";
     private final AuthService authService;
     private final EmailChangeService emailChangeService;
+    private final FrontendProperties frontendProperties;
 
     @PostMapping("/register")
     public MessageResponseDto register(@Valid @RequestBody RegisterRequestDto requestDto) {
@@ -40,9 +46,13 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public MessageResponseDto verifyEmail(@RequestParam @ValidEmailActionToken String token) {
+    public ResponseEntity<Void> verifyEmail(@RequestParam @ValidEmailActionToken String token) {
         authService.verifyEmail(token);
-        return new MessageResponseDto("Email verified successfully.");
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(frontendProperties.baseUrl().replaceAll("/+$", "")
+                                + EMAIL_VERIFIED_REDIRECT_PATH))
+                .build();
     }
 
     @PostMapping("/verify-email-change")

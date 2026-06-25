@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class EmailChangeServiceImpl implements EmailChangeService {
-    private static final String EMAIL_CHANGE_TOKEN_FRAGMENT = "#token=";
+    private static final String EMAIL_CHANGE_VERIFICATION_PATH = "/#/verify-email-change?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
     private static final String USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE = "User with email '%s' already exists";
 
@@ -160,7 +160,11 @@ public class EmailChangeServiceImpl implements EmailChangeService {
     }
 
     private String buildEmailChangeVerificationLink(String rawToken) {
-        return frontendProperties.emailChangeVerificationUrl() + EMAIL_CHANGE_TOKEN_FRAGMENT + rawToken;
+        return buildFrontendUrl(EMAIL_CHANGE_VERIFICATION_PATH) + rawToken;
+    }
+
+    private String buildFrontendUrl(String path) {
+        return frontendProperties.baseUrl().replaceAll("/+$", "") + path;
     }
 
     private Instant now() {

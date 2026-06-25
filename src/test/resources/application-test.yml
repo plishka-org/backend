@@ -37,8 +37,7 @@ backend:
     admin-email: admin@example.com
 
 frontend:
-  reset-password-url: http://localhost:3000/reset-password
-  email-change-verification-url: http://localhost:3000/verify-email-change
+  base-url: http://localhost:3000
 
 storage:
   s3:
