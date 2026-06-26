@@ -15,6 +15,7 @@ import org.plishka.backend.repository.user.RefreshTokenRepository;
 import org.plishka.backend.repository.user.UserRepository;
 import org.plishka.backend.service.file.MediaReferenceService;
 import org.plishka.backend.service.storage.ObjectStorageService;
+import org.plishka.backend.service.storage.StorageDeletionOutboxService;
 import org.plishka.backend.service.storage.tagging.RetryableMediaStorageTagger;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class SchedulerService {
     private final BackendProperties backendProperties;
     private final StorageProperties storageProperties;
     private final ObjectStorageService objectStorageService;
+    private final StorageDeletionOutboxService storageDeletionOutboxService;
     private final MediaReferenceService mediaReferenceService;
     private final RetryableMediaStorageTagger retryableMediaStorageTagger;
     private final Clock clock;
@@ -158,6 +160,11 @@ public class SchedulerService {
                     failedCount
             );
         }
+    }
+
+    @Scheduled(cron = "0 0 * * * *", zone = EUROPE_KYIV)
+    public void processStorageDeletionOutbox() {
+        storageDeletionOutboxService.processDueDeletions();
     }
 
     private void logSkippedAttachedPendingUploads(
