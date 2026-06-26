@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 029-create-storage-deletion-outbox-table
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: storage_deletion_outbox
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_storage_deletion_outbox
+                    nullable: false
+              - column:
+                  name: s3_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempts
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: next_attempt_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_error
+                  type: VARCHAR(1000)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: storage_deletion_outbox
+            indexName: idx_storage_deletion_outbox_status_next_id
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: next_attempt_at
+              - column:
+                  name: id
+        - sql:
+            sql: ALTER TABLE storage_deletion_outbox ADD CONSTRAINT chk_storage_deletion_outbox_status CHECK (status IN ('PENDING', 'FAILED'));
+        - sql:
+            sql: ALTER TABLE storage_deletion_outbox ADD CONSTRAINT chk_storage_deletion_outbox_attempts CHECK (attempts >= 0);

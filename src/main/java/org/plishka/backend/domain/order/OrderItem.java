@@ -35,7 +35,7 @@ public class OrderItem {
     @Column(name = "product_id")
     private Long productId;
 
-    @Column(name = "product_name_snapshot", nullable = false, length = 100)
+    @Column(name = "product_name_snapshot", nullable = false, length = 255)
     private String productNameSnapshot;
 
     @Column(name = "category_name_snapshot", nullable = false, length = 100)

@@ -64,3 +64,25 @@ databaseChangeLog:
                   name: is_email_verified
               - column:
                   name: created_at
+        - createIndex:
+            tableName: users
+            indexName: idx_users_created_at_id
+            columns:
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true
+        - createIndex:
+            tableName: users
+            indexName: idx_users_is_banned_created_at_id
+            columns:
+              - column:
+                  name: is_banned
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true

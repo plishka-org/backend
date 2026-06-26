@@ -23,7 +23,7 @@ databaseChangeLog:
                   type: BIGINT
               - column:
                   name: product_name_snapshot
-                  type: VARCHAR(100)
+                  type: VARCHAR(255)
                   constraints:
                     nullable: false
               - column:
