@@ -36,6 +36,7 @@ public interface HomePageMapper {
     @Mapping(target = "productId", source = "homePageProduct.product.id")
     @Mapping(target = "name", source = "homePageProduct.product.name")
     @Mapping(target = "category", source = "homePageProduct.product.category")
+    @Mapping(target = "price", source = "homePageProduct.product.price")
     @Mapping(target = "primaryMedia", source = "primaryMedia")
     HomePageProductDto toHomePageProductDto(HomePageProduct homePageProduct, ProductMedia primaryMedia);
 

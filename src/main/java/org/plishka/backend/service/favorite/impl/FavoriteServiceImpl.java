@@ -120,7 +120,7 @@ public class FavoriteServiceImpl implements FavoriteService {
     }
 
     private Product findProductByIdOrThrow(Long productId) {
-        return productRepository.findById(productId)
+        return productRepository.findByIdWithCategory(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 
