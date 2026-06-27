@@ -2,6 +2,7 @@ package org.plishka.backend.repository.user;
 
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Optional;
 import org.plishka.backend.domain.user.RefreshToken;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -31,6 +32,13 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             where rt.user.id = :userId
             """)
     void deleteAllByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("""
+            delete from RefreshToken rt
+            where rt.user.id in :userIds
+            """)
+    int deleteAllByUserIdIn(@Param("userIds") Collection<Long> userIds);
 
     @Modifying
     @Query("""
