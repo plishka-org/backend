@@ -15,6 +15,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 @Import(TimeConfig.class)
 public abstract class BaseControllerTest {
+    protected static final long ADMIN_ID = 1L;
+    protected static final String ADMIN_EMAIL = "admin@example.com";
+
     @MockitoBean
     protected JwtService jwtService;
 
@@ -23,6 +26,10 @@ public abstract class BaseControllerTest {
 
     protected static RequestPostProcessor authenticatedUser(Long userId, String email) {
         return authenticatedUser(userPrincipal(userId, email, true, true, "ROLE_USER"));
+    }
+
+    protected static RequestPostProcessor authenticatedAdmin() {
+        return authenticatedUser(userPrincipal(ADMIN_ID, ADMIN_EMAIL, true, true, "ROLE_ADMIN"));
     }
 
     protected static RequestPostProcessor authenticatedUser(AuthenticatedUserPrincipal principal) {

@@ -5,6 +5,7 @@ import org.plishka.backend.controller.BaseControllerTest;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
+import org.plishka.backend.service.admin.catalog.product.AdminProductMediaService;
 import org.plishka.backend.service.product.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -17,9 +18,12 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminProductMediaController.class)
@@ -27,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminProductMediaControllerTest extends BaseControllerTest {
     private static final String ATTACH_MEDIA_ENDPOINT = "/admin/products/{id}/media/attach";
     private static final Long PRODUCT_ID = 10L;
+    private static final Long MEDIA_ID = 5L;
     private static final Long NOT_FOUND_PRODUCT_ID = 999L;
     private static final Long INVALID_PRODUCT_ID = -1L;
     private static final String BLANK_S3_KEY = "";
@@ -45,6 +50,9 @@ class AdminProductMediaControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private ProductService productService;
+
+    @MockitoBean
+    private AdminProductMediaService adminProductMediaService;
 
     @Test
     void attachMedia_ShouldReturn200_WhenRequestIsValid() throws Exception {
@@ -92,6 +100,50 @@ class AdminProductMediaControllerTest extends BaseControllerTest {
 
         performAttachMedia(NOT_FOUND_PRODUCT_ID, request)
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteMedia_ShouldReturn204_WhenMediaExists() throws Exception {
+        doNothing().when(adminProductMediaService).deleteMedia(PRODUCT_ID, MEDIA_ID);
+
+        mockMvc.perform(delete("/admin/products/{productId}/media/{mediaId}", PRODUCT_ID, MEDIA_ID))
+                .andExpect(status().isNoContent());
+
+        verify(adminProductMediaService).deleteMedia(PRODUCT_ID, MEDIA_ID);
+    }
+
+    @Test
+    void deleteMedia_ShouldReturn404_WhenMediaNotFound() throws Exception {
+        doThrow(new ResourceNotFoundException("Media not found"))
+                .when(adminProductMediaService).deleteMedia(PRODUCT_ID, MEDIA_ID);
+
+        mockMvc.perform(delete("/admin/products/{productId}/media/{mediaId}", PRODUCT_ID, MEDIA_ID))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteAllMedia_ShouldReturn204_WhenProductExists() throws Exception {
+        mockMvc.perform(delete("/admin/products/{productId}/media", PRODUCT_ID))
+                .andExpect(status().isNoContent());
+
+        verify(adminProductMediaService).deleteAllMedia(PRODUCT_ID);
+    }
+
+    @Test
+    void markPrimary_ShouldReturn200_WhenMediaIsImage() throws Exception {
+        mockMvc.perform(put("/admin/products/{productId}/media/{mediaId}/primary", PRODUCT_ID, MEDIA_ID))
+                .andExpect(status().isOk());
+
+        verify(adminProductMediaService).markPrimary(PRODUCT_ID, MEDIA_ID);
+    }
+
+    @Test
+    void markPrimary_ShouldReturn400_WhenMediaIsVideo() throws Exception {
+        doThrow(new BadRequestException("Only IMAGE media can be primary"))
+                .when(adminProductMediaService).markPrimary(PRODUCT_ID, MEDIA_ID);
+
+        mockMvc.perform(put("/admin/products/{productId}/media/{mediaId}/primary", PRODUCT_ID, MEDIA_ID))
+                .andExpect(status().isBadRequest());
     }
 
     private ResultActions performAttachMedia(Long productId, AttachMediaRequestDto request) throws Exception {
