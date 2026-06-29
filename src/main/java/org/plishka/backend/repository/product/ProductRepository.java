@@ -33,9 +33,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithCategory(@Param("id") Long id);
 
-    @Query("SELECT p.category.id FROM Product p WHERE p.id = :productId")
-    Optional<Long> findCategoryIdByProductId(@Param("productId") Long productId);
-
     @EntityGraph(attributePaths = "category")
     Page<Product> findAllByCategory_IdAndIdNot(Long categoryId, Long id, Pageable pageable);
 
@@ -60,7 +57,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     List<Long> findIdsByCategoryIdOrderById(@Param("categoryId") Long categoryId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @EntityGraph(attributePaths = "category")
     @Query("""
             select p
             from Product p
@@ -69,6 +65,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             """)
     List<Product> findAllByIdInForUpdateOrderById(@Param("ids") Collection<Long> ids);
 
+    @EntityGraph(attributePaths = "category")
+    @Query("""
+            select p
+            from Product p
+            where p.id in :ids
+            order by p.id
+            """)
+    List<Product> findAllWithCategoryByIdInOrderById(@Param("ids") Collection<Long> ids);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             update Product p
@@ -76,14 +81,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             where p.category.id = :categoryId
             """)
     int clearCategoryByCategoryId(@Param("categoryId") Long categoryId);
-
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("""
-            update Product p
-            set p.category = null
-            where p.id in :productIds
-            """)
-    int clearCategoryByProductIdIn(@Param("productIds") Collection<Long> productIds);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """

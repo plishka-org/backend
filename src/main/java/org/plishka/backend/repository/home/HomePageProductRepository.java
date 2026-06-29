@@ -27,20 +27,6 @@ public interface HomePageProductRepository extends JpaRepository<HomePageProduct
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             delete from HomePageProduct h
-            where h.product.id = :productId
-            """)
-    int deleteByProductId(@Param("productId") Long productId);
-
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("""
-            delete from HomePageProduct h
-            where h.product.id in :productIds
-            """)
-    int deleteAllByProductIdIn(@Param("productIds") List<Long> productIds);
-
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("""
-            delete from HomePageProduct h
             where h.product.category.id = :categoryId
             """)
     int deleteByProductCategoryId(@Param("categoryId") Long categoryId);

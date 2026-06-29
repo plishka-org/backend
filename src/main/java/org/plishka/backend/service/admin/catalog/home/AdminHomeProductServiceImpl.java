@@ -27,7 +27,7 @@ public class AdminHomeProductServiceImpl implements AdminHomeProductService {
     @Transactional
     public void replaceHomeProducts(HomeProductsRequestDto request) {
         List<Long> productIds = requireUniqueIds(request.productIds());
-        Map<Long, Product> productsById = findProductsByIdOrThrow(productIds);
+        Map<Long, Product> productsById = findLockedProductsWithCategoryByIdOrThrow(productIds);
         requireProductsCategorized(productsById.values());
 
         replaceHomeRows(productIds, productsById);
@@ -46,7 +46,7 @@ public class AdminHomeProductServiceImpl implements AdminHomeProductService {
             throw new BadRequestException("Home product order must contain the current home product ids");
         }
 
-        Map<Long, Product> productsById = findProductsByIdOrThrow(productIds);
+        Map<Long, Product> productsById = findLockedProductsWithCategoryByIdOrThrow(productIds);
         requireProductsCategorized(productsById.values());
 
         replaceHomeRows(productIds, productsById);
@@ -66,12 +66,13 @@ public class AdminHomeProductServiceImpl implements AdminHomeProductService {
         homePageProductRepository.flush();
     }
 
-    private Map<Long, Product> findProductsByIdOrThrow(List<Long> productIds) {
+    private Map<Long, Product> findLockedProductsWithCategoryByIdOrThrow(List<Long> productIds) {
         if (productIds.isEmpty()) {
             return Map.of();
         }
 
-        List<Product> products = productRepository.findAllByIdInForUpdateOrderById(productIds);
+        productRepository.findAllByIdInForUpdateOrderById(productIds);
+        List<Product> products = productRepository.findAllWithCategoryByIdInOrderById(productIds);
         EntityPresenceValidator.requireAllIdsFound(
                 productIds,
                 products.stream().map(Product::getId).toList(),
