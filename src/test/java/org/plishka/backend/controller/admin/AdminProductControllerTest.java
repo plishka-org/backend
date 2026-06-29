@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.admin;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -115,7 +114,7 @@ class AdminProductControllerTest extends BaseControllerTest {
         AdminProductRequestDto request = new AdminProductRequestDto(
                 "Bench",
                 "Description",
-                BigDecimal.ZERO,
+                0L,
                 CATEGORY_ID
         );
 
@@ -130,7 +129,7 @@ class AdminProductControllerTest extends BaseControllerTest {
         AdminProductRequestDto request = new AdminProductRequestDto(
                 "Bench",
                 "Description",
-                new BigDecimal("10.00"),
+                10L,
                 null
         );
 
@@ -194,7 +193,7 @@ class AdminProductControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void updatePrices_ShouldReturn400_WhenValueScaleIsInvalid() throws Exception {
+    void updatePrices_ShouldReturn400_WhenValueIsNotInteger() throws Exception {
         mockMvc.perform(post("/admin/products/bulk/price")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -273,7 +272,7 @@ class AdminProductControllerTest extends BaseControllerTest {
     }
 
     private static AdminProductRequestDto request() {
-        return new AdminProductRequestDto("Bench", "Description", new BigDecimal("10.00"), CATEGORY_ID);
+        return new AdminProductRequestDto("Bench", "Description", 10L, CATEGORY_ID);
     }
 
     private static AdminProductDetailDto product() {
@@ -281,7 +280,7 @@ class AdminProductControllerTest extends BaseControllerTest {
                 PRODUCT_ID,
                 "Bench",
                 "Description",
-                new BigDecimal("10.00"),
+                10L,
                 new CategoryDto(CATEGORY_ID, "Furniture"),
                 List.of(new ProductMediaDto(
                         5L,

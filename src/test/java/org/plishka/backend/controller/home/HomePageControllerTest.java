@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.home;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
@@ -39,7 +38,7 @@ class HomePageControllerTest extends BaseControllerTest {
                         1L,
                         "Garden bench",
                         new CategoryDto(2L, "Garden"),
-                        new BigDecimal("1200.00"),
+                        1200L,
                         null
                 )),
                 List.of()
@@ -55,7 +54,7 @@ class HomePageControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.products").isArray())
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[0].name").value("Garden bench"))
-                .andExpect(jsonPath("$.products[0].price").value(1200.00))
+                .andExpect(jsonPath("$.products[0].price").value(1200))
                 .andExpect(jsonPath("$.featuredReviews").isArray());
     }
 }

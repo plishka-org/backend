@@ -1,6 +1,5 @@
 package org.plishka.backend.service.order.impl;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +17,7 @@ import org.plishka.backend.service.order.OrderCheckoutService;
 import org.plishka.backend.service.order.OrderIdempotencyGuard;
 import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
+import org.plishka.backend.service.pricing.PriceCalculator;
 import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -120,9 +120,9 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user"));
     }
 
-    private BigDecimal calculateTotalPrice(Order order) {
-        return order.getOrderItems().stream()
+    private Long calculateTotalPrice(Order order) {
+        return PriceCalculator.calculateTotal(order.getOrderItems().stream()
                 .map(OrderItem::getLineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .toList());
     }
 }

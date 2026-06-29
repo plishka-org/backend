@@ -1,12 +1,10 @@
 package org.plishka.backend.dto.admin.product;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 
 public record AdminProductRequestDto(
         @NotBlank(message = "Product name is required")
@@ -18,9 +16,9 @@ public record AdminProductRequestDto(
         String description,
 
         @NotNull(message = "Product price is required")
-        @DecimalMin(value = "0.01", message = "Product price must be greater than 0")
-        @Digits(integer = 8, fraction = 2, message = "Product price must fit DECIMAL(10,2)")
-        BigDecimal price,
+        @Positive(message = "Product price must be greater than 0")
+        @Max(value = 10_000_000L, message = "Product price must be at most 10000000")
+        Long price,
 
         @NotNull(message = "Product category is required")
         @Positive

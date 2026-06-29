@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.order;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -56,9 +55,9 @@ class OrderControllerTest extends BaseControllerTest {
     private static final String NOTES = "Please call before delivery";
     private static final String PRODUCT_NAME = "Oak Garden Bench";
     private static final String CATEGORY_NAME = "Outdoor Tables and Benches";
-    private static final String UNIT_PRICE = "450.00";
-    private static final String SUBTOTAL = "900.00";
-    private static final String TOTAL_PRICE = "900.00";
+    private static final long UNIT_PRICE = 450L;
+    private static final long SUBTOTAL = 900L;
+    private static final long TOTAL_PRICE = 900L;
     private static final String ORDER_NOT_FOUND_MESSAGE = "Order not found";
     private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
     private static final String IDEMPOTENCY_KEY = "11f2cbe7-3915-44f6-9bcd-3a1c70a47e92";
@@ -210,7 +209,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value(ORDER_ID))
                 .andExpect(jsonPath("$.customerName").value(CUSTOMER_NAME))
-                .andExpect(jsonPath("$.totalPrice").value(900.00));
+                .andExpect(jsonPath("$.totalPrice").value(900));
 
         verify(orderCheckoutService).checkout(eq(USER_ID), eq(IDEMPOTENCY_KEY), any(CreateOrderRequestDto.class));
     }
@@ -313,7 +312,7 @@ class OrderControllerTest extends BaseControllerTest {
                 ORDER_ID,
                 ORDER_NUMBER,
                 CUSTOMER_NAME,
-                new BigDecimal(TOTAL_PRICE),
+                TOTAL_PRICE,
                 DELIVERY_CITY,
                 PHONE,
                 NOTES,
@@ -326,7 +325,7 @@ class OrderControllerTest extends BaseControllerTest {
         return new OrderSummaryDto(
                 ORDER_ID,
                 ORDER_NUMBER,
-                new BigDecimal(TOTAL_PRICE),
+                TOTAL_PRICE,
                 CREATED_AT
         );
     }
@@ -338,8 +337,8 @@ class OrderControllerTest extends BaseControllerTest {
                 PRODUCT_NAME,
                 CATEGORY_NAME,
                 QUANTITY,
-                new BigDecimal(UNIT_PRICE),
-                new BigDecimal(SUBTOTAL)
+                UNIT_PRICE,
+                SUBTOTAL
         );
     }
 }

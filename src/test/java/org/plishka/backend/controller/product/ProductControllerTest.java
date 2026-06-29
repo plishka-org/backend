@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.product;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -47,10 +46,10 @@ class ProductControllerTest extends BaseControllerTest {
     private static final String PRODUCT_NAME = "Oak Garden Bench";
     private static final String PRODUCT_DESCRIPTION = "Handmade oak garden bench";
     private static final String PRODUCT_CATEGORY_NAME = "Outdoor Tables and Benches";
-    private static final String PRODUCT_PRICE = "450.00";
+    private static final long PRODUCT_PRICE = 450L;
     private static final String RELATED_PRODUCT_NAME = "Carved Wooden Wall Decor";
     private static final String RELATED_PRODUCT_CATEGORY_NAME = "Decor Items";
-    private static final String RELATED_PRODUCT_PRICE = "320.00";
+    private static final long RELATED_PRODUCT_PRICE = 320L;
     private static final String PRODUCT_SORT = "name,desc";
     private static final String UNSUPPORTED_PRODUCT_SORT = "rating,desc";
     private static final String CATEGORY_IDS_PARAM = "1,2,3";
@@ -255,7 +254,7 @@ class ProductControllerTest extends BaseControllerTest {
                 PRODUCT_ID,
                 PRODUCT_NAME,
                 productCategory(),
-                new BigDecimal(PRODUCT_PRICE),
+                PRODUCT_PRICE,
                 new ProductMediaPreviewDto(
                         PRODUCT_MEDIA_ID,
                         PRODUCT_MEDIA_KEY,
@@ -269,7 +268,7 @@ class ProductControllerTest extends BaseControllerTest {
                 PRODUCT_ID,
                 PRODUCT_NAME,
                 PRODUCT_DESCRIPTION,
-                new BigDecimal(PRODUCT_PRICE),
+                PRODUCT_PRICE,
                 productCategory(),
                 List.of(new ProductMediaDto(
                         PRODUCT_MEDIA_ID,
@@ -286,7 +285,7 @@ class ProductControllerTest extends BaseControllerTest {
                 RELATED_PRODUCT_ID,
                 RELATED_PRODUCT_NAME,
                 new CategoryDto(RELATED_PRODUCT_CATEGORY_ID, RELATED_PRODUCT_CATEGORY_NAME),
-                new BigDecimal(RELATED_PRODUCT_PRICE),
+                RELATED_PRODUCT_PRICE,
                 null
         );
     }

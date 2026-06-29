@@ -1,6 +1,5 @@
 package org.plishka.backend.service.order.impl;
 
-import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.domain.cart.Cart;
 import org.plishka.backend.domain.cart.CartItem;
@@ -82,7 +81,7 @@ class OrderCheckoutServiceImplIntegrationTest {
         Product product = new Product();
         product.setName(productName);
         product.setDescription("Checkout product with name longer than one hundred characters");
-        product.setPrice(new BigDecimal("10.00"));
+        product.setPrice(10L);
         product.setCategory(category);
         return productRepository.saveAndFlush(product);
     }

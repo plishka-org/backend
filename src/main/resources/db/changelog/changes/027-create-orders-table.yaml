@@ -40,7 +40,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: total_price
-                  type: DECIMAL(12,2)
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:

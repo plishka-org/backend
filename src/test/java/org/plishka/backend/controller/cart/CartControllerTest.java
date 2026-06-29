@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.cart;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
@@ -44,9 +43,9 @@ class CartControllerTest extends BaseControllerTest {
     private static final String USER_EMAIL = "customer@example.com";
     private static final String PRODUCT_NAME = "Oak Garden Bench";
     private static final String CATEGORY_NAME = "Outdoor Tables and Benches";
-    private static final String UNIT_PRICE = "450.00";
-    private static final String SUBTOTAL = "900.00";
-    private static final String TOTAL_PRICE = "900.00";
+    private static final long UNIT_PRICE = 450L;
+    private static final long SUBTOTAL = 900L;
+    private static final long TOTAL_PRICE = 900L;
     private static final int QUANTITY = 2;
     private static final int UPDATED_QUANTITY = 3;
     private static final int INVALID_QUANTITY = 0;
@@ -74,7 +73,7 @@ class CartControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[0].cartItemId").value(CART_ITEM_ID))
                 .andExpect(jsonPath("$.items[0].productId").value(PRODUCT_ID))
                 .andExpect(jsonPath("$.items[0].quantity").value(QUANTITY))
-                .andExpect(jsonPath("$.totalPrice").value(900.00));
+                .andExpect(jsonPath("$.totalPrice").value(900));
 
         verify(cartService).getCart(USER_ID);
     }
@@ -89,7 +88,7 @@ class CartControllerTest extends BaseControllerTest {
         performAddItem(request)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].productName").value(PRODUCT_NAME))
-                .andExpect(jsonPath("$.totalPrice").value(900.00));
+                .andExpect(jsonPath("$.totalPrice").value(900));
 
         verify(cartService).addItem(eq(USER_ID), any(AddCartItemRequestDto.class));
     }
@@ -124,7 +123,7 @@ class CartControllerTest extends BaseControllerTest {
         performUpdateItem(PRODUCT_ID, request)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].quantity").value(UPDATED_QUANTITY))
-                .andExpect(jsonPath("$.totalPrice").value(1350.00));
+                .andExpect(jsonPath("$.totalPrice").value(1350));
 
         verify(cartService).updateItem(eq(USER_ID), eq(PRODUCT_ID), any(UpdateCartItemRequestDto.class));
     }
@@ -184,7 +183,7 @@ class CartControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].productId").value(PRODUCT_ID))
-                .andExpect(jsonPath("$.totalPrice").value(900.00));
+                .andExpect(jsonPath("$.totalPrice").value(900));
 
         verify(cartService).mergeCart(eq(USER_ID), any(MergeCartRequestDto.class));
     }
@@ -270,30 +269,30 @@ class CartControllerTest extends BaseControllerTest {
     private static CartSummaryDto cartSummary() {
         return new CartSummaryDto(
                 List.of(cartItem(QUANTITY, SUBTOTAL)),
-                new BigDecimal(TOTAL_PRICE)
+                TOTAL_PRICE
         );
     }
 
     private static CartSummaryDto updatedCartSummary() {
         return new CartSummaryDto(
-                List.of(cartItem(UPDATED_QUANTITY, "1350.00")),
-                new BigDecimal("1350.00")
+                List.of(cartItem(UPDATED_QUANTITY, 1350L)),
+                1350L
         );
     }
 
     private static CartSummaryDto emptyCartSummary() {
-        return new CartSummaryDto(List.of(), BigDecimal.ZERO);
+        return new CartSummaryDto(List.of(), 0L);
     }
 
-    private static CartItemSummaryDto cartItem(Integer quantity, String subtotal) {
+    private static CartItemSummaryDto cartItem(Integer quantity, Long subtotal) {
         return new CartItemSummaryDto(
                 CART_ITEM_ID,
                 PRODUCT_ID,
                 PRODUCT_NAME,
                 CATEGORY_NAME,
                 quantity,
-                new BigDecimal(UNIT_PRICE),
-                new BigDecimal(subtotal)
+                UNIT_PRICE,
+                subtotal
         );
     }
 }

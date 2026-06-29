@@ -1,7 +1,6 @@
 package org.plishka.backend.service.admin.catalog.support;
 
 import jakarta.persistence.criteria.JoinType;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import org.plishka.backend.domain.product.Product;
@@ -52,7 +51,7 @@ public final class AdminProductSpecifications {
 
         String searchTerm = search.trim();
         String searchPattern = "%" + searchTerm.toLowerCase(Locale.ROOT) + "%";
-        BigDecimal searchedPrice = parseSearchPrice(searchTerm);
+        Long searchedPrice = parseSearchPrice(searchTerm);
 
         return (root, query, criteriaBuilder) -> {
             var categoryJoin = root.join("category", JoinType.LEFT);
@@ -79,9 +78,9 @@ public final class AdminProductSpecifications {
         return !includeUncategorized;
     }
 
-    private static BigDecimal parseSearchPrice(String searchTerm) {
+    private static Long parseSearchPrice(String searchTerm) {
         try {
-            return new BigDecimal(searchTerm);
+            return Long.valueOf(searchTerm);
         } catch (NumberFormatException exception) {
             return null;
         }

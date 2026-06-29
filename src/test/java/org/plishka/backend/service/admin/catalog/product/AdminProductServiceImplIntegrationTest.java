@@ -1,7 +1,6 @@
 package org.plishka.backend.service.admin.catalog.product;
 
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.domain.home.HomePageProduct;
@@ -91,7 +90,7 @@ class AdminProductServiceImplIntegrationTest {
     void updatePrices_ShouldRejectOverflowAndKeepStoredPrices() {
         Product firstProduct = createProductWithCategory("Bulk Price First", "Bulk Price Category First");
         Product secondProduct = createProductWithCategory("Bulk Price Second", "Bulk Price Category Second");
-        setStoredPrice(secondProduct.getId(), new BigDecimal("99999999.99"));
+        setStoredPrice(secondProduct.getId(), 10_000_000L);
         entityManager.clear();
 
         BulkProductPriceRequestDto request = new BulkProductPriceRequestDto(
@@ -99,12 +98,12 @@ class AdminProductServiceImplIntegrationTest {
                 List.of(firstProduct.getId(), secondProduct.getId()),
                 null,
                 BulkProductPriceOperation.INCREASE_AMOUNT,
-                new BigDecimal("0.01")
+                1L
         );
 
         assertThrows(BadRequestException.class, () -> adminProductService.updatePrices(request));
-        assertEquals(new BigDecimal("10.00"), findStoredPrice(firstProduct.getId()));
-        assertEquals(new BigDecimal("99999999.99"), findStoredPrice(secondProduct.getId()));
+        assertEquals(10L, findStoredPrice(firstProduct.getId()));
+        assertEquals(10_000_000L, findStoredPrice(secondProduct.getId()));
     }
 
     private Product createProductWithCategory() {
@@ -119,7 +118,7 @@ class AdminProductServiceImplIntegrationTest {
         Product product = new Product();
         product.setName(productName);
         product.setDescription("Bulk clear category integration test product");
-        product.setPrice(new BigDecimal("10.00"));
+        product.setPrice(10L);
         product.setCategory(category);
         return productRepository.saveAndFlush(product);
     }
@@ -149,15 +148,15 @@ class AdminProductServiceImplIntegrationTest {
         );
     }
 
-    private BigDecimal findStoredPrice(Long productId) {
+    private Long findStoredPrice(Long productId) {
         return jdbcTemplate.queryForObject(
                 "select price from products where id = ?",
-                BigDecimal.class,
+                Long.class,
                 productId
         );
     }
 
-    private void setStoredPrice(Long productId, BigDecimal price) {
+    private void setStoredPrice(Long productId, Long price) {
         jdbcTemplate.update(
                 "update products set price = ? where id = ?",
                 price,

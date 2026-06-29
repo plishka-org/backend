@@ -1,12 +1,12 @@
 package org.plishka.backend.mapper.cart;
 
-import java.math.BigDecimal;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.plishka.backend.config.MapStructConfig;
 import org.plishka.backend.domain.cart.CartItem;
 import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.dto.cart.CartItemSummaryDto;
+import org.plishka.backend.service.pricing.PriceCalculator;
 
 @Mapper(config = MapStructConfig.class)
 public interface CartItemMapper {
@@ -24,7 +24,7 @@ public interface CartItemMapper {
         return product.getCategory() == null ? UNCATEGORIZED_CATEGORY_NAME : product.getCategory().getName();
     }
 
-    default BigDecimal calculateSubtotal(CartItem cartItem) {
-        return cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+    default Long calculateSubtotal(CartItem cartItem) {
+        return PriceCalculator.calculateLineTotal(cartItem.getProduct().getPrice(), cartItem.getQuantity());
     }
 }

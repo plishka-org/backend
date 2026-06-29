@@ -66,13 +66,6 @@ public class SecurityConfig {
                                 "/files/presign/download"
                         ).permitAll()
                         .requestMatchers(
-                                HttpMethod.POST,
-                                "/files/presign/upload"
-                        ).access(AuthorizationManagers.allOf(
-                                activeUserAuthorizationManager,
-                                AuthorityAuthorizationManager.hasRole("ADMIN")
-                        ))
-                        .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify",
                                 "/version",

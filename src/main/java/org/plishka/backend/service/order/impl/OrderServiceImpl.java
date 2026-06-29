@@ -1,6 +1,5 @@
 package org.plishka.backend.service.order.impl;
 
-import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import org.plishka.backend.service.order.OrderIdempotencyGuard;
 import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.order.OrderService;
+import org.plishka.backend.service.pricing.PriceCalculator;
 import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -181,9 +181,9 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order with ID " + orderId + " not found"));
     }
 
-    private BigDecimal calculateTotalPrice(Order order) {
-        return order.getOrderItems().stream()
+    private Long calculateTotalPrice(Order order) {
+        return PriceCalculator.calculateTotal(order.getOrderItems().stream()
                 .map(OrderItem::getLineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .toList());
     }
 }

@@ -1,6 +1,5 @@
 package org.plishka.backend.service.admin.catalog.product;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -184,7 +183,7 @@ public class AdminProductServiceImpl implements AdminProductService {
     ) {
         product.setName(productName);
         product.setDescription(UserInputNormalizer.normalizeName(request.description()));
-        product.setPrice(ProductPriceCalculator.normalize(request.price()));
+        product.setPrice(ProductPriceCalculator.validateProductPrice(request.price()));
     }
 
     private Category findCategoryForAssignment(Long categoryId) {
@@ -231,6 +230,6 @@ public class AdminProductServiceImpl implements AdminProductService {
         return false;
     }
 
-    private record ProductPriceUpdate(Product product, BigDecimal price) {
+    private record ProductPriceUpdate(Product product, Long price) {
     }
 }

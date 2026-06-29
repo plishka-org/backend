@@ -1,6 +1,5 @@
 package org.plishka.backend.service.admin.catalog.product;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -85,7 +84,7 @@ class AdminProductServiceImplTest {
 
     @Test
     void updateProduct_ShouldThrowConflict_WhenNameRaceHitsUniqueConstraint() {
-        Product product = product(1L, "10.00");
+        Product product = product(1L, 10L);
         when(categoryRepository.findByIdForUpdate(CATEGORY_ID)).thenReturn(Optional.of(category(CATEGORY_ID)));
         when(productRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(product));
         when(productRepository.existsByNameIgnoreCaseAndIdNot("Gazebo", 1L)).thenReturn(false);
@@ -102,7 +101,7 @@ class AdminProductServiceImplTest {
 
     @Test
     void updatePrices_ShouldRejectOperation_WhenResultingPriceIsNonPositive() {
-        Product product = product(1L, "1.00");
+        Product product = product(1L, 1L);
         when(productRepository.findAllByIdInForUpdateOrderById(List.of(1L))).thenReturn(List.of(product));
 
         BulkProductPriceRequestDto request = new BulkProductPriceRequestDto(
@@ -110,16 +109,16 @@ class AdminProductServiceImplTest {
                 List.of(1L),
                 null,
                 BulkProductPriceOperation.DECREASE_AMOUNT,
-                new BigDecimal("2.00")
+                2L
         );
 
         assertThrows(BadRequestException.class, () -> service.updatePrices(request));
     }
 
     @Test
-    void updatePrices_ShouldRejectOperationAndNotMutateProducts_WhenResultingPriceExceedsDecimalLimit() {
-        Product firstProduct = product(1L, "10.00");
-        Product secondProduct = product(2L, "99999999.99");
+    void updatePrices_ShouldRejectOperationAndNotMutateProducts_WhenResultingPriceExceedsLimit() {
+        Product firstProduct = product(1L, 10L);
+        Product secondProduct = product(2L, 10_000_000L);
         when(productRepository.findAllByIdInForUpdateOrderById(List.of(1L, 2L)))
                 .thenReturn(List.of(firstProduct, secondProduct));
 
@@ -128,12 +127,29 @@ class AdminProductServiceImplTest {
                 List.of(1L, 2L),
                 null,
                 BulkProductPriceOperation.INCREASE_AMOUNT,
-                new BigDecimal("0.01")
+                1L
         );
 
         assertThrows(BadRequestException.class, () -> service.updatePrices(request));
-        assertEquals(new BigDecimal("10.00"), firstProduct.getPrice());
-        assertEquals(new BigDecimal("99999999.99"), secondProduct.getPrice());
+        assertEquals(10L, firstProduct.getPrice());
+        assertEquals(10_000_000L, secondProduct.getPrice());
+    }
+
+    @Test
+    void updatePrices_ShouldRoundPercentResultHalfUp() {
+        Product product = product(1L, 10L);
+        when(productRepository.findAllByIdInForUpdateOrderById(List.of(1L))).thenReturn(List.of(product));
+
+        BulkProductPriceRequestDto request = new BulkProductPriceRequestDto(
+                SelectionMode.SELECTED,
+                List.of(1L),
+                null,
+                BulkProductPriceOperation.INCREASE_PERCENT,
+                15L
+        );
+
+        assertEquals(1, service.updatePrices(request).affectedCount());
+        assertEquals(12L, product.getPrice());
     }
 
     @Test
@@ -143,7 +159,7 @@ class AdminProductServiceImplTest {
                 Arrays.asList((Long) null),
                 null,
                 BulkProductPriceOperation.INCREASE_AMOUNT,
-                BigDecimal.ONE
+                1L
         );
 
         assertThrows(BadRequestException.class, () -> service.updatePrices(request));
@@ -152,14 +168,14 @@ class AdminProductServiceImplTest {
     @Test
     void updatePrices_ShouldThrow404_WhenSelectedProductIsMissing() {
         when(productRepository.findAllByIdInForUpdateOrderById(List.of(1L, 2L)))
-                .thenReturn(List.of(product(1L, "10.00")));
+                .thenReturn(List.of(product(1L, 10L)));
 
         BulkProductPriceRequestDto request = new BulkProductPriceRequestDto(
                 SelectionMode.SELECTED,
                 List.of(2L, 1L),
                 null,
                 BulkProductPriceOperation.INCREASE_AMOUNT,
-                BigDecimal.ONE
+                1L
         );
 
         assertThrows(ResourceNotFoundException.class, () -> service.updatePrices(request));
@@ -167,8 +183,8 @@ class AdminProductServiceImplTest {
 
     @Test
     void updateCategories_ShouldApplyExceptSelectedToFilteredProducts() {
-        Product first = product(1L, "10.00");
-        Product second = product(2L, "20.00");
+        Product first = product(1L, 10L);
+        Product second = product(2L, 20L);
         Category targetCategory = category(5L);
         when(categoryRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(targetCategory));
         when(productRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(first, second));
@@ -199,10 +215,10 @@ class AdminProductServiceImplTest {
         assertEquals("Target category is required", exception.getMessage());
     }
 
-    private static Product product(Long id, String price) {
+    private static Product product(Long id, Long price) {
         Product product = new Product();
         product.setId(id);
-        product.setPrice(new BigDecimal(price));
+        product.setPrice(price);
         return product;
     }
 
@@ -210,7 +226,7 @@ class AdminProductServiceImplTest {
         return new AdminProductRequestDto(
                 name,
                 "Product description",
-                new BigDecimal("10.00"),
+                10L,
                 CATEGORY_ID
         );
     }
