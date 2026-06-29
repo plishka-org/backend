@@ -1,4 +1,7 @@
 spring:
+  liquibase:
+    contexts: test
+
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
     username: sa
@@ -33,12 +36,11 @@ backend:
     password-reset-token-ttl: 3h
   cleanup:
     unverified-user-ttl: 24h
-  callback:
-    admin-email: admin@example.com
+  admin:
+    email: admin@example.com
 
 frontend:
-  reset-password-url: http://localhost:3000/reset-password
-  email-change-verification-url: http://localhost:3000/verify-email-change
+  base-url: http://localhost:3000
 
 storage:
   s3:

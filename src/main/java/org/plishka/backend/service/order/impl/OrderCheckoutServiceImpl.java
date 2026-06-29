@@ -8,6 +8,7 @@ import org.plishka.backend.domain.order.Order;
 import org.plishka.backend.domain.order.OrderItem;
 import org.plishka.backend.dto.order.CreateOrderRequestDto;
 import org.plishka.backend.dto.order.OrderDetailDto;
+import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
@@ -19,6 +20,7 @@ import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.pricing.PriceCalculator;
 import org.plishka.backend.util.RequestHashUtil;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderIdempotencyGuard orderIdempotencyGuard;
     private final OrderItemFactory orderItemFactory;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -68,6 +71,8 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         Order savedOrder = orderRepository.saveAndFlush(order);
 
         clearCart(cart);
+
+        applicationEventPublisher.publishEvent(OrderCreatedEvent.fromOrder(savedOrder));
 
         log.debug("Order created with id={} for user id={}", savedOrder.getId(), userId);
 

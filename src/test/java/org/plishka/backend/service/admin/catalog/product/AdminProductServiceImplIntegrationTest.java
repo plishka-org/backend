@@ -18,7 +18,7 @@ import org.plishka.backend.repository.product.CategoryRepository;
 import org.plishka.backend.repository.product.ProductMediaRepository;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.service.admin.catalog.category.AdminCategoryService;
-import org.plishka.backend.service.notification.ResendEmailClient;
+import org.plishka.backend.service.notification.email.transport.resend.ResendEmailTransport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -59,7 +59,7 @@ class AdminProductServiceImplIntegrationTest {
     private EntityManager entityManager;
 
     @MockitoBean
-    private ResendEmailClient resendEmailClient;
+    private ResendEmailTransport resendEmailTransport;
 
     @Test
     void deleteCategory_ShouldKeepProductsWithoutCategory_WhenStrategyKeepsProducts() {
@@ -126,7 +126,7 @@ class AdminProductServiceImplIntegrationTest {
     private void createHomeProduct(Product product) {
         HomePageProduct homeProduct = new HomePageProduct();
         homeProduct.setProduct(product);
-        homeProduct.setDisplayOrder(1);
+        homeProduct.setDisplayOrder(product.getId().intValue());
         homePageProductRepository.saveAndFlush(homeProduct);
     }
 

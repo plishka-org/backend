@@ -57,3 +57,5 @@ databaseChangeLog:
       file: db/changelog/changes/028-create-order-items-table.yaml
   - include:
       file: db/changelog/changes/029-create-storage-deletion-outbox-table.yaml
+  - include:
+      file: db/changelog/changes/030-seed-dev-integration-data.yaml

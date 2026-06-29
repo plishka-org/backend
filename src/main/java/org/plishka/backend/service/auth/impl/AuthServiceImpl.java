@@ -56,7 +56,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
-    private static final String RESET_PASSWORD_TOKEN_FRAGMENT = "#token=";
+    private static final String RESET_PASSWORD_PATH = "/#/reset-password?token=";
     private static final String VERIFY_TOKEN_PATH = "/auth/verify?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
 
@@ -444,7 +444,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String buildResetPasswordLink(String rawResetToken) {
-        return frontendProperties.resetPasswordUrl() + RESET_PASSWORD_TOKEN_FRAGMENT + rawResetToken;
+        return frontendProperties.baseUrl().replaceAll("/+$", "") + RESET_PASSWORD_PATH + rawResetToken;
     }
 
     private String normalizeDeviceId(String deviceId) {

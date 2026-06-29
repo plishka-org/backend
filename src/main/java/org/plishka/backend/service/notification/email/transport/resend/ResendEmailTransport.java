@@ -1,4 +1,4 @@
-package org.plishka.backend.service.notification;
+package org.plishka.backend.service.notification.email.transport.resend;
 
 import java.io.IOException;
 import java.net.URI;
@@ -6,16 +6,22 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.config.properties.ResendProperties;
-import org.plishka.backend.exception.ResendEmailException;
+import org.plishka.backend.exception.InvalidEmailRecipientException;
+import org.plishka.backend.exception.NonRetryableEmailException;
+import org.plishka.backend.exception.RetryableEmailException;
+import org.plishka.backend.service.notification.email.transport.EmailTransport;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Slf4j
-public class ResendEmailClient {
+public class ResendEmailTransport implements EmailTransport {
     private static final URI RESEND_EMAILS_URI = URI.create("https://api.resend.com/emails");
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
@@ -25,7 +31,7 @@ public class ResendEmailClient {
     private final String apiKey;
     private final String fromEmail;
 
-    public ResendEmailClient(ObjectMapper objectMapper, ResendProperties resendProperties) {
+    public ResendEmailTransport(ObjectMapper objectMapper, ResendProperties resendProperties) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .build();
@@ -34,7 +40,12 @@ public class ResendEmailClient {
         this.fromEmail = resendProperties.fromEmail();
     }
 
+    @Override
     public void sendEmail(String to, String subject, String text) {
+        if (!StringUtils.hasText(to)) {
+            throw new InvalidEmailRecipientException("Email recipient must not be blank");
+        }
+
         try {
             String requestBodyJson = buildRequestBodyJson(to, subject, text);
             HttpRequest request = buildHttpRequest(requestBodyJson);
@@ -48,25 +59,30 @@ public class ResendEmailClient {
 
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new ResendEmailException("Email sending was interrupted", exception);
+            throw new NonRetryableEmailException("Email sending was interrupted");
         } catch (IOException exception) {
-            throw new ResendEmailException("Failed to call Resend API", exception);
+            throw new RetryableEmailException("Failed to call Resend API", exception);
         }
     }
 
     private void throwIfRequestFailed(HttpResponse<String> response, String to, String subject) {
+        int status = response.statusCode();
         if (isSuccessful(response)) {
             return;
         }
 
         log.warn(
                 "Resend email request failed: status={}, to={}, subject={}",
-                response.statusCode(),
+                status,
                 to,
                 subject
         );
 
-        throw new ResendEmailException("Resend email request failed with status " + response.statusCode());
+        if (status == 429 || status >= 500) {
+            throw new RetryableEmailException("Resend temporary failure with status " + status);
+        }
+
+        throw new NonRetryableEmailException("Resend permanent failure with status " + status);
     }
 
     private boolean isSuccessful(HttpResponse<String> response) {
@@ -83,21 +99,12 @@ public class ResendEmailClient {
     }
 
     private String buildRequestBodyJson(String to, String subject, String text) {
-        SendEmailRequest requestBody = new SendEmailRequest(
-                fromEmail,
-                List.of(to),
-                subject,
-                text
-        );
+        Map<String, Object> requestBody = new LinkedHashMap<>();
+        requestBody.put("from", fromEmail);
+        requestBody.put("to", List.of(to));
+        requestBody.put("subject", subject);
+        requestBody.put("text", text);
 
         return objectMapper.writeValueAsString(requestBody);
-    }
-
-    private record SendEmailRequest(
-            String from,
-            List<String> to,
-            String subject,
-            String text
-    ) {
     }
 }

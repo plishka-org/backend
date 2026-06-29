@@ -16,6 +16,7 @@ import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.dto.order.OrderSummaryDto;
+import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
@@ -28,6 +29,7 @@ import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.order.OrderService;
 import org.plishka.backend.service.pricing.PriceCalculator;
 import org.plishka.backend.util.RequestHashUtil;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -58,6 +60,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderIdempotencyGuard orderIdempotencyGuard;
     private final OrderItemFactory orderItemFactory;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -119,6 +122,8 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setIdempotencyKey(idempotencyKey);
         newOrder.setRequestHash(requestHash);
         Order savedOrder = orderRepository.saveAndFlush(newOrder);
+
+        applicationEventPublisher.publishEvent(OrderCreatedEvent.fromOrder(savedOrder));
 
         log.debug("Successfully repeated order id={} as new order id={} for user id={}",
                 orderId, savedOrder.getId(), userId);

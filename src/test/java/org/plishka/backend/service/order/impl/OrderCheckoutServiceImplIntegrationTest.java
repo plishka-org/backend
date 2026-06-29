@@ -11,7 +11,7 @@ import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.product.CategoryRepository;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.user.UserRepository;
-import org.plishka.backend.service.notification.ResendEmailClient;
+import org.plishka.backend.service.notification.email.transport.resend.ResendEmailTransport;
 import org.plishka.backend.service.order.OrderCheckoutService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,7 +50,7 @@ class OrderCheckoutServiceImplIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @MockitoBean
-    private ResendEmailClient resendEmailClient;
+    private ResendEmailTransport resendEmailTransport;
 
     @Test
     void checkout_ShouldPersistProductNameSnapshotLongerThanOneHundredCharacters() {

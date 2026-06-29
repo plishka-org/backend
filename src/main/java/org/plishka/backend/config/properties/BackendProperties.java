@@ -29,9 +29,9 @@ public record BackendProperties(
         @Valid
         Cleanup cleanup,
 
-        @NotNull(message = "backend.callback must not be null")
+        @NotNull(message = "backend.admin must not be null")
         @Valid
-        Callback callback
+        Admin admin
 ) {
     public record Auth(
             @NotNull(message = "backend.auth.email-verification-token-ttl must not be null")
@@ -51,10 +51,10 @@ public record BackendProperties(
     ) {
     }
 
-    public record Callback(
-            @NotBlank(message = "backend.callback.admin-email must not be blank")
-            @Email(message = "backend.callback.admin-email must be a valid email address")
-            String adminEmail
+    public record Admin(
+            @NotBlank(message = "backend.admin.email must not be blank")
+            @Email(message = "backend.admin.email must be a valid email address")
+            String email
     ) {
     }
 }
