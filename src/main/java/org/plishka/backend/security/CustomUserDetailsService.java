@@ -4,6 +4,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.repository.user.UserRepository;
+import org.plishka.backend.util.UserInputNormalizer;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,8 +17,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String email) {
-        User user = userRepository.findWithRolesByEmail(email).orElseThrow(
-                () -> new UsernameNotFoundException("User with email '%s' not found".formatted(email))
+        String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
+        User user = userRepository.findWithRolesByEmail(normalizedEmail).orElseThrow(
+                () -> new UsernameNotFoundException("User with email '%s' not found".formatted(normalizedEmail))
         );
 
         return UserPrincipalMapper.toPrincipal(user);

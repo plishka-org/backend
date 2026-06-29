@@ -1,6 +1,5 @@
 package org.plishka.backend.event.order;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import lombok.Builder;
@@ -17,7 +16,7 @@ public record OrderCreatedEvent(
         String deliveryCity,
         String phone,
         String notes,
-        BigDecimal totalPrice,
+        Long totalPrice,
         Instant createdAt,
         List<Item> items
 ) {
@@ -26,8 +25,8 @@ public record OrderCreatedEvent(
             String productName,
             String categoryName,
             Integer quantity,
-            BigDecimal unitPrice,
-            BigDecimal lineTotal
+            Long unitPrice,
+            Long lineTotal
     ) {
     }
 

@@ -1,6 +1,7 @@
 package org.plishka.backend.service.product;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,10 +20,7 @@ public class ProductMediaQueryService {
 
     @Transactional(readOnly = true)
     public Map<Long, ProductMedia> findPrimaryMediaForProducts(Collection<Product> products) {
-        List<Long> productIds = products.stream()
-                .map(Product::getId)
-                .toList();
-
+        List<Long> productIds = extractProductIds(products);
         if (productIds.isEmpty()) {
             return Map.of();
         }
@@ -30,5 +28,27 @@ public class ProductMediaQueryService {
         return productMediaRepository.findPrimaryMediaByProductIds(productIds)
                 .stream()
                 .collect(Collectors.toMap(media -> media.getProduct().getId(), Function.identity()));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, List<ProductMedia>> findMediaForProducts(Collection<Product> products) {
+        List<Long> productIds = extractProductIds(products);
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return productMediaRepository.findAllByProductIdsOrderByProductIdAndDisplayOrder(productIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        media -> media.getProduct().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+    }
+
+    private List<Long> extractProductIds(Collection<Product> products) {
+        return products.stream()
+                .map(Product::getId)
+                .toList();
     }
 }

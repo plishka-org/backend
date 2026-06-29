@@ -68,6 +68,24 @@ databaseChangeLog:
             tableName: product_media
             columnNames: primary_product_id
             constraintName: uk_product_media_single_primary
+        - createIndex:
+            tableName: product_media
+            indexName: idx_product_media_product_type_order
+            columns:
+              - column:
+                  name: product_id
+              - column:
+                  name: media_type
+              - column:
+                  name: display_order
+        - createIndex:
+            tableName: product_media
+            indexName: idx_product_media_product_primary
+            columns:
+              - column:
+                  name: product_id
+              - column:
+                  name: is_primary
         - addForeignKeyConstraint:
             baseTableName: product_media
             baseColumnNames: product_id

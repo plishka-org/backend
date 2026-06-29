@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.product;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ class ProductViewControllerTest extends BaseControllerTest {
     private static final String USER_EMAIL = "serhii@example.com";
     private static final String PRODUCT_NAME = "Oak Bench";
     private static final String CATEGORY_NAME = "Furniture";
-    private static final String PRODUCT_PRICE = "1200.00";
+    private static final long PRODUCT_PRICE = 1200L;
     private static final Instant VIEWED_AT = Instant.parse("2026-05-29T10:15:30Z");
 
     @Autowired
@@ -88,7 +87,7 @@ class ProductViewControllerTest extends BaseControllerTest {
                 PRODUCT_ID,
                 PRODUCT_NAME,
                 new CategoryDto(CATEGORY_ID, CATEGORY_NAME),
-                new BigDecimal(PRODUCT_PRICE),
+                PRODUCT_PRICE,
                 null
         ));
     }

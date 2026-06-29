@@ -1,6 +1,5 @@
 package org.plishka.backend.service.cart.impl;
 
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,7 @@ import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.user.UserRepository;
 import org.plishka.backend.service.cart.CartService;
+import org.plishka.backend.service.pricing.PriceCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -226,7 +226,7 @@ public class CartServiceImpl implements CartService {
     }
 
     private CartSummaryDto emptyCartSummary() {
-        return new CartSummaryDto(List.of(), BigDecimal.ZERO);
+        return new CartSummaryDto(List.of(), 0L);
     }
 
     private Cart getLockedCartAggregate(Long userId) {
@@ -269,9 +269,9 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 
-    private BigDecimal calculateTotalPrice(List<CartItemSummaryDto> items) {
-        return items.stream()
+    private Long calculateTotalPrice(List<CartItemSummaryDto> items) {
+        return PriceCalculator.calculateTotal(items.stream()
                 .map(CartItemSummaryDto::subtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .toList());
     }
 }

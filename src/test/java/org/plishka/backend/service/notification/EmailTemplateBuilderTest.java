@@ -1,6 +1,5 @@
 package org.plishka.backend.service.notification;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -33,7 +32,6 @@ class EmailTemplateBuilderTest {
     @BeforeEach
     void setUp() {
         lenient().when(backendProperties.auth()).thenReturn(new BackendProperties.Auth(Duration.ofHours(24), Duration.ofHours(3)));
-
         templateBuilder = new EmailTemplateBuilder(new EmailDisplayFormatter(), backendProperties);
     }
 
@@ -42,7 +40,7 @@ class EmailTemplateBuilderTest {
         String text = templateBuilder.buildEmailVerificationText(VERIFICATION_LINK);
 
         assertTrue(text.contains(VERIFICATION_LINK));
-        assertTrue(text.contains("24 год."));
+        assertTrue(text.contains("Посилання діє 24 год."));
         assertTrue(text.contains("Дякуємо за реєстрацію в Plishka."));
     }
 
@@ -51,7 +49,8 @@ class EmailTemplateBuilderTest {
         String text = templateBuilder.buildPasswordResetEmailText(RESET_LINK);
 
         assertTrue(text.contains(RESET_LINK));
-        assertTrue(text.contains("3 год."));
+        assertTrue(text.contains("Посилання діє 3 год."));
+        assertTrue(text.contains("відновлення пароля"));
     }
 
     @Test
@@ -59,7 +58,8 @@ class EmailTemplateBuilderTest {
         String text = templateBuilder.buildEmailChangeVerificationText(VERIFICATION_LINK);
 
         assertTrue(text.contains(VERIFICATION_LINK));
-        assertTrue(text.contains("24 год."));
+        assertTrue(text.contains("Посилання діє 24 год."));
+        assertTrue(text.contains("зміну email-адреси"));
     }
 
     @Test
@@ -67,18 +67,17 @@ class EmailTemplateBuilderTest {
         String text = templateBuilder.buildEmailChangedNotificationText("new@example.com");
 
         assertTrue(text.contains("new@example.com"));
+        assertTrue(text.contains("змінено на"));
     }
 
     @Test
     void buildOrderEmailText_ShouldIncludeOrderDetails() {
         String text = templateBuilder.buildOrderEmailText(sampleOrderEvent());
 
-        assertTrue(text.contains("ORD-123"));
-        assertTrue(text.contains("Іван"));
-        assertTrue(text.contains("Київ"));
-        assertTrue(text.contains("Подзвонити"));
-        assertTrue(text.contains("Стілець"));
-        assertTrue(text.contains("900.00 грн"));
+        assertTrue(text.contains("Номер замовлення: ORD-123"));
+        assertTrue(text.contains("Телефон: +380501234567"));
+        assertTrue(text.contains("Разом: 900 грн"));
+        assertTrue(text.contains("• Стілець (Дерево) × 2 — 450 грн, разом 900 грн"));
     }
 
     @Test
@@ -87,7 +86,7 @@ class EmailTemplateBuilderTest {
 
         assertTrue(text.contains("ID замовлення: 100"));
         assertTrue(text.contains("ID користувача: 1"));
-        assertTrue(text.contains("customer@example.com"));
+        assertTrue(text.contains("Email клієнта: customer@example.com"));
     }
 
     @Test
@@ -101,7 +100,7 @@ class EmailTemplateBuilderTest {
                 .deliveryCity("Київ")
                 .phone("+380501234567")
                 .notes("  ")
-                .totalPrice(new BigDecimal("900.00"))
+                .totalPrice(900L)
                 .createdAt(CREATED_AT)
                 .items(List.of())
                 .build();
@@ -123,7 +122,7 @@ class EmailTemplateBuilderTest {
                 .deliveryCity("Київ")
                 .phone("+380501234567")
                 .notes("Подзвонити")
-                .totalPrice(new BigDecimal("900.00"))
+                .totalPrice(900L)
                 .createdAt(CREATED_AT)
                 .items(List.of())
                 .build();
@@ -137,7 +136,8 @@ class EmailTemplateBuilderTest {
     void buildCallbackConfirmationUserText_ShouldIncludeCallbackDetails() {
         String text = templateBuilder.buildCallbackConfirmationUserText(sampleCallbackEvent());
 
-        assertTrue(text.contains("Іван"));
+        assertTrue(text.contains("Номер заявки: 10"));
+        assertTrue(text.contains("Телефон: +380501234567"));
         assertTrue(text.contains("Подзвоніть, будь ласка"));
     }
 
@@ -146,7 +146,7 @@ class EmailTemplateBuilderTest {
         String text = templateBuilder.buildCallbackNotificationAdminText(sampleCallbackEvent());
 
         assertTrue(text.contains("ID користувача: 1"));
-        assertTrue(text.contains(USER_EMAIL));
+        assertTrue(text.contains("Email користувача: " + USER_EMAIL));
     }
 
     @Test
@@ -176,14 +176,14 @@ class EmailTemplateBuilderTest {
                 .deliveryCity("Київ")
                 .phone("+380501234567")
                 .notes("Подзвонити")
-                .totalPrice(new BigDecimal("900.00"))
+                .totalPrice(900L)
                 .createdAt(CREATED_AT)
                 .items(List.of(OrderCreatedEvent.Item.builder()
                         .productName("Стілець")
                         .categoryName("Дерево")
                         .quantity(2)
-                        .unitPrice(new BigDecimal("450.00"))
-                        .lineTotal(new BigDecimal("900.00"))
+                        .unitPrice(450L)
+                        .lineTotal(900L)
                         .build()))
                 .build();
     }

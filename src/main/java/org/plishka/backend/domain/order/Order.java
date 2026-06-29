@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,8 +48,8 @@ public class Order {
     @Column(name = "customer_name", nullable = false, length = 100)
     private String customerName;
 
-    @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
-    private BigDecimal totalPrice;
+    @Column(name = "total_price", nullable = false)
+    private Long totalPrice;
 
     @Column(name = "delivery_city", nullable = false, length = 100)
     private String deliveryCity;

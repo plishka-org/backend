@@ -25,14 +25,12 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: price
-                  type: DECIMAL(10,2)
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:
                   name: category_id
                   type: BIGINT
-                  constraints:
-                    nullable: false
               - column:
                   name: created_at
                   type: TIMESTAMP(6)
@@ -57,11 +55,30 @@ databaseChangeLog:
                   name: name
               - column:
                   name: id
+        - createIndex:
+            tableName: products
+            indexName: idx_products_price_id
+            columns:
+              - column:
+                  name: price
+              - column:
+                  name: id
+        - createIndex:
+            tableName: products
+            indexName: idx_products_category_price_id
+            columns:
+              - column:
+                  name: category_id
+              - column:
+                  name: price
+              - column:
+                  name: id
         - addForeignKeyConstraint:
             baseTableName: products
             baseColumnNames: category_id
             constraintName: fk_products_category
             referencedTableName: categories
             referencedColumnNames: id
+            onDelete: SET NULL
         - sql:
-            sql: ALTER TABLE products ADD CONSTRAINT chk_products_price_positive CHECK (price > 0);
+            sql: ALTER TABLE products ADD CONSTRAINT chk_products_price_range CHECK (price BETWEEN 1 AND 10000000);

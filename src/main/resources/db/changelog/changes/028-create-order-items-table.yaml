@@ -23,7 +23,7 @@ databaseChangeLog:
                   type: BIGINT
               - column:
                   name: product_name_snapshot
-                  type: VARCHAR(100)
+                  type: VARCHAR(255)
                   constraints:
                     nullable: false
               - column:
@@ -38,12 +38,12 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: unit_price
-                  type: DECIMAL(10,2)
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:
                   name: line_total
-                  type: DECIMAL(12,2)
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:

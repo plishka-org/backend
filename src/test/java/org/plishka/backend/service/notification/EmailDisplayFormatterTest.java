@@ -49,6 +49,12 @@ class EmailDisplayFormatterTest {
     }
 
     @Test
+    void formatPrice_ShouldReturnEmptyValueForNullPrice() {
+        assertEquals(EmailDisplayFormatter.EMPTY_VALUE, formatter.formatPrice(null));
+        assertEquals("900", formatter.formatPrice(900L));
+    }
+
+    @Test
     void formatUserId_ShouldReturnUnknownLabelWhenMissing() {
         assertEquals(EmailDisplayFormatter.UNKNOWN_USER_ID, formatter.formatUserId(null));
         assertEquals("42", formatter.formatUserId(42L));

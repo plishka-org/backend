@@ -2,7 +2,7 @@ databaseChangeLog:
   - changeSet:
       id: PLIS-191-seed-dev-integration-data
       author: plishka-backend
-      context: "@dev"
+      context: "dev"
       comment: Dev-only catalog and verified user data for frontend integration checks.
       changes:
         - insert:
@@ -80,7 +80,7 @@ databaseChangeLog:
                   value: "Solid oak dining table for frontend integration checks."
               - column:
                   name: price
-                  valueNumeric: 420.00
+                  valueNumeric: 420
               - column:
                   name: category_id
                   valueNumeric: 10001
@@ -104,7 +104,7 @@ databaseChangeLog:
                   value: "Low walnut coffee table with rounded edges."
               - column:
                   name: price
-                  valueNumeric: 260.00
+                  valueNumeric: 260
               - column:
                   name: category_id
                   valueNumeric: 10001
@@ -128,7 +128,7 @@ databaseChangeLog:
                   value: "Outdoor wooden bench suitable for catalog and cart checks."
               - column:
                   name: price
-                  valueNumeric: 180.00
+                  valueNumeric: 180
               - column:
                   name: category_id
                   valueNumeric: 10002
@@ -152,7 +152,7 @@ databaseChangeLog:
                   value: "Compact bench for entryway layouts and related products."
               - column:
                   name: price
-                  valueNumeric: 145.00
+                  valueNumeric: 145
               - column:
                   name: category_id
                   valueNumeric: 10002
@@ -176,7 +176,7 @@ databaseChangeLog:
                   value: "Decorative carved wooden wall panel for product detail checks."
               - column:
                   name: price
-                  valueNumeric: 95.00
+                  valueNumeric: 95
               - column:
                   name: category_id
                   valueNumeric: 10003
@@ -200,7 +200,7 @@ databaseChangeLog:
                   value: "Small decor item used to verify sorting and pagination."
               - column:
                   name: price
-                  valueNumeric: 35.00
+                  valueNumeric: 35
               - column:
                   name: category_id
                   valueNumeric: 10003
@@ -224,7 +224,7 @@ databaseChangeLog:
                   value: "Handmade serving board for checkout and order item checks."
               - column:
                   name: price
-                  valueNumeric: 48.00
+                  valueNumeric: 48
               - column:
                   name: category_id
                   valueNumeric: 10004
@@ -248,7 +248,7 @@ databaseChangeLog:
                   value: "Walnut tray with handles for favorites and cart checks."
               - column:
                   name: price
-                  valueNumeric: 62.00
+                  valueNumeric: 62
               - column:
                   name: category_id
                   valueNumeric: 10004

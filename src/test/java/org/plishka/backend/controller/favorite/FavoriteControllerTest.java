@@ -1,6 +1,5 @@
 package org.plishka.backend.controller.favorite;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -108,7 +107,7 @@ class FavoriteControllerTest extends BaseControllerTest {
                 PRODUCT_ID,
                 PRODUCT_NAME,
                 new CategoryDto(CATEGORY_ID, CATEGORY_NAME),
-                new BigDecimal("1200.00"),
+                1200L,
                 null
         );
     }

@@ -9,7 +9,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,7 +34,7 @@ public class OrderItem {
     @Column(name = "product_id")
     private Long productId;
 
-    @Column(name = "product_name_snapshot", nullable = false, length = 100)
+    @Column(name = "product_name_snapshot", nullable = false, length = 255)
     private String productNameSnapshot;
 
     @Column(name = "category_name_snapshot", nullable = false, length = 100)
@@ -44,11 +43,11 @@ public class OrderItem {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal unitPrice;
+    @Column(name = "unit_price", nullable = false)
+    private Long unitPrice;
 
-    @Column(name = "line_total", nullable = false, precision = 12, scale = 2)
-    private BigDecimal lineTotal;
+    @Column(name = "line_total", nullable = false)
+    private Long lineTotal;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

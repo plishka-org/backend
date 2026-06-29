@@ -47,6 +47,10 @@ public class SecurityConfig {
                                 "/callback",
                                 "/products/*/view"
                         ).access(activeUserAuthorizationManager)
+                        .requestMatchers("/admin/**").access(AuthorizationManagers.allOf(
+                                activeUserAuthorizationManager,
+                                AuthorityAuthorizationManager.hasRole("ADMIN")
+                        ))
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/auth/register",
@@ -61,16 +65,6 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/files/presign/download"
                         ).permitAll()
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/files/presign/upload",
-                                "/admin/about/media/attach",
-                                "/admin/products/*/media/attach",
-                                "/admin/reviews/*/media/attach"
-                        ).access(AuthorizationManagers.allOf(
-                                activeUserAuthorizationManager,
-                                AuthorityAuthorizationManager.hasRole("ADMIN")
-                        ))
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify",

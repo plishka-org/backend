@@ -35,6 +35,10 @@ public class EmailDisplayFormatter {
         return value;
     }
 
+    public String formatPrice(Long price) {
+        return price == null ? EMPTY_VALUE : price.toString();
+    }
+
     public String formatUserId(Long userId) {
         return userId == null ? UNKNOWN_USER_ID : userId.toString();
     }

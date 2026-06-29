@@ -1,6 +1,5 @@
 package org.plishka.backend.service.notification;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +58,7 @@ class NotificationServiceTest {
                 .deliveryCity("Київ")
                 .phone("+380501234567")
                 .notes("Подзвонити")
-                .totalPrice(new BigDecimal("900.00"))
+                .totalPrice(900L)
                 .createdAt(Instant.parse("2026-06-19T10:00:00Z"))
                 .items(List.of())
                 .build();

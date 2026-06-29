@@ -18,16 +18,16 @@ public class EmailTemplateBuilder {
     public String buildEmailVerificationText(String verificationLink) {
         return """
                 Вітаємо,
-                
+
                 Дякуємо за реєстрацію в Plishka.
-                
+
                 Підтвердіть вашу email-адресу, перейшовши за посиланням:
                 %s
-                
+
                 Посилання діє %s
-                
+
                 Якщо ви не створювали акаунт, проігноруйте цей лист.
-                
+
                 З повагою,
                 Plishka
                 """
@@ -37,16 +37,16 @@ public class EmailTemplateBuilder {
     public String buildPasswordResetEmailText(String resetPasswordLink) {
         return """
                 Вітаємо,
-                
+
                 Ми отримали запит на відновлення пароля до вашого акаунта Plishka.
-                
+
                 Перейдіть за посиланням, щоб створити новий пароль:
                 %s
-                
+
                 Посилання діє %s
-                
+
                 Якщо ви не надсилали цей запит, проігноруйте цей лист.
-                
+
                 З повагою,
                 Plishka
                 """
@@ -56,16 +56,16 @@ public class EmailTemplateBuilder {
     public String buildEmailChangeVerificationText(String verificationLink) {
         return """
                 Вітаємо,
-                
+
                 Ми отримали запит на зміну email-адреси вашого акаунта Plishka.
-                
+
                 Підтвердіть нову адресу, перейшовши за посиланням:
                 %s
-                
+
                 Посилання діє %s
-                
+
                 Якщо ви не надсилали цей запит, проігноруйте цей лист.
-                
+
                 З повагою,
                 Plishka
                 """
@@ -75,12 +75,12 @@ public class EmailTemplateBuilder {
     public String buildEmailChangedNotificationText(String newEmail) {
         return """
                 Вітаємо,
-                
+
                 Email-адресу вашого акаунта Plishka змінено на:
                 %s
-                
+
                 Якщо це зробили не ви, негайно відновіть пароль.
-                
+
                 З повагою,
                 Plishka
                 """
@@ -90,23 +90,23 @@ public class EmailTemplateBuilder {
     public String buildOrderEmailText(OrderCreatedEvent event) {
         return """
                 Вітаємо, %s!
-                
+
                 Дякуємо за замовлення в Plishka!
-                
+
                 Номер замовлення: %s
                 Дата: %s
-                
+
                 Місто доставки: %s
                 Телефон: %s
                 Коментар: %s
-                
+
                 Товари:
                 %s
-                
+
                 Разом: %s грн
-                
+
                 Ми зв'яжемося з вами, якщо знадобляться додаткові уточнення.
-                
+
                 З повагою,
                 Plishka
                 """
@@ -118,28 +118,28 @@ public class EmailTemplateBuilder {
                         event.phone(),
                         displayFormatter.formatOptionalText(event.notes()),
                         buildOrderItemsText(event.items()),
-                        event.totalPrice().toPlainString()
+                        displayFormatter.formatPrice(event.totalPrice())
                 );
     }
 
     public String buildOrderAdminEmailText(OrderCreatedEvent event) {
         return """
                 Нове замовлення
-                
+
                 ID замовлення: %d
                 Номер замовлення: %s
                 Дата: %s
-                
+
                 ID користувача: %s
                 Email клієнта: %s
                 Ім'я: %s
                 Місто доставки: %s
                 Телефон: %s
                 Коментар: %s
-                
+
                 Товари:
                 %s
-                
+
                 Разом: %s грн
                 """
                 .formatted(
@@ -153,25 +153,25 @@ public class EmailTemplateBuilder {
                         event.phone(),
                         displayFormatter.formatOptionalText(event.notes()),
                         buildOrderItemsText(event.items()),
-                        event.totalPrice().toPlainString()
+                        displayFormatter.formatPrice(event.totalPrice())
                 );
     }
 
     public String buildCallbackConfirmationUserText(CallbackRequestCreatedEvent event) {
         return """
                 Вітаємо, %s!
-                
+
                 Ми отримали вашу заявку на зворотний дзвінок.
-                
+
                 Номер заявки: %d
                 Дата: %s
                 Телефон: %s
-                
+
                 Ваше повідомлення:
                 %s
-                
+
                 Наш менеджер зв'яжеться з вами найближчим часом.
-                
+
                 З повагою,
                 Plishka
                 """
@@ -187,14 +187,14 @@ public class EmailTemplateBuilder {
     public String buildCallbackNotificationAdminText(CallbackRequestCreatedEvent event) {
         return """
                 Нова заявка на дзвінок
-                
+
                 Номер заявки: %d
                 ID користувача: %s
                 Email користувача: %s
                 Дата: %s
                 Ім'я: %s
                 Телефон: %s
-                
+
                 Повідомлення:
                 %s
                 """
@@ -219,8 +219,8 @@ public class EmailTemplateBuilder {
                         item.productName(),
                         item.categoryName(),
                         item.quantity(),
-                        item.unitPrice().toPlainString(),
-                        item.lineTotal().toPlainString()
+                        displayFormatter.formatPrice(item.unitPrice()),
+                        displayFormatter.formatPrice(item.lineTotal())
                 ))
                 .collect(Collectors.joining("\n"));
     }

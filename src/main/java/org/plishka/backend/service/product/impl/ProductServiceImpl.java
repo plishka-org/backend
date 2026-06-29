@@ -77,7 +77,14 @@ public class ProductServiceImpl implements ProductService {
     public PageResponse<ProductSummaryDto> getRelatedProducts(Long id, int page, int size) {
         log.debug("Fetching related products for product ID: {}, page={}, size={}", id, page, size);
 
-        Long categoryId = findSourceProductCategoryIdOrThrow(id);
+        Product sourceProduct = productRepository.findByIdWithCategory(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + id + " not found"));
+        PageRequest pageRequest = PageRequest.of(page, size, RELATED_PRODUCTS_SORT);
+        if (sourceProduct.getCategory() == null) {
+            return PageResponse.from(Page.empty(pageRequest), List.of());
+        }
+
+        Long categoryId = sourceProduct.getCategory().getId();
         Page<Product> relatedProductsPage = findRelatedProducts(categoryId, id, page, size);
         List<ProductSummaryDto> relatedProductSummaries = productSummaryAssembler.toDtos(
                 relatedProductsPage.getContent()
@@ -115,11 +122,6 @@ public class ProductServiceImpl implements ProductService {
                 sourceProductId,
                 pageRequest
         );
-    }
-
-    private Long findSourceProductCategoryIdOrThrow(Long productId) {
-        return productRepository.findCategoryIdByProductId(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 
     private Product findProductDetailsOrThrow(Long id) {

@@ -1,6 +1,8 @@
 package org.plishka.backend.repository.cart;
 
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.plishka.backend.domain.cart.Cart;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -21,6 +23,15 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Cart c WHERE c.user.id = :userId")
     Optional<Cart> findByUserIdForUpdate(@Param("userId") Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select c
+            from Cart c
+            where c.id in :cartIds
+            order by c.id
+            """)
+    List<Cart> findAllByIdInForUpdateOrderById(@Param("cartIds") Collection<Long> cartIds);
 
     /**
      * Loads the full cart aggregate (items -> product -> category) in a single

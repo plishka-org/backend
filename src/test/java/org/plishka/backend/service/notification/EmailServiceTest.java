@@ -1,6 +1,5 @@
 package org.plishka.backend.service.notification;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
@@ -48,7 +47,6 @@ class EmailServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(backendProperties.admin()).thenReturn(new BackendProperties.Admin(ADMIN_EMAIL));
-
         emailService = new EmailService(asyncEmailSender, templateBuilder, backendProperties);
     }
 
@@ -163,14 +161,14 @@ class EmailServiceTest {
                 .deliveryCity("Київ")
                 .phone("+380501234567")
                 .notes("Подзвонити")
-                .totalPrice(new BigDecimal("900.00"))
+                .totalPrice(900L)
                 .createdAt(CREATED_AT)
                 .items(List.of(OrderCreatedEvent.Item.builder()
                         .productName("Стілець")
                         .categoryName("Дерево")
                         .quantity(2)
-                        .unitPrice(new BigDecimal("450.00"))
-                        .lineTotal(new BigDecimal("900.00"))
+                        .unitPrice(450L)
+                        .lineTotal(900L)
                         .build()))
                 .build();
     }

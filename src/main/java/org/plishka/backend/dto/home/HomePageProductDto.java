@@ -7,6 +7,7 @@ public record HomePageProductDto(
         Long productId,
         String name,
         CategoryDto category,
+        Long price,
         ProductMediaPreviewDto primaryMedia
 ) {
 }

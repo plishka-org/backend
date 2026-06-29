@@ -58,9 +58,9 @@ databaseChangeLog:
             onDelete: RESTRICT
         - createIndex:
             tableName: cart_items
-            indexName: idx_cart_items_cart_id
+            indexName: idx_cart_items_product_id
             columns:
               - column:
-                  name: cart_id
+                  name: product_id
         - sql:
             sql: ALTER TABLE cart_items ADD CONSTRAINT chk_cart_items_quantity CHECK (quantity BETWEEN 1 AND 50);
