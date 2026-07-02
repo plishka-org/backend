@@ -72,6 +72,7 @@ class AdminHomePageServiceImplTest {
 
     @Test
     void createAdvantage_ShouldAssignNextDisplayOrder() {
+        givenContentLocked(content());
         givenExistingAdvantages(
                 advantage(1L, 1, null, "First"),
                 advantage(2L, 2, null, "Second")
@@ -97,6 +98,7 @@ class AdminHomePageServiceImplTest {
 
     @Test
     void createAdvantage_ShouldRejectWhenLimitReached() {
+        givenContentLocked(content());
         givenAdvantagesAtCapacity();
 
         assertThrows(
@@ -175,7 +177,20 @@ class AdminHomePageServiceImplTest {
     }
 
     @Test
+    void createAdvantage_ShouldThrow_WhenContentMissing() {
+        when(contentRepository.findByIdForUpdate(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> service.createAdvantage(new AdminHomePageAdvantageRequestDto("Title", null, null))
+        );
+
+        verify(advantageRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void createAdvantage_ShouldNormalizeBlankOptionalFieldsToNull() {
+        givenContentLocked(content());
         givenExistingAdvantages();
         when(advantageRepository.saveAndFlush(any(HomePageAdvantage.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

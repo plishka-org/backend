@@ -60,6 +60,7 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
     @Override
     @Transactional
     public AdminContactsPageSocialLinkDto createSocialLink(AdminContactsPageSocialLinkRequestDto request) {
+        findContactsPageForUpdateOrThrow();
         List<SocialLink> existingSocialLinks = loadSocialLinksForUpdateOrThrowCapacity();
 
         SocialLink socialLink = new SocialLink();

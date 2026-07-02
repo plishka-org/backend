@@ -105,6 +105,7 @@ class AdminContactsPageServiceImplTest {
 
     @Test
     void createSocialLink_ShouldAssignNextDisplayOrder() {
+        givenContactsPageLocked(contactsPage("mail@test.com", "Address", "https://maps"));
         givenExistingSocialLinks(
                 socialLink(1L, 1, "Facebook", "https://facebook.com"),
                 socialLink(2L, 2, "Twitter", "https://twitter.com")
@@ -137,11 +138,26 @@ class AdminContactsPageServiceImplTest {
 
     @Test
     void createSocialLink_ShouldRejectWhenLimitReached() {
+        givenContactsPageLocked(contactsPage("mail@test.com", "Address", "https://maps"));
         givenSocialLinksAtCapacity();
 
         assertThrows(
                 BadRequestException.class,
                 () -> service.createSocialLink(new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com"))
+        );
+
+        verify(socialLinkRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createSocialLink_ShouldThrow_WhenContactsPageMissing() {
+        when(contactsPageRepository.findByIdForUpdate(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> service.createSocialLink(
+                        new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com")
+                )
         );
 
         verify(socialLinkRepository, never()).saveAndFlush(any());

@@ -69,6 +69,7 @@ public class AdminHomePageServiceImpl implements AdminHomePageService {
     @Override
     @Transactional
     public AdminHomePageAdvantageDto createAdvantage(AdminHomePageAdvantageRequestDto request) {
+        findContentForUpdateOrThrow();
         List<HomePageAdvantage> existingAdvantages = loadAdvantagesForUpdateOrThrowCapacity();
 
         HomePageAdvantage advantage = new HomePageAdvantage();
