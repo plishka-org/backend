@@ -69,11 +69,11 @@ public class AdminHomePageServiceImpl implements AdminHomePageService {
     @Override
     @Transactional
     public AdminHomePageAdvantageDto createAdvantage(AdminHomePageAdvantageRequestDto request) {
-        requireAdvantageCapacityAvailable();
+        List<HomePageAdvantage> existingAdvantages = loadAdvantagesForUpdateOrThrowCapacity();
 
         HomePageAdvantage advantage = new HomePageAdvantage();
         applyAdvantageState(advantage, request);
-        advantage.setDisplayOrder(advantageRepository.findMaxDisplayOrder() + 1);
+        advantage.setDisplayOrder(resolveNextDisplayOrder(existingAdvantages));
 
         return homePageMapper.toAdminAdvantageDto(advantageRepository.saveAndFlush(advantage));
     }
@@ -146,10 +146,20 @@ public class AdminHomePageServiceImpl implements AdminHomePageService {
         }
     }
 
-    private void requireAdvantageCapacityAvailable() {
-        if (advantageRepository.count() >= MAX_ADVANTAGES) {
+    private List<HomePageAdvantage> loadAdvantagesForUpdateOrThrowCapacity() {
+        List<HomePageAdvantage> advantages = advantageRepository.findAllForUpdateOrderByDisplayOrder();
+        if (advantages.size() >= MAX_ADVANTAGES) {
             throw new BadRequestException(ADVANTAGE_LIMIT_MESSAGE.formatted(MAX_ADVANTAGES));
         }
+
+        return advantages;
+    }
+
+    private int resolveNextDisplayOrder(List<HomePageAdvantage> advantages) {
+        return advantages.stream()
+                .mapToInt(HomePageAdvantage::getDisplayOrder)
+                .max()
+                .orElse(0) + 1;
     }
 
     private void applyAdvantageState(HomePageAdvantage advantage, AdminHomePageAdvantageRequestDto request) {

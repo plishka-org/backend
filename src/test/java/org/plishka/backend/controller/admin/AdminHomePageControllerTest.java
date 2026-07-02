@@ -39,7 +39,8 @@ class AdminHomePageControllerTest extends BaseControllerTest {
     private static final String CREATE_ADVANTAGE_ENDPOINT = "/admin/home-page/advantages";
     private static final String DELETE_ADVANTAGE_ENDPOINT = "/admin/home-page/advantages/{advantageId}";
     private static final long ADVANTAGE_ID = 5L;
-    private static final String ICON_KEY = "icons/quality.png";
+    private static final String ICON_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440000.png";
     private static final String ADVANTAGE_NOT_FOUND_MESSAGE = "Home page advantage with ID 5 not found";
 
     @Autowired

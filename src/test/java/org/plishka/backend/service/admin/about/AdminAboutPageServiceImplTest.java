@@ -35,6 +35,12 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AdminAboutPageServiceImplTest {
     private static final long CONTENT_ID = 1L;
+    private static final String ABOUT_MEDIA_KEY =
+            "about/1/images/2026/05/7223994a-bf40-4cba-9f60-234162a211fa.jpg";
+    private static final String ABOUT_FIRST_MEDIA_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440010.jpg";
+    private static final String ABOUT_SECOND_MEDIA_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440011.jpg";
 
     @Mock
     private AboutPageContentRepository contentRepository;
@@ -57,9 +63,9 @@ class AdminAboutPageServiceImplTest {
     @Test
     void getAboutPage_ShouldReturnMappedAboutPage() {
         AboutPageContent content = content();
-        AboutPageMedia mediaEntity = media(5L, 1, "about/1/images/file.jpg");
+        AboutPageMedia mediaEntity = media(5L, 1, ABOUT_MEDIA_KEY);
         AboutPageContentDto contentDto = new AboutPageContentDto("History", "History text", "Current", "Current text");
-        AdminAboutPageMediaDto mediaDto = new AdminAboutPageMediaDto(5L, "about/1/images/file.jpg", MediaType.IMAGE, 1);
+        AdminAboutPageMediaDto mediaDto = new AdminAboutPageMediaDto(5L, ABOUT_MEDIA_KEY, MediaType.IMAGE, 1);
 
         when(contentRepository.findById(CONTENT_ID)).thenReturn(Optional.of(content));
         when(mediaRepository.findAllByAboutPage_IdOrderByDisplayOrderAsc(CONTENT_ID)).thenReturn(List.of(mediaEntity));
@@ -97,7 +103,7 @@ class AdminAboutPageServiceImplTest {
 
     @Test
     void attachMedia_ShouldDelegateToAboutPageService() {
-        AttachMediaRequestDto request = new AttachMediaRequestDto("about/1/images/file.jpg");
+        AttachMediaRequestDto request = new AttachMediaRequestDto(ABOUT_MEDIA_KEY);
 
         service.attachMedia(request);
 
@@ -106,32 +112,32 @@ class AdminAboutPageServiceImplTest {
 
     @Test
     void deleteMedia_ShouldEnqueueS3Deletion() {
-        AboutPageMedia media = media(5L, 1, "about/1/images/file.jpg");
+        AboutPageMedia media = media(5L, 1, ABOUT_MEDIA_KEY);
         givenContentWithMedia(media);
 
         service.deleteMedia(5L);
 
         verify(mediaRepository).delete(media);
-        verify(storageDeletionOutboxService).enqueueDelete("about/1/images/file.jpg");
+        verify(storageDeletionOutboxService).enqueueDelete(ABOUT_MEDIA_KEY);
     }
 
     @Test
     void deleteAllMedia_ShouldEnqueueAllS3Keys() {
-        AboutPageMedia first = media(1L, 1, "about/1/images/first.jpg");
-        AboutPageMedia second = media(2L, 2, "about/1/images/second.jpg");
+        AboutPageMedia first = media(1L, 1, ABOUT_FIRST_MEDIA_KEY);
+        AboutPageMedia second = media(2L, 2, ABOUT_SECOND_MEDIA_KEY);
         givenContentLocked();
         givenMediaForContent(List.of(first, second));
 
         service.deleteAllMedia();
 
         verify(mediaRepository).deleteAll(List.of(first, second));
-        verify(storageDeletionOutboxService).enqueueDeletes(List.of("about/1/images/first.jpg", "about/1/images/second.jpg"));
+        verify(storageDeletionOutboxService).enqueueDeletes(List.of(ABOUT_FIRST_MEDIA_KEY, ABOUT_SECOND_MEDIA_KEY));
     }
 
     @Test
     void reorderMedia_ShouldRejectDifferentMediaSet() {
         givenContentLocked();
-        givenMediaForContent(List.of(media(1L, 1, "about/1/images/first.jpg")));
+        givenMediaForContent(List.of(media(1L, 1, ABOUT_FIRST_MEDIA_KEY)));
 
         assertThrows(
                 BadRequestException.class,
@@ -143,8 +149,8 @@ class AdminAboutPageServiceImplTest {
 
     @Test
     void reorderMedia_ShouldApplyFinalOrder() {
-        AboutPageMedia first = media(1L, 1, "about/1/images/first.jpg");
-        AboutPageMedia second = media(2L, 2, "about/1/images/second.jpg");
+        AboutPageMedia first = media(1L, 1, ABOUT_FIRST_MEDIA_KEY);
+        AboutPageMedia second = media(2L, 2, ABOUT_SECOND_MEDIA_KEY);
         givenContentLocked();
         givenMediaForContent(List.of(first, second));
 

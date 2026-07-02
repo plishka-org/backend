@@ -29,10 +29,4 @@ public interface HomePageAdvantageRepository extends JpaRepository<HomePageAdvan
             order by a.displayOrder, a.id
             """)
     List<HomePageAdvantage> findAllForUpdateOrderByDisplayOrder();
-
-    @Query("""
-            select coalesce(max(a.displayOrder), 0)
-            from HomePageAdvantage a
-            """)
-    int findMaxDisplayOrder();
 }
