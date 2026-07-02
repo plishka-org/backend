@@ -40,7 +40,10 @@ class AdminAboutPageControllerTest extends BaseControllerTest {
     private static final long MEDIA_ID = 7L;
     private static final String BLANK_S3_KEY = "";
     private static final String MEDIA_ALREADY_ATTACHED_MESSAGE = "This media file is already attached.";
-    private static final String ABOUT_MEDIA_KEY = "about/1/images/test-image.jpg";
+    private static final String ABOUT_MEDIA_KEY =
+            "about/1/images/2026/05/7223994a-bf40-4cba-9f60-234162a211fa.jpg";
+    private static final String ABOUT_PAGE_MEDIA_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440010.jpg";
     private static final String MEDIA_NOT_FOUND_MESSAGE = "About page media with ID 7 not found";
 
     @Autowired
@@ -200,7 +203,7 @@ class AdminAboutPageControllerTest extends BaseControllerTest {
     private static AdminAboutPageDto aboutPage() {
         return new AdminAboutPageDto(
                 new AboutPageContentDto("History", "History text", "Current", "Current text"),
-                List.of(new AdminAboutPageMediaDto(MEDIA_ID, "about/1/images/file.jpg",
+                List.of(new AdminAboutPageMediaDto(MEDIA_ID, ABOUT_PAGE_MEDIA_KEY,
                         org.plishka.backend.domain.media.MediaType.IMAGE, 1))
         );
     }

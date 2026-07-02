@@ -2,6 +2,7 @@ package org.plishka.backend.service.admin.home;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -33,6 +34,14 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AdminHomePageServiceImplTest {
     private static final long CONTENT_ID = 1L;
+    private static final String FAST_ICON_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440001.png";
+    private static final String OLD_ICON_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440002.png";
+    private static final String NEW_ICON_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440003.png";
+    private static final String REMOVE_ICON_KEY =
+            "about/1/images/2026/05/550e8400-e29b-41d4-a716-446655440004.png";
 
     @Mock
     private HomePageContentRepository contentRepository;
@@ -63,8 +72,10 @@ class AdminHomePageServiceImplTest {
 
     @Test
     void createAdvantage_ShouldAssignNextDisplayOrder() {
-        when(advantageRepository.count()).thenReturn(1L);
-        when(advantageRepository.findMaxDisplayOrder()).thenReturn(2);
+        givenExistingAdvantages(
+                advantage(1L, 1, null, "First"),
+                advantage(2L, 2, null, "Second")
+        );
         when(advantageRepository.saveAndFlush(any(HomePageAdvantage.class))).thenAnswer(invocation -> {
             HomePageAdvantage advantage = invocation.getArgument(0);
             advantage.setId(10L);
@@ -72,7 +83,7 @@ class AdminHomePageServiceImplTest {
         });
 
         AdminHomePageAdvantageRequestDto request =
-                new AdminHomePageAdvantageRequestDto("Fast delivery", "Within 3 days", "icons/fast.png");
+                new AdminHomePageAdvantageRequestDto("Fast delivery", "Within 3 days", FAST_ICON_KEY);
         service.createAdvantage(request);
 
         ArgumentCaptor<HomePageAdvantage> advantageCaptor = ArgumentCaptor.forClass(HomePageAdvantage.class);
@@ -80,13 +91,13 @@ class AdminHomePageServiceImplTest {
         HomePageAdvantage savedAdvantage = advantageCaptor.getValue();
         assertEquals("Fast delivery", savedAdvantage.getTitle());
         assertEquals("Within 3 days", savedAdvantage.getDescription());
-        assertEquals("icons/fast.png", savedAdvantage.getIconS3Key());
+        assertEquals(FAST_ICON_KEY, savedAdvantage.getIconS3Key());
         assertEquals(3, savedAdvantage.getDisplayOrder());
     }
 
     @Test
     void createAdvantage_ShouldRejectWhenLimitReached() {
-        when(advantageRepository.count()).thenReturn(20L);
+        givenAdvantagesAtCapacity();
 
         assertThrows(
                 BadRequestException.class,
@@ -98,31 +109,31 @@ class AdminHomePageServiceImplTest {
 
     @Test
     void updateAdvantage_ShouldEnqueuePreviousIconDeletion_WhenIconChanges() {
-        HomePageAdvantage advantage = advantage(5L, 1, "icons/old.png", "Title");
+        HomePageAdvantage advantage = advantage(5L, 1, OLD_ICON_KEY, "Title");
         givenAdvantageLocked(5L, advantage);
         when(advantageRepository.saveAndFlush(advantage)).thenReturn(advantage);
         when(homePageMapper.toAdminAdvantageDto(advantage)).thenReturn(
-                new AdminHomePageAdvantageDto(5L, "Title", "Description", "icons/new.png", 1)
+                new AdminHomePageAdvantageDto(5L, "Title", "Description", NEW_ICON_KEY, 1)
         );
 
         service.updateAdvantage(
                 5L,
-                new AdminHomePageAdvantageRequestDto("Title", "Description", "icons/new.png")
+                new AdminHomePageAdvantageRequestDto("Title", "Description", NEW_ICON_KEY)
         );
 
-        verify(storageDeletionOutboxService).enqueueDelete("icons/old.png");
-        assertEquals("icons/new.png", advantage.getIconS3Key());
+        verify(storageDeletionOutboxService).enqueueDelete(OLD_ICON_KEY);
+        assertEquals(NEW_ICON_KEY, advantage.getIconS3Key());
     }
 
     @Test
     void deleteAdvantage_ShouldEnqueueIconDeletion() {
-        HomePageAdvantage advantage = advantage(7L, 2, "icons/remove.png", "Title");
+        HomePageAdvantage advantage = advantage(7L, 2, REMOVE_ICON_KEY, "Title");
         givenAdvantageLocked(7L, advantage);
 
         service.deleteAdvantage(7L);
 
         verify(advantageRepository).delete(advantage);
-        verify(storageDeletionOutboxService).enqueueDelete("icons/remove.png");
+        verify(storageDeletionOutboxService).enqueueDelete(REMOVE_ICON_KEY);
     }
 
     @Test
@@ -165,8 +176,7 @@ class AdminHomePageServiceImplTest {
 
     @Test
     void createAdvantage_ShouldNormalizeBlankOptionalFieldsToNull() {
-        when(advantageRepository.count()).thenReturn(0L);
-        when(advantageRepository.findMaxDisplayOrder()).thenReturn(0);
+        givenExistingAdvantages();
         when(advantageRepository.saveAndFlush(any(HomePageAdvantage.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.createAdvantage(new AdminHomePageAdvantageRequestDto("Title", "", ""));
@@ -176,6 +186,17 @@ class AdminHomePageServiceImplTest {
         HomePageAdvantage savedAdvantage = advantageCaptor.getValue();
         assertNull(savedAdvantage.getDescription());
         assertNull(savedAdvantage.getIconS3Key());
+    }
+
+    private void givenExistingAdvantages(HomePageAdvantage... advantages) {
+        when(advantageRepository.findAllForUpdateOrderByDisplayOrder()).thenReturn(List.of(advantages));
+    }
+
+    private void givenAdvantagesAtCapacity() {
+        List<HomePageAdvantage> advantages = IntStream.rangeClosed(1, 20)
+                .mapToObj(index -> advantage((long) index, index, null, "Advantage " + index))
+                .toList();
+        when(advantageRepository.findAllForUpdateOrderByDisplayOrder()).thenReturn(advantages);
     }
 
     private void givenContentLocked(HomePageContent content) {

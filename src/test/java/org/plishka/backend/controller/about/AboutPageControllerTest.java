@@ -27,6 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest({AboutPageController.class, AdminAboutPageController.class})
 @AutoConfigureMockMvc(addFilters = false)
 class AboutPageControllerTest extends BaseControllerTest {
+    private static final String ABOUT_ATTACH_MEDIA_KEY =
+            "about/1/images/2026/05/7223994a-bf40-4cba-9f60-234162a211fa.jpg";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -61,7 +64,7 @@ class AboutPageControllerTest extends BaseControllerTest {
 
     @Test
     void attachMedia_ShouldReturn200_WhenRequestIsValid() throws Exception {
-        AttachMediaRequestDto request = new AttachMediaRequestDto("about/1/images/test-image.jpg");
+        AttachMediaRequestDto request = new AttachMediaRequestDto(ABOUT_ATTACH_MEDIA_KEY);
 
         mockMvc.perform(post("/admin/about/media/attach")
                         .contentType(MediaType.APPLICATION_JSON)
