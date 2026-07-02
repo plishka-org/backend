@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
-import org.plishka.backend.controller.admin.AdminReviewMediaController;
+import org.plishka.backend.controller.admin.AdminReviewController;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.dto.review.ReviewDetailDto;
@@ -13,6 +13,8 @@ import org.plishka.backend.dto.review.ReviewMediaPreviewDto;
 import org.plishka.backend.dto.review.ReviewSummaryDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
+import org.plishka.backend.service.admin.review.AdminReviewMediaService;
+import org.plishka.backend.service.admin.review.AdminReviewService;
 import org.plishka.backend.service.review.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -34,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({ReviewController.class, AdminReviewMediaController.class})
+@WebMvcTest({ReviewController.class, AdminReviewController.class})
 @AutoConfigureMockMvc(addFilters = false)
 class ReviewControllerTest extends BaseControllerTest {
     private static final String REVIEWS_ENDPOINT = "/reviews";
@@ -69,6 +71,12 @@ class ReviewControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private ReviewService reviewService;
+
+    @MockitoBean
+    private AdminReviewService adminReviewService;
+
+    @MockitoBean
+    private AdminReviewMediaService adminReviewMediaService;
 
     @Test
     void getReviews_ShouldReturnPaginatedReviewsAndStatus200() throws Exception {
@@ -122,7 +130,7 @@ class ReviewControllerTest extends BaseControllerTest {
         performAttachMedia(REVIEW_ID, request)
                 .andExpect(status().isOk());
 
-        verify(reviewService).attachMedia(eq(REVIEW_ID), any(AttachMediaRequestDto.class));
+        verify(adminReviewService).attachMedia(eq(REVIEW_ID), any(AttachMediaRequestDto.class));
     }
 
     @Test
@@ -138,7 +146,7 @@ class ReviewControllerTest extends BaseControllerTest {
         AttachMediaRequestDto request = attachMediaRequest(NOT_FOUND_REVIEW_MEDIA_KEY);
 
         doThrow(new ResourceNotFoundException(REVIEW_NOT_FOUND_MESSAGE))
-                .when(reviewService).attachMedia(eq(NOT_FOUND_REVIEW_ID), any(AttachMediaRequestDto.class));
+                .when(adminReviewService).attachMedia(eq(NOT_FOUND_REVIEW_ID), any(AttachMediaRequestDto.class));
 
         performAttachMedia(NOT_FOUND_REVIEW_ID, request)
                 .andExpect(status().isNotFound());
@@ -149,7 +157,7 @@ class ReviewControllerTest extends BaseControllerTest {
         AttachMediaRequestDto request = attachMediaRequest(REVIEW_MEDIA_KEY);
 
         doThrow(new BadRequestException(MEDIA_ALREADY_ATTACHED_MESSAGE))
-                .when(reviewService).attachMedia(eq(REVIEW_ID), any(AttachMediaRequestDto.class));
+                .when(adminReviewService).attachMedia(eq(REVIEW_ID), any(AttachMediaRequestDto.class));
 
         performAttachMedia(REVIEW_ID, request)
                 .andExpect(status().isBadRequest());
