@@ -10,6 +10,7 @@ import org.plishka.backend.domain.home.HomePageProduct;
 import org.plishka.backend.domain.product.ProductMedia;
 import org.plishka.backend.domain.review.Review;
 import org.plishka.backend.domain.review.ReviewMedia;
+import org.plishka.backend.dto.admin.home.AdminHomePageAdvantageDto;
 import org.plishka.backend.dto.home.HomePageAdvantageDto;
 import org.plishka.backend.dto.home.HomePageContentDto;
 import org.plishka.backend.dto.home.HomePageProductDto;
@@ -32,6 +33,9 @@ public interface HomePageMapper {
 
     @Mapping(target = "homePageAdvantageId", source = "id")
     HomePageAdvantageDto toAdvantageDto(HomePageAdvantage advantage);
+
+    @Mapping(target = "advantageId", source = "id")
+    AdminHomePageAdvantageDto toAdminAdvantageDto(HomePageAdvantage advantage);
 
     @Mapping(target = "productId", source = "homePageProduct.product.id")
     @Mapping(target = "name", source = "homePageProduct.product.name")
