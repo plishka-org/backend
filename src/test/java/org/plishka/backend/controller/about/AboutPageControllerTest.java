@@ -3,11 +3,12 @@ package org.plishka.backend.controller.about;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
-import org.plishka.backend.controller.admin.AdminAboutMediaController;
+import org.plishka.backend.controller.admin.AdminAboutPageController;
 import org.plishka.backend.dto.about.AboutPageContentDto;
 import org.plishka.backend.dto.about.AboutPageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.service.about.AboutPageService;
+import org.plishka.backend.service.admin.about.AdminAboutPageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -23,7 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({AboutPageController.class, AdminAboutMediaController.class})
+@WebMvcTest({AboutPageController.class, AdminAboutPageController.class})
 @AutoConfigureMockMvc(addFilters = false)
 class AboutPageControllerTest extends BaseControllerTest {
     @Autowired
@@ -34,6 +35,9 @@ class AboutPageControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private AboutPageService aboutPageService;
+
+    @MockitoBean
+    private AdminAboutPageService adminAboutPageService;
 
     @Test
     void getAboutPage_ShouldReturnAboutDataAndStatus200() throws Exception {
@@ -64,7 +68,7 @@ class AboutPageControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(aboutPageService).attachMedia(request);
+        verify(adminAboutPageService).attachMedia(request);
     }
 
     @Test
