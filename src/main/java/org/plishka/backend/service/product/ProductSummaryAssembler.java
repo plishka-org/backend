@@ -17,23 +17,43 @@ import org.springframework.stereotype.Component;
 public class ProductSummaryAssembler {
     private final ProductMediaQueryService productMediaQueryService;
     private final ProductMapper productMapper;
+    private final PriceVisibilityPolicy priceVisibilityPolicy;
 
     public ProductSummaryDto toDto(Product product) {
-        return toDtoMapForProducts(List.of(product)).get(product.getId());
+        return toDto(product, priceVisibilityPolicy.isCurrentPriceVisible());
+    }
+
+    public ProductSummaryDto toDto(Product product, boolean currentPriceVisible) {
+        return toDtoMapForProducts(List.of(product), currentPriceVisible).get(product.getId());
     }
 
     public List<ProductSummaryDto> toDtos(Collection<Product> products) {
-        return List.copyOf(toDtoMapForProducts(products).values());
+        return toDtos(products, priceVisibilityPolicy.isCurrentPriceVisible());
+    }
+
+    public List<ProductSummaryDto> toDtos(Collection<Product> products, boolean currentPriceVisible) {
+        return List.copyOf(toDtoMapForProducts(products, currentPriceVisible).values());
     }
 
     public Map<Long, ProductSummaryDto> toDtoMapForProducts(Collection<Product> products) {
+        return toDtoMapForProducts(products, priceVisibilityPolicy.isCurrentPriceVisible());
+    }
+
+    public Map<Long, ProductSummaryDto> toDtoMapForProducts(
+            Collection<Product> products,
+            boolean currentPriceVisible
+    ) {
         Map<Long, ProductMedia> primaryMediaByProductId =
                 productMediaQueryService.findPrimaryMediaForProducts(products);
 
         return products.stream()
                 .collect(Collectors.toMap(
                         Product::getId,
-                        product -> productMapper.toSummaryDto(product, primaryMediaByProductId.get(product.getId())),
+                        product -> productMapper.toSummaryDto(
+                                product,
+                                primaryMediaByProductId.get(product.getId()),
+                                priceVisibilityPolicy.visiblePrice(product, currentPriceVisible)
+                        ),
                         (first, second) -> first,
                         LinkedHashMap::new
                 ));

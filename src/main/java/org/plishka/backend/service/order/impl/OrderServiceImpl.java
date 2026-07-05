@@ -28,6 +28,7 @@ import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.order.OrderService;
 import org.plishka.backend.service.pricing.PriceCalculator;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -61,6 +62,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderIdempotencyGuard orderIdempotencyGuard;
     private final OrderItemFactory orderItemFactory;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ShopModeService shopModeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -104,6 +106,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderDetailDto repeatOrder(Long orderId, Long userId, String idempotencyKey) {
+        shopModeService.requireEnabled();
         log.debug("Repeating order id={} for user id={}", orderId, userId);
 
         lockUserOrThrow(userId);

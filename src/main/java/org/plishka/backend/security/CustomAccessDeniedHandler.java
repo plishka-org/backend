@@ -8,6 +8,7 @@ import java.time.Instant;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.common.ErrorResponseDto;
+import org.plishka.backend.exception.ShopModeDisabledAccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,6 +19,8 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @RequiredArgsConstructor
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
+    private static final String DEFAULT_ACCESS_DENIED_MESSAGE = "You do not have permission to access this resource";
+
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -34,10 +37,18 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 .timestamp(Instant.now(clock))
                 .status(HttpStatus.FORBIDDEN.value())
                 .error(HttpStatus.FORBIDDEN.getReasonPhrase())
-                .message("You do not have permission to access this resource")
+                .message(resolveMessage(accessDeniedException))
                 .path(request.getRequestURI())
                 .build();
 
         objectMapper.writeValue(response.getWriter(), errorResponse);
+    }
+
+    private String resolveMessage(AccessDeniedException exception) {
+        if (exception instanceof ShopModeDisabledAccessDeniedException) {
+            return exception.getMessage();
+        }
+
+        return DEFAULT_ACCESS_DENIED_MESSAGE;
     }
 }

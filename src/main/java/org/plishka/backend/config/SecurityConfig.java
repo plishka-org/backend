@@ -6,11 +6,13 @@ import org.plishka.backend.security.ActiveUserAuthorizationManager;
 import org.plishka.backend.security.CustomAccessDeniedHandler;
 import org.plishka.backend.security.CustomAuthenticationEntryPoint;
 import org.plishka.backend.security.JwtAuthenticationFilter;
+import org.plishka.backend.security.ShopModeAuthorizationManager;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationManagers;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -20,6 +22,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -30,6 +33,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final ActiveUserAuthorizationManager activeUserAuthorizationManager;
+    private final ShopModeAuthorizationManager shopModeAuthorizationManager;
     private final RateLimitFilter rateLimitFilter;
 
     @Bean
@@ -44,6 +48,15 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/cart",
+                                "/cart/**"
+                        ).access(activeUserAndShopModeEnabled())
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/orders",
+                                "/users/me/orders/*/repeat"
+                        ).access(activeUserAndShopModeEnabled())
                         .requestMatchers(
                                 "/users/me",
                                 "/users/me/**",
@@ -95,6 +108,10 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    private AuthorizationManager<RequestAuthorizationContext> activeUserAndShopModeEnabled() {
+        return AuthorizationManagers.allOf(activeUserAuthorizationManager, shopModeAuthorizationManager);
     }
 
     @Bean

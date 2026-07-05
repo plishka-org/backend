@@ -13,6 +13,7 @@ import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.product.ProductMapper;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.service.file.MediaAttachmentService;
+import org.plishka.backend.service.product.PriceVisibilityPolicy;
 import org.plishka.backend.service.product.ProductService;
 import org.plishka.backend.service.product.ProductSummaryAssembler;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class ProductServiceImpl implements ProductService {
     private final MediaAttachmentService mediaAttachmentService;
     private final ProductMapper productMapper;
     private final ProductSummaryAssembler productSummaryAssembler;
+    private final PriceVisibilityPolicy priceVisibilityPolicy;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,9 +53,15 @@ public class ProductServiceImpl implements ProductService {
                 categoryIds
         );
 
+        boolean currentPriceVisible = priceVisibilityPolicy.isCurrentPriceVisible();
+        priceVisibilityPolicy.assertPriceSortAllowed(requestedSort, currentPriceVisible);
+
         ProductListCriteria criteria = ProductListCriteria.from(categoryIds, requestedSort);
         Page<Product> productsPage = findProductsPage(criteria, page, size);
-        List<ProductSummaryDto> productSummaries = productSummaryAssembler.toDtos(productsPage.getContent());
+        List<ProductSummaryDto> productSummaries = productSummaryAssembler.toDtos(
+                productsPage.getContent(),
+                currentPriceVisible
+        );
 
         log.debug("Successfully fetched {} products", productsPage.getNumberOfElements());
 
@@ -69,7 +77,11 @@ public class ProductServiceImpl implements ProductService {
 
         log.debug("Successfully fetched product with ID: {}", id);
 
-        return productMapper.toDetailDto(product, product.getMedia());
+        return productMapper.toDetailDto(
+                product,
+                product.getMedia(),
+                priceVisibilityPolicy.visiblePrice(product)
+        );
     }
 
     @Override
@@ -86,8 +98,10 @@ public class ProductServiceImpl implements ProductService {
 
         Long categoryId = sourceProduct.getCategory().getId();
         Page<Product> relatedProductsPage = findRelatedProducts(categoryId, id, page, size);
+        boolean currentPriceVisible = priceVisibilityPolicy.isCurrentPriceVisible();
         List<ProductSummaryDto> relatedProductSummaries = productSummaryAssembler.toDtos(
-                relatedProductsPage.getContent()
+                relatedProductsPage.getContent(),
+                currentPriceVisible
         );
 
         log.debug(

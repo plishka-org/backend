@@ -26,6 +26,7 @@ import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.user.UserRepository;
 import org.plishka.backend.service.cart.CartService;
 import org.plishka.backend.service.pricing.PriceCalculator;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,10 +58,12 @@ public class CartServiceImpl implements CartService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final CartItemMapper cartItemMapper;
+    private final ShopModeService shopModeService;
 
     @Override
     @Transactional(readOnly = true)
     public CartSummaryDto getCart(Long userId) {
+        shopModeService.requireEnabled();
         log.debug("Fetching cart for user id={}", userId);
 
         Cart cart = cartRepository.findAggregateByUserId(userId).orElse(null);
@@ -76,6 +79,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartSummaryDto addItem(Long userId, AddCartItemRequestDto requestDto) {
+        shopModeService.requireEnabled();
         log.debug("Adding product id={} to cart for user id={}, quantity={}",
                 requestDto.productId(), userId, requestDto.quantity());
 
@@ -91,6 +95,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartSummaryDto updateItem(Long userId, Long productId, UpdateCartItemRequestDto requestDto) {
+        shopModeService.requireEnabled();
         log.debug("Updating product id={} in cart for user id={}, new quantity={}",
                 productId, userId, requestDto.quantity());
 
@@ -106,6 +111,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartSummaryDto removeItem(Long userId, Long productId) {
+        shopModeService.requireEnabled();
         log.debug("Removing product id={} from cart for user id={}", productId, userId);
 
         Cart cart = getLockedCartAggregate(userId);
@@ -122,6 +128,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void clearCart(Long userId) {
+        shopModeService.requireEnabled();
         log.debug("Clearing cart for user id={}", userId);
 
         Cart cart = getLockedCartAggregate(userId);
@@ -134,6 +141,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartSummaryDto mergeCart(Long userId, MergeCartRequestDto requestDto) {
+        shopModeService.requireEnabled();
         log.debug("Merging client cart with {} item(s) into user id={} cart",
                 requestDto.items().size(), userId);
 

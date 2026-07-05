@@ -1,16 +1,19 @@
 package org.plishka.backend.controller;
 
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.plishka.backend.config.TimeConfig;
 import org.plishka.backend.security.AuthenticatedUserPrincipal;
 import org.plishka.backend.security.CustomUserDetailsService;
 import org.plishka.backend.service.auth.JwtService;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static org.mockito.Mockito.lenient;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 @Import(TimeConfig.class)
@@ -23,6 +26,14 @@ public abstract class BaseControllerTest {
 
     @MockitoBean
     protected CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    protected ShopModeService shopModeService;
+
+    @BeforeEach
+    void allowShopModeByDefault() {
+        lenient().when(shopModeService.isShopModeEnabled()).thenReturn(true);
+    }
 
     protected static RequestPostProcessor authenticatedUser(Long userId, String email) {
         return authenticatedUser(userPrincipal(userId, email, true, true, "ROLE_USER"));

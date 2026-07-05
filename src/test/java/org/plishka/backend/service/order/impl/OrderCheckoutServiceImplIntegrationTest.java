@@ -1,5 +1,6 @@
 package org.plishka.backend.service.order.impl;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.domain.cart.Cart;
 import org.plishka.backend.domain.cart.CartItem;
@@ -51,6 +52,11 @@ class OrderCheckoutServiceImplIntegrationTest {
 
     @MockitoBean
     private ResendEmailTransport resendEmailTransport;
+
+    @BeforeEach
+    void enableShopMode() {
+        jdbcTemplate.update("update system_settings set is_shop_mode_enabled = true where id = 1");
+    }
 
     @Test
     void checkout_ShouldPersistProductNameSnapshotLongerThanOneHundredCharacters() {

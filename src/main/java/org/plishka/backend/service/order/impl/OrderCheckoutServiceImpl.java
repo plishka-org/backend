@@ -19,6 +19,7 @@ import org.plishka.backend.service.order.OrderIdempotencyGuard;
 import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.pricing.PriceCalculator;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -47,10 +48,12 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private final OrderIdempotencyGuard orderIdempotencyGuard;
     private final OrderItemFactory orderItemFactory;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ShopModeService shopModeService;
 
     @Override
     @Transactional
     public OrderDetailDto checkout(Long userId, String idempotencyKey, CreateOrderRequestDto requestDto) {
+        shopModeService.requireEnabled();
         log.debug("Starting checkout for user id={}", userId);
 
         Cart cart = findLockedCartAggregateOrThrow(userId);
