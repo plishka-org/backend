@@ -3,12 +3,13 @@ package org.plishka.backend.service.admin.review;
 import org.plishka.backend.dto.admin.review.AdminReviewDetailDto;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewSummaryDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 
 public interface AdminReviewService {
-    PageResponse<AdminReviewSummaryDto> getReviews(int page, int size);
+    PageResponse<AdminReviewSummaryDto> getReviews(AdminReviewSearchRequestDto request, int page, int size);
 
     AdminReviewDetailDto getReview(Long reviewId);
 

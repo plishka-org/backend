@@ -7,6 +7,7 @@ import org.plishka.backend.domain.review.Review;
 import org.plishka.backend.domain.review.ReviewMedia;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.repository.review.ReviewMediaRepository;
 import org.plishka.backend.repository.review.ReviewRepository;
@@ -49,6 +50,22 @@ class AdminReviewServiceImplIntegrationTest {
 
     @MockitoBean
     private ResendEmailTransport resendEmailTransport;
+
+    @Test
+    void getReviews_ShouldSearchByAuthorNameOrContent() {
+        adminReviewService.createReview(new AdminReviewRequestDto("Olha Petrova", "Great craftsmanship"));
+        adminReviewService.createReview(new AdminReviewRequestDto("Ivan Koval", "Olha recommended this shop"));
+        adminReviewService.createReview(new AdminReviewRequestDto("Someone Else", "Unrelated text"));
+
+        var byAuthor = adminReviewService.getReviews(new AdminReviewSearchRequestDto("olha"), 0, 10);
+        var byContent = adminReviewService.getReviews(new AdminReviewSearchRequestDto("recommended"), 0, 10);
+        var allReviews = adminReviewService.getReviews(new AdminReviewSearchRequestDto(null), 0, 10);
+
+        assertEquals(2, byAuthor.totalElements());
+        assertEquals(1, byContent.totalElements());
+        assertEquals(3, allReviews.totalElements());
+        assertEquals(10, allReviews.pageSize());
+    }
 
     @Test
     void reviewsFlow_ShouldManageReviewFeaturedStateMediaAndDeletionOutbox() {

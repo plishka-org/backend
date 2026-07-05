@@ -15,6 +15,7 @@ import org.plishka.backend.domain.review.Review;
 import org.plishka.backend.domain.review.ReviewMedia;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewSummaryDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
@@ -30,6 +31,7 @@ import org.plishka.backend.service.storage.StorageDeletionOutboxService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -84,14 +86,15 @@ class AdminReviewServiceImplTest {
                 true,
                 new ReviewMediaPreviewDto(3L, REVIEW_MEDIA_KEY, IMAGE)
         );
-        Page<Review> reviewPage = new PageImpl<>(List.of(review), PageRequest.of(0, 16), 1);
+        Page<Review> reviewPage = new PageImpl<>(List.of(review), PageRequest.of(0, 10), 1);
 
-        when(reviewRepository.findAll(any(PageRequest.class))).thenReturn(reviewPage);
+        when(reviewRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(reviewPage);
         when(reviewMediaQueryService.findPrimaryMediaForReviews(List.of(review)))
                 .thenReturn(Map.of(REVIEW_ID, primaryMedia));
         when(reviewMapper.toAdminSummaryDto(review, primaryMedia)).thenReturn(summaryDto);
 
-        PageResponse<AdminReviewSummaryDto> result = service.getReviews(0, 16);
+        PageResponse<AdminReviewSummaryDto> result =
+                service.getReviews(new AdminReviewSearchRequestDto(null), 0, 10);
 
         assertEquals(List.of(summaryDto), result.content());
         verify(reviewMediaQueryService).findPrimaryMediaForReviews(List.of(review));

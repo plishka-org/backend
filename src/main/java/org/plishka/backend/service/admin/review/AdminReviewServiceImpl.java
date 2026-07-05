@@ -9,6 +9,7 @@ import org.plishka.backend.domain.review.ReviewMedia;
 import org.plishka.backend.dto.admin.review.AdminReviewDetailDto;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewSummaryDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
@@ -17,6 +18,7 @@ import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.review.ReviewMapper;
 import org.plishka.backend.repository.review.ReviewMediaRepository;
 import org.plishka.backend.repository.review.ReviewRepository;
+import org.plishka.backend.service.admin.review.support.AdminReviewSpecifications;
 import org.plishka.backend.service.file.MediaAttachmentService;
 import org.plishka.backend.service.review.ReviewMediaQueryService;
 import org.plishka.backend.service.storage.StorageDeletionOutboxService;
@@ -24,6 +26,7 @@ import org.plishka.backend.util.UserInputNormalizer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,8 +51,12 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<AdminReviewSummaryDto> getReviews(int page, int size) {
-        Page<Review> reviewPage = reviewRepository.findAll(PageRequest.of(page, size, REVIEWS_SORT));
+    public PageResponse<AdminReviewSummaryDto> getReviews(AdminReviewSearchRequestDto request, int page, int size) {
+        Specification<Review> searchSpecification = AdminReviewSpecifications.bySearch(request.search());
+        Page<Review> reviewPage = reviewRepository.findAll(
+                searchSpecification,
+                PageRequest.of(page, size, REVIEWS_SORT)
+        );
         Map<Long, ReviewMedia> primaryMediaByReviewId = reviewMediaQueryService.findPrimaryMediaForReviews(
                 reviewPage.getContent()
         );

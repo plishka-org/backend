@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.admin.review.AdminReviewDetailDto;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewSummaryDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.common.PaginationRequestDto;
@@ -27,15 +28,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/admin/reviews")
 @RequiredArgsConstructor
 public class AdminReviewController {
-    private static final int DEFAULT_PAGE_SIZE = 16;
+    private static final int DEFAULT_PAGE_SIZE = 10;
 
     private final AdminReviewService adminReviewService;
 
     @GetMapping
     public PageResponse<AdminReviewSummaryDto> getReviews(
+            @Valid @ModelAttribute AdminReviewSearchRequestDto reviewRequest,
             @Valid @ModelAttribute PaginationRequestDto paginationRequest
     ) {
         return adminReviewService.getReviews(
+                reviewRequest,
                 paginationRequest.resolvePage(),
                 paginationRequest.resolveSize(DEFAULT_PAGE_SIZE)
         );

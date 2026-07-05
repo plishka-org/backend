@@ -3,10 +3,12 @@ package org.plishka.backend.controller.admin;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.plishka.backend.controller.BaseControllerTest;
 import org.plishka.backend.dto.admin.review.AdminReviewDetailDto;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewSummaryDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.review.ReviewMediaDto;
@@ -22,7 +24,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -61,15 +65,30 @@ class AdminReviewControllerTest extends BaseControllerTest {
 
     @Test
     void getReviews_ShouldReturnPaginatedReviews() throws Exception {
-        when(adminReviewService.getReviews(0, 16)).thenReturn(reviewPageResponse());
+        when(adminReviewService.getReviews(any(), anyInt(), anyInt())).thenReturn(reviewPageResponse());
 
         mockMvc.perform(get("/admin/reviews")
                         .param("page", "0")
-                        .param("size", "16"))
+                        .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].reviewId").value(REVIEW_ID))
                 .andExpect(jsonPath("$.content[0].isFeatured").value(true))
                 .andExpect(jsonPath("$.content[0].primaryMedia.s3Key").value(REVIEW_MEDIA_KEY));
+    }
+
+    @Test
+    void getReviews_ShouldPassSearchRequestAndUseDefaultPageSize() throws Exception {
+        when(adminReviewService.getReviews(any(), anyInt(), anyInt())).thenReturn(reviewPageResponse());
+
+        mockMvc.perform(get("/admin/reviews")
+                        .param("search", "Olha")
+                        .param("page", "0"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<AdminReviewSearchRequestDto> requestCaptor =
+                ArgumentCaptor.forClass(AdminReviewSearchRequestDto.class);
+        verify(adminReviewService).getReviews(requestCaptor.capture(), eq(0), eq(10));
+        assertEquals("Olha", requestCaptor.getValue().search());
     }
 
     @Test
@@ -183,7 +202,7 @@ class AdminReviewControllerTest extends BaseControllerTest {
                         new ReviewMediaPreviewDto(MEDIA_ID, REVIEW_MEDIA_KEY, IMAGE)
                 )),
                 0,
-                16,
+                10,
                 1L,
                 1,
                 true
