@@ -14,8 +14,6 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/007-create-home-page-content-table.yaml
   - include:
-      file: db/changelog/changes/008-create-home-page-advantages-table.yaml
-  - include:
       file: db/changelog/changes/018-create-categories-table.yaml
   - include:
       file: db/changelog/changes/019-create-products-table.yaml

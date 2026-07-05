@@ -1,7 +1,7 @@
 package org.plishka.backend.service.admin.user;
 
 import java.util.Locale;
-import org.plishka.backend.dto.admin.user.AdminUserListRequestDto;
+import org.plishka.backend.dto.admin.user.AdminUserSearchRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -12,7 +12,7 @@ record AdminUserListCriteria(String search, boolean bannedOnly, PageRequest page
     private static final String ID_DESC_SORT = "id,desc";
 
     static AdminUserListCriteria from(
-            AdminUserListRequestDto request,
+            AdminUserSearchRequestDto request,
             int page,
             int size,
             boolean bannedOnly

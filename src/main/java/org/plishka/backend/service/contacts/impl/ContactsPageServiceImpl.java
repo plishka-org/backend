@@ -45,6 +45,6 @@ public class ContactsPageServiceImpl implements ContactsPageService {
     }
 
     private List<SocialLink> getSocialLinks() {
-        return socialLinkRepository.findAllByContactsPageIdOrderByDisplayOrderAsc(SINGLETON_CONTENT_ID);
+        return socialLinkRepository.findAllByContactsPageIdOrderByUpdatedAtDescIdDesc(SINGLETON_CONTENT_ID);
     }
 }

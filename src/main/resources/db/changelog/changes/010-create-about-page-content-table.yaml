@@ -13,22 +13,22 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: history_title
+                  name: main_title
                   type: VARCHAR(255)
                   constraints:
                     nullable: false
               - column:
-                  name: history_text
+                  name: main_subtitle
                   type: TEXT
                   constraints:
                     nullable: false
               - column:
-                  name: current_title
+                  name: secondary_title
                   type: VARCHAR(255)
                   constraints:
                     nullable: false
               - column:
-                  name: current_text
+                  name: secondary_subtitle
                   type: TEXT
                   constraints:
                     nullable: false

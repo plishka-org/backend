@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.admin.common.BulkOperationResultDto;
 import org.plishka.backend.dto.admin.user.AdminUserBulkRequestDto;
 import org.plishka.backend.dto.admin.user.AdminUserDto;
-import org.plishka.backend.dto.admin.user.AdminUserListRequestDto;
+import org.plishka.backend.dto.admin.user.AdminUserSearchRequestDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.common.PaginationRequestDto;
 import org.plishka.backend.security.AuthenticatedUserPrincipal;
@@ -31,7 +31,7 @@ public class AdminUserController {
 
     @GetMapping
     public PageResponse<AdminUserDto> getUsers(
-            @Valid @ModelAttribute AdminUserListRequestDto userRequest,
+            @Valid @ModelAttribute AdminUserSearchRequestDto userRequest,
             @Valid @ModelAttribute PaginationRequestDto paginationRequest
     ) {
         return adminUserService.getUsers(
@@ -43,7 +43,7 @@ public class AdminUserController {
 
     @GetMapping("/banned")
     public PageResponse<AdminUserDto> getBannedUsers(
-            @Valid @ModelAttribute AdminUserListRequestDto userRequest,
+            @Valid @ModelAttribute AdminUserSearchRequestDto userRequest,
             @Valid @ModelAttribute PaginationRequestDto paginationRequest
     ) {
         return adminUserService.getBannedUsers(

@@ -6,7 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.plishka.backend.controller.BaseControllerTest;
 import org.plishka.backend.dto.admin.common.BulkOperationResultDto;
 import org.plishka.backend.dto.admin.user.AdminUserDto;
-import org.plishka.backend.dto.admin.user.AdminUserListRequestDto;
+import org.plishka.backend.dto.admin.user.AdminUserSearchRequestDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.exception.ForbiddenException;
 import org.plishka.backend.service.admin.user.AdminUserService;
@@ -58,10 +58,10 @@ class AdminUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.content[0].isBanned").value(false))
                 .andExpect(jsonPath("$.content[0].numberOfOrders").value(7));
 
-        ArgumentCaptor<AdminUserListRequestDto> requestCaptor =
-                ArgumentCaptor.forClass(AdminUserListRequestDto.class);
+        ArgumentCaptor<AdminUserSearchRequestDto> requestCaptor =
+                ArgumentCaptor.forClass(AdminUserSearchRequestDto.class);
         verify(adminUserService).getUsers(requestCaptor.capture(), eq(2), eq(10));
-        AdminUserListRequestDto request = requestCaptor.getValue();
+        AdminUserSearchRequestDto request = requestCaptor.getValue();
         assertEquals("serhii", request.search());
         assertEquals("createdAt,desc", request.sort());
     }
@@ -87,10 +87,10 @@ class AdminUserControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].isBanned").value(true));
 
-        ArgumentCaptor<AdminUserListRequestDto> requestCaptor =
-                ArgumentCaptor.forClass(AdminUserListRequestDto.class);
+        ArgumentCaptor<AdminUserSearchRequestDto> requestCaptor =
+                ArgumentCaptor.forClass(AdminUserSearchRequestDto.class);
         verify(adminUserService).getBannedUsers(requestCaptor.capture(), eq(1), eq(5));
-        AdminUserListRequestDto request = requestCaptor.getValue();
+        AdminUserSearchRequestDto request = requestCaptor.getValue();
         assertEquals("blocked", request.search());
         assertEquals("id,desc", request.sort());
     }

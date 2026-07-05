@@ -8,12 +8,10 @@ import org.plishka.backend.domain.home.HomePageContent;
 import org.plishka.backend.domain.home.HomePageProduct;
 import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.domain.product.ProductMedia;
-import org.plishka.backend.dto.home.HomePageAdvantageDto;
 import org.plishka.backend.dto.home.HomePageProductDto;
 import org.plishka.backend.dto.home.HomePageResponse;
 import org.plishka.backend.dto.home.HomePageReviewDto;
 import org.plishka.backend.mapper.home.HomePageMapper;
-import org.plishka.backend.repository.home.HomePageAdvantageRepository;
 import org.plishka.backend.repository.home.HomePageContentRepository;
 import org.plishka.backend.repository.home.HomePageProductRepository;
 import org.plishka.backend.service.home.HomePageService;
@@ -30,7 +28,6 @@ public class HomePageServiceImpl implements HomePageService {
     private static final int FEATURED_REVIEWS_LIMIT = 5;
 
     private final HomePageContentRepository contentRepository;
-    private final HomePageAdvantageRepository advantageRepository;
     private final HomePageProductRepository homePageProductRepository;
     private final ProductMediaQueryService productMediaQueryService;
     private final FeaturedReviewQueryService featuredReviewQueryService;
@@ -42,20 +39,17 @@ public class HomePageServiceImpl implements HomePageService {
         log.debug("Fetching home page data");
 
         HomePageContent content = findContentOrThrow();
-        List<HomePageAdvantageDto> advantages = getAdvantages();
         List<HomePageProductDto> products = getHomePageProducts();
         List<HomePageReviewDto> featuredReviews = getFeaturedReviews();
 
         HomePageResponse response = homePageMapper.toResponse(
                 homePageMapper.toContentDto(content),
-                advantages,
                 products,
                 featuredReviews
         );
 
         log.debug(
-                "Home page data fetched successfully: advantagesCount={}, productsCount={}, featuredReviewsCount={}",
-                advantages.size(),
+                "Home page data fetched successfully: productsCount={}, featuredReviewsCount={}",
                 products.size(),
                 featuredReviews.size()
         );
@@ -68,13 +62,6 @@ public class HomePageServiceImpl implements HomePageService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Home page content not found. Please verify database initialization."
                 ));
-    }
-
-    private List<HomePageAdvantageDto> getAdvantages() {
-        return advantageRepository.findAllByOrderByDisplayOrderAsc()
-                .stream()
-                .map(homePageMapper::toAdvantageDto)
-                .toList();
     }
 
     private List<HomePageProductDto> getHomePageProducts() {

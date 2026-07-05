@@ -8,8 +8,8 @@ import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.domain.product.ProductMedia;
 import org.plishka.backend.dto.admin.common.BulkOperationResultDto;
 import org.plishka.backend.dto.admin.product.AdminProductDetailDto;
-import org.plishka.backend.dto.admin.product.AdminProductListRequestDto;
 import org.plishka.backend.dto.admin.product.AdminProductRequestDto;
+import org.plishka.backend.dto.admin.product.AdminProductSearchRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductCategoryRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductDeleteRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductPriceRequestDto;
@@ -50,7 +50,7 @@ public class AdminProductServiceImpl implements AdminProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<AdminProductDetailDto> getProducts(AdminProductListRequestDto request, int page, int size) {
+    public PageResponse<AdminProductDetailDto> getProducts(AdminProductSearchRequestDto request, int page, int size) {
         Specification<Product> productFilters = AdminProductSpecifications.fromFilters(request.filters());
         PageRequest pageRequest = PageRequest.of(page, size, ProductSortResolver.resolve(request.sort()));
         Page<Product> productsPage = productRepository.findAll(productFilters, pageRequest);

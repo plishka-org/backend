@@ -30,9 +30,6 @@ public class SocialLink {
     @Column(name = "url", nullable = false, length = 512)
     private String url;
 
-    @Column(name = "display_order", nullable = false)
-    private Integer displayOrder;
-
     @Column(name = "contacts_page_id", nullable = false)
     private Long contactsPageId = 1L;
 
