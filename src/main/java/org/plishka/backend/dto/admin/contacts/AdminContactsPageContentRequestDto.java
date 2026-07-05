@@ -2,6 +2,7 @@ package org.plishka.backend.dto.admin.contacts;
 
 import jakarta.validation.constraints.Size;
 import org.plishka.backend.validation.ValidEmail;
+import org.plishka.backend.validation.ValidGoogleMapsUrl;
 import org.plishka.backend.validation.ValidPhone;
 
 public record AdminContactsPageContentRequestDto(
@@ -16,6 +17,7 @@ public record AdminContactsPageContentRequestDto(
         @Size(max = 255, message = "Address must contain at most 255 characters")
         String address,
 
+        @ValidGoogleMapsUrl
         @Size(max = 512, message = "Google Maps URL must contain at most 512 characters")
         String googleMapsUrl
 ) {

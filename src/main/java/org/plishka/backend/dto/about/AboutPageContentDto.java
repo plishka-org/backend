@@ -1,9 +1,9 @@
 package org.plishka.backend.dto.about;
 
 public record AboutPageContentDto(
-        String historyTitle,
-        String historyText,
-        String currentTitle,
-        String currentText
+        String mainTitle,
+        String mainSubtitle,
+        String secondaryTitle,
+        String secondarySubtitle
 ) {
 }

@@ -7,7 +7,7 @@ import org.plishka.backend.domain.user.User;
 import org.plishka.backend.dto.admin.common.BulkOperationResultDto;
 import org.plishka.backend.dto.admin.user.AdminUserBulkRequestDto;
 import org.plishka.backend.dto.admin.user.AdminUserDto;
-import org.plishka.backend.dto.admin.user.AdminUserListRequestDto;
+import org.plishka.backend.dto.admin.user.AdminUserSearchRequestDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.repository.user.AdminUserRow;
@@ -33,13 +33,13 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<AdminUserDto> getUsers(AdminUserListRequestDto request, int page, int size) {
+    public PageResponse<AdminUserDto> getUsers(AdminUserSearchRequestDto request, int page, int size) {
         return getUsersPage(request, page, size, false);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<AdminUserDto> getBannedUsers(AdminUserListRequestDto request, int page, int size) {
+    public PageResponse<AdminUserDto> getBannedUsers(AdminUserSearchRequestDto request, int page, int size) {
         return getUsersPage(request, page, size, true);
     }
 
@@ -88,7 +88,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     private PageResponse<AdminUserDto> getUsersPage(
-            AdminUserListRequestDto request,
+            AdminUserSearchRequestDto request,
             int page,
             int size,
             boolean bannedOnly

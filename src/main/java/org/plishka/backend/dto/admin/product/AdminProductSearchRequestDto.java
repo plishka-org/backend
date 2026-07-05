@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-public record AdminProductListRequestDto(
+public record AdminProductSearchRequestDto(
         @Size(max = 20, message = "Category filter must contain at most 20 category ids")
         List<@NotNull @Positive Long> categoryIds,
 

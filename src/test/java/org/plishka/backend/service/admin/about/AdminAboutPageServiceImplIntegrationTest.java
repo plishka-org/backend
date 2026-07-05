@@ -47,10 +47,10 @@ class AdminAboutPageServiceImplIntegrationTest {
     @Test
     void aboutPageFlow_ShouldUpdateContentReorderAndDeleteMediaWithOutbox() {
         adminAboutPageService.updateAboutPageContent(new AdminAboutPageContentRequestDto(
-                "History title",
-                "History text",
-                "Current title",
-                "Current text"
+                "Main title",
+                "Main subtitle",
+                "Secondary title",
+                "Secondary subtitle"
         ));
 
         AboutPageMedia firstMedia = createAboutMedia(ABOUT_FIRST_KEY, 1);
@@ -61,7 +61,7 @@ class AdminAboutPageServiceImplIntegrationTest {
         ));
         adminAboutPageService.deleteMedia(firstMedia.getId());
 
-        assertEquals("History title", findAboutHistoryTitle());
+        assertEquals("Main title", findAboutMainTitle());
         assertEquals(1, findAboutMediaDisplayOrder(secondMedia.getId()));
         assertEquals(0, countAboutMediaRows(firstMedia.getId()));
         assertEquals(1, countStorageDeletionOutboxRows(ABOUT_FIRST_KEY));
@@ -77,9 +77,9 @@ class AdminAboutPageServiceImplIntegrationTest {
         return aboutPageMediaRepository.saveAndFlush(media);
     }
 
-    private String findAboutHistoryTitle() {
+    private String findAboutMainTitle() {
         return jdbcTemplate.queryForObject(
-                "select history_title from about_page_content where id = ?",
+                "select main_title from about_page_content where id = ?",
                 String.class,
                 SINGLETON_ID
         );

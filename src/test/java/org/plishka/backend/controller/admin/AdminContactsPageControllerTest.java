@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class AdminContactsPageControllerTest extends BaseControllerTest {
     private static final long SOCIAL_LINK_ID = 5L;
+    private static final String GOOGLE_MAPS_URL = "https://maps.google.com/?q=Kyiv";
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,7 +53,7 @@ class AdminContactsPageControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.phoneNumber").value("+380501234567"))
                 .andExpect(jsonPath("$.socialLinks[0].socialLinkId").value(SOCIAL_LINK_ID))
-                .andExpect(jsonPath("$.socialLinks[0].displayOrder").value(1));
+                .andExpect(jsonPath("$.socialLinks[0].name").value("Instagram"));
     }
 
     @Test
@@ -61,14 +62,14 @@ class AdminContactsPageControllerTest extends BaseControllerTest {
                 "+380501234567",
                 "info@plishka.com",
                 "Kyiv",
-                "https://maps.example"
+                GOOGLE_MAPS_URL
         );
         when(adminContactsPageService.updateContactsPageContent(any(AdminContactsPageContentRequestDto.class)))
                 .thenReturn(new ContactsPageContentDto(
                         "+380501234567",
                         "info@plishka.com",
                         "Kyiv",
-                        "https://maps.example"
+                        GOOGLE_MAPS_URL
                 ));
 
         mockMvc.perform(put("/admin/contacts-page")
@@ -88,7 +89,7 @@ class AdminContactsPageControllerTest extends BaseControllerTest {
                                   "phoneNumber": "0501234567",
                                   "email": "info@plishka.com",
                                   "address": "Kyiv",
-                                  "googleMapsUrl": "https://maps.example"
+                                  "googleMapsUrl": "https://maps.google.com/?q=Kyiv"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -102,6 +103,21 @@ class AdminContactsPageControllerTest extends BaseControllerTest {
                                 {
                                   "phoneNumber": "+380501234567",
                                   "email": "not-an-email",
+                                  "address": "Kyiv",
+                                  "googleMapsUrl": "https://maps.google.com/?q=Kyiv"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateContactsPage_ShouldReturn400_WhenGoogleMapsUrlIsInvalid() throws Exception {
+        mockMvc.perform(put("/admin/contacts-page")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "phoneNumber": "+380501234567",
+                                  "email": "info@plishka.com",
                                   "address": "Kyiv",
                                   "googleMapsUrl": "https://maps.example"
                                 }
@@ -132,6 +148,19 @@ class AdminContactsPageControllerTest extends BaseControllerTest {
                                 {
                                   "name": " ",
                                   "url": "https://instagram.com/plishka"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createSocialLink_ShouldReturn400_WhenUrlIsNotHttps() throws Exception {
+        mockMvc.perform(post("/admin/contacts-page/social-links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Instagram",
+                                  "url": "http://instagram.com/plishka"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -169,19 +198,19 @@ class AdminContactsPageControllerTest extends BaseControllerTest {
         mockMvc.perform(put("/admin/contacts-page/social-links/{socialLinkId}", SOCIAL_LINK_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com")
+                                new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com/plishka")
                         )))
                 .andExpect(status().isNotFound());
     }
 
     private static AdminContactsPageDto contactsPage() {
         return new AdminContactsPageDto(
-                new ContactsPageContentDto("+380501234567", "info@plishka.com", "Kyiv", "https://maps.example"),
+                new ContactsPageContentDto("+380501234567", "info@plishka.com", "Kyiv", GOOGLE_MAPS_URL),
                 List.of(socialLink())
         );
     }
 
     private static AdminContactsPageSocialLinkDto socialLink() {
-        return new AdminContactsPageSocialLinkDto(SOCIAL_LINK_ID, "Instagram", "https://instagram.com/plishka", 1);
+        return new AdminContactsPageSocialLinkDto(SOCIAL_LINK_ID, "Instagram", "https://instagram.com/plishka");
     }
 }

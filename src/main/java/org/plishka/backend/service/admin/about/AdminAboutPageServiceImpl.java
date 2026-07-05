@@ -60,10 +60,10 @@ public class AdminAboutPageServiceImpl implements AdminAboutPageService {
     @Transactional
     public AboutPageContentDto updateAboutPageContent(AdminAboutPageContentRequestDto request) {
         AboutPageContent content = findContentForUpdateOrThrow();
-        content.setHistoryTitle(UserInputNormalizer.normalizeName(request.historyTitle()));
-        content.setHistoryText(UserInputNormalizer.normalizeName(request.historyText()));
-        content.setCurrentTitle(UserInputNormalizer.normalizeName(request.currentTitle()));
-        content.setCurrentText(UserInputNormalizer.normalizeName(request.currentText()));
+        content.setMainTitle(UserInputNormalizer.normalizeName(request.mainTitle()));
+        content.setMainSubtitle(UserInputNormalizer.normalizeName(request.mainSubtitle()));
+        content.setSecondaryTitle(UserInputNormalizer.normalizeName(request.secondaryTitle()));
+        content.setSecondarySubtitle(UserInputNormalizer.normalizeName(request.secondarySubtitle()));
 
         return aboutPageMapper.toContentDto(contentRepository.saveAndFlush(content));
     }

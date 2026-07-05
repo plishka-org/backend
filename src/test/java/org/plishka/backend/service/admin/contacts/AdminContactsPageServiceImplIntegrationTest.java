@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Transactional
 class AdminContactsPageServiceImplIntegrationTest {
     private static final long SINGLETON_ID = 1L;
+    private static final String GOOGLE_MAPS_URL = "https://maps.google.com/?q=Kyiv";
 
     @Autowired
     private AdminContactsPageService adminContactsPageService;
@@ -38,7 +39,7 @@ class AdminContactsPageServiceImplIntegrationTest {
                 "+380501234567",
                 "info@plishka.com",
                 "Kyiv",
-                "https://maps.example"
+                GOOGLE_MAPS_URL
         ));
 
         var createdLink = adminContactsPageService.createSocialLink(
@@ -51,7 +52,6 @@ class AdminContactsPageServiceImplIntegrationTest {
 
         assertEquals("info@plishka.com", findContactsEmail());
         assertEquals("Telegram", findSocialLinkName(createdLink.socialLinkId()));
-        assertEquals(1, findSocialLinkDisplayOrder(createdLink.socialLinkId()));
 
         adminContactsPageService.deleteSocialLink(createdLink.socialLinkId());
 
@@ -70,14 +70,6 @@ class AdminContactsPageServiceImplIntegrationTest {
         return jdbcTemplate.queryForObject(
                 "select name from social_links where id = ?",
                 String.class,
-                socialLinkId
-        );
-    }
-
-    private Integer findSocialLinkDisplayOrder(Long socialLinkId) {
-        return jdbcTemplate.queryForObject(
-                "select display_order from social_links where id = ?",
-                Integer.class,
                 socialLinkId
         );
     }

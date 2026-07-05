@@ -21,17 +21,17 @@ public class AboutPageContent {
     @Column(name = "id", nullable = false)
     private Long id = 1L;
 
-    @Column(name = "history_title", nullable = false, length = 255)
-    private String historyTitle;
+    @Column(name = "main_title", nullable = false, length = 255)
+    private String mainTitle;
 
-    @Column(name = "history_text", columnDefinition = "TEXT", nullable = false)
-    private String historyText;
+    @Column(name = "main_subtitle", columnDefinition = "TEXT", nullable = false)
+    private String mainSubtitle;
 
-    @Column(name = "current_title", nullable = false, length = 255)
-    private String currentTitle;
+    @Column(name = "secondary_title", nullable = false, length = 255)
+    private String secondaryTitle;
 
-    @Column(name = "current_text", columnDefinition = "TEXT", nullable = false)
-    private String currentText;
+    @Column(name = "secondary_subtitle", columnDefinition = "TEXT", nullable = false)
+    private String secondarySubtitle;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AdminContactsPageServiceImplTest {
     private static final long CONTENT_ID = 1L;
+    private static final String GOOGLE_MAPS_URL = "https://maps.google.com/?q=Kyiv";
 
     @Mock
     private ContactsPageRepository contactsPageRepository;
@@ -48,14 +49,14 @@ class AdminContactsPageServiceImplTest {
 
     @Test
     void getContactsPage_ShouldReturnMappedContactsPage() {
-        ContactsPage contactsPage = contactsPage("mail@test.com", "Address", "https://maps");
-        SocialLink socialLink = socialLink(5L, 1, "Instagram", "https://instagram.com");
-        ContactsPageContentDto contentDto = new ContactsPageContentDto("+380", "mail@test.com", "Address", "https://maps");
+        ContactsPage contactsPage = contactsPage("mail@test.com", "Address", GOOGLE_MAPS_URL);
+        SocialLink socialLink = socialLink(5L, "Instagram", "https://instagram.com/plishka");
+        ContactsPageContentDto contentDto = new ContactsPageContentDto("+380", "mail@test.com", "Address", GOOGLE_MAPS_URL);
         AdminContactsPageSocialLinkDto socialLinkDto =
-                new AdminContactsPageSocialLinkDto(5L, "Instagram", "https://instagram.com", 1);
+                new AdminContactsPageSocialLinkDto(5L, "Instagram", "https://instagram.com/plishka");
 
         when(contactsPageRepository.findById(CONTENT_ID)).thenReturn(Optional.of(contactsPage));
-        when(socialLinkRepository.findAllByContactsPageIdOrderByDisplayOrderAsc(CONTENT_ID))
+        when(socialLinkRepository.findAllByContactsPageIdOrderByUpdatedAtDescIdDesc(CONTENT_ID))
                 .thenReturn(List.of(socialLink));
         when(contactsPageMapper.toContentDto(contactsPage)).thenReturn(contentDto);
         when(contactsPageMapper.toAdminSocialLinkDto(socialLink)).thenReturn(socialLinkDto);
@@ -68,30 +69,30 @@ class AdminContactsPageServiceImplTest {
 
     @Test
     void updateContactsPageContent_ShouldPersistNormalizedContent() {
-        ContactsPage contactsPage = contactsPage("OLD@MAIL.COM", "Old address", " https://maps");
+        ContactsPage contactsPage = contactsPage("OLD@MAIL.COM", "Old address", " https://maps.google.com/?q=old");
         givenContactsPageLocked(contactsPage);
         when(contactsPageRepository.saveAndFlush(contactsPage)).thenReturn(contactsPage);
         when(contactsPageMapper.toContentDto(contactsPage)).thenReturn(
-                new ContactsPageContentDto("+380501234567", "new@mail.com", "New address", "https://maps.example")
+                new ContactsPageContentDto("+380501234567", "new@mail.com", "New address", GOOGLE_MAPS_URL)
         );
 
         service.updateContactsPageContent(new AdminContactsPageContentRequestDto(
                 "+380501234567",
                 "NEW@MAIL.COM",
                 "New address",
-                "https://maps.example"
+                GOOGLE_MAPS_URL
         ));
 
         assertEquals("+380501234567", contactsPage.getPhoneNumber());
         assertEquals("new@mail.com", contactsPage.getEmail());
         assertEquals("New address", contactsPage.getAddress());
-        assertEquals("https://maps.example", contactsPage.getGoogleMapsUrl());
+        assertEquals(GOOGLE_MAPS_URL, contactsPage.getGoogleMapsUrl());
         verify(contactsPageMapper).toContentDto(contactsPage);
     }
 
     @Test
     void updateContactsPageContent_ShouldNormalizeBlankOptionalFieldsToNull() {
-        ContactsPage contactsPage = contactsPage("mail@test.com", "Address", "https://maps");
+        ContactsPage contactsPage = contactsPage("mail@test.com", "Address", GOOGLE_MAPS_URL);
         givenContactsPageLocked(contactsPage);
         when(contactsPageRepository.saveAndFlush(contactsPage)).thenReturn(contactsPage);
 
@@ -104,11 +105,11 @@ class AdminContactsPageServiceImplTest {
     }
 
     @Test
-    void createSocialLink_ShouldAssignNextDisplayOrder() {
-        givenContactsPageLocked(contactsPage("mail@test.com", "Address", "https://maps"));
+    void createSocialLink_ShouldPersistNormalizedState() {
+        givenContactsPageLocked(contactsPage("mail@test.com", "Address", GOOGLE_MAPS_URL));
         givenExistingSocialLinks(
-                socialLink(1L, 1, "Facebook", "https://facebook.com"),
-                socialLink(2L, 2, "Twitter", "https://twitter.com")
+                socialLink(1L, "Facebook", "https://facebook.com/plishka"),
+                socialLink(2L, "Twitter", "https://twitter.com/plishka")
         );
         when(socialLinkRepository.saveAndFlush(any(SocialLink.class))).thenAnswer(invocation -> {
             SocialLink socialLink = invocation.getArgument(0);
@@ -120,8 +121,7 @@ class AdminContactsPageServiceImplTest {
             return new AdminContactsPageSocialLinkDto(
                     savedSocialLink.getId(),
                     savedSocialLink.getName(),
-                    savedSocialLink.getUrl(),
-                    savedSocialLink.getDisplayOrder()
+                    savedSocialLink.getUrl()
             );
         });
 
@@ -133,17 +133,16 @@ class AdminContactsPageServiceImplTest {
         assertEquals("Instagram", savedSocialLink.getName());
         assertEquals("https://instagram.com/plishka", savedSocialLink.getUrl());
         assertEquals(CONTENT_ID, savedSocialLink.getContactsPageId());
-        assertEquals(3, savedSocialLink.getDisplayOrder());
     }
 
     @Test
     void createSocialLink_ShouldRejectWhenLimitReached() {
-        givenContactsPageLocked(contactsPage("mail@test.com", "Address", "https://maps"));
+        givenContactsPageLocked(contactsPage("mail@test.com", "Address", GOOGLE_MAPS_URL));
         givenSocialLinksAtCapacity();
 
         assertThrows(
                 BadRequestException.class,
-                () -> service.createSocialLink(new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com"))
+                () -> service.createSocialLink(new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com/plishka"))
         );
 
         verify(socialLinkRepository, never()).saveAndFlush(any());
@@ -156,7 +155,7 @@ class AdminContactsPageServiceImplTest {
         assertThrows(
                 ResourceNotFoundException.class,
                 () -> service.createSocialLink(
-                        new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com")
+                        new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com/plishka")
                 )
         );
 
@@ -165,11 +164,11 @@ class AdminContactsPageServiceImplTest {
 
     @Test
     void updateSocialLink_ShouldPersistNormalizedState() {
-        SocialLink socialLink = socialLink(5L, 1, "Old name", "https://old.example");
+        SocialLink socialLink = socialLink(5L, "Old name", "https://instagram.com/old");
         givenSocialLinkLocked(5L, socialLink);
         when(socialLinkRepository.saveAndFlush(socialLink)).thenReturn(socialLink);
         when(contactsPageMapper.toAdminSocialLinkDto(socialLink)).thenReturn(
-                new AdminContactsPageSocialLinkDto(5L, "Telegram", "https://t.me/plishka", 1)
+                new AdminContactsPageSocialLinkDto(5L, "Telegram", "https://t.me/plishka")
         );
 
         service.updateSocialLink(5L, new AdminContactsPageSocialLinkRequestDto("Telegram", " https://t.me/plishka "));
@@ -180,7 +179,7 @@ class AdminContactsPageServiceImplTest {
 
     @Test
     void deleteSocialLink_ShouldRemoveSocialLink() {
-        SocialLink socialLink = socialLink(7L, 2, "Instagram", "https://instagram.com");
+        SocialLink socialLink = socialLink(7L, "Instagram", "https://instagram.com/plishka");
         givenSocialLinkLocked(7L, socialLink);
 
         service.deleteSocialLink(7L);
@@ -197,13 +196,13 @@ class AdminContactsPageServiceImplTest {
                 ResourceNotFoundException.class,
                 () -> service.updateSocialLink(
                         99L,
-                        new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com")
+                        new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com/plishka")
                 )
         );
     }
 
     private void givenExistingSocialLinks(SocialLink... socialLinks) {
-        when(socialLinkRepository.findAllByContactsPageIdForUpdateOrderByDisplayOrder(CONTENT_ID))
+        when(socialLinkRepository.findAllByContactsPageIdForUpdateOrderByUpdatedAtDescIdDesc(CONTENT_ID))
                 .thenReturn(List.of(socialLinks));
     }
 
@@ -211,12 +210,11 @@ class AdminContactsPageServiceImplTest {
         List<SocialLink> socialLinks = IntStream.rangeClosed(1, 20)
                 .mapToObj(index -> socialLink(
                         (long) index,
-                        index,
                         "Link " + index,
                         "https://example.com/" + index
                 ))
                 .toList();
-        when(socialLinkRepository.findAllByContactsPageIdForUpdateOrderByDisplayOrder(CONTENT_ID))
+        when(socialLinkRepository.findAllByContactsPageIdForUpdateOrderByUpdatedAtDescIdDesc(CONTENT_ID))
                 .thenReturn(socialLinks);
     }
 
@@ -248,10 +246,9 @@ class AdminContactsPageServiceImplTest {
         return contactsPage;
     }
 
-    private static SocialLink socialLink(Long id, int displayOrder, String name, String url) {
+    private static SocialLink socialLink(Long id, String name, String url) {
         SocialLink socialLink = new SocialLink();
         socialLink.setId(id);
-        socialLink.setDisplayOrder(displayOrder);
         socialLink.setName(name);
         socialLink.setUrl(url);
         socialLink.setContactsPageId(CONTENT_ID);

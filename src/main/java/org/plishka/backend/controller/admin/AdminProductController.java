@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.admin.common.BulkOperationResultDto;
 import org.plishka.backend.dto.admin.home.HomeProductsRequestDto;
 import org.plishka.backend.dto.admin.product.AdminProductDetailDto;
-import org.plishka.backend.dto.admin.product.AdminProductListRequestDto;
 import org.plishka.backend.dto.admin.product.AdminProductRequestDto;
+import org.plishka.backend.dto.admin.product.AdminProductSearchRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductCategoryRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductDeleteRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductPriceRequestDto;
@@ -38,7 +38,7 @@ public class AdminProductController {
 
     @GetMapping
     public PageResponse<AdminProductDetailDto> getProducts(
-            @Valid @ModelAttribute AdminProductListRequestDto productRequest,
+            @Valid @ModelAttribute AdminProductSearchRequestDto productRequest,
             @Valid @ModelAttribute PaginationRequestDto paginationRequest
     ) {
         return adminProductService.getProducts(

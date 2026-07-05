@@ -33,7 +33,6 @@ class HomePageControllerTest extends BaseControllerTest {
     void getHomePage_ShouldReturnHomePageDataAndStatus200() throws Exception {
         HomePageResponse mockResponse = new HomePageResponse(
                 new HomePageContentDto("Головна", "Опис головної"),
-                List.of(),
                 List.of(new HomePageProductDto(
                         1L,
                         "Garden bench",
@@ -50,7 +49,6 @@ class HomePageControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.title").value("Головна"))
                 .andExpect(jsonPath("$.content.description").value("Опис головної"))
-                .andExpect(jsonPath("$.advantages").isArray())
                 .andExpect(jsonPath("$.products").isArray())
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[0].name").value("Garden bench"))

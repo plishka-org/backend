@@ -4,17 +4,12 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
-import org.plishka.backend.controller.admin.AdminReviewController;
 import org.plishka.backend.dto.common.PageResponse;
-import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.dto.review.ReviewDetailDto;
 import org.plishka.backend.dto.review.ReviewMediaDto;
 import org.plishka.backend.dto.review.ReviewMediaPreviewDto;
 import org.plishka.backend.dto.review.ReviewSummaryDto;
-import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
-import org.plishka.backend.service.admin.review.AdminReviewMediaService;
-import org.plishka.backend.service.admin.review.AdminReviewService;
 import org.plishka.backend.service.review.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -25,23 +20,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.ObjectMapper;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.plishka.backend.domain.media.MediaType.IMAGE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({ReviewController.class, AdminReviewController.class})
+@WebMvcTest(ReviewController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class ReviewControllerTest extends BaseControllerTest {
     private static final String REVIEWS_ENDPOINT = "/reviews";
     private static final String REVIEW_DETAILS_ENDPOINT = "/reviews/{id}";
-    private static final String ATTACH_MEDIA_ENDPOINT = "/admin/reviews/{id}/media/attach";
 
     private static final Long REVIEW_ID = 1L;
     private static final Long REVIEW_MEDIA_ID = 5L;
@@ -57,11 +46,7 @@ class ReviewControllerTest extends BaseControllerTest {
     private static final Instant CREATED_AT = Instant.parse("2026-04-15T10:00:00Z");
     private static final String REVIEW_MEDIA_KEY =
             "reviews/1/images/2026/05/550e8400-e29b-41d4-a716-446655440000.jpg";
-    private static final String NOT_FOUND_REVIEW_MEDIA_KEY =
-            "reviews/999/images/2026/05/550e8400-e29b-41d4-a716-446655440001.jpg";
-    private static final String BLANK_S3_KEY = "";
     private static final String REVIEW_NOT_FOUND_MESSAGE = "Review not found";
-    private static final String MEDIA_ALREADY_ATTACHED_MESSAGE = "This media file is already attached.";
 
     @Autowired
     private MockMvc mockMvc;
@@ -71,12 +56,6 @@ class ReviewControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private ReviewService reviewService;
-
-    @MockitoBean
-    private AdminReviewService adminReviewService;
-
-    @MockitoBean
-    private AdminReviewMediaService adminReviewMediaService;
 
     @Test
     void getReviews_ShouldReturnPaginatedReviewsAndStatus200() throws Exception {
@@ -123,46 +102,6 @@ class ReviewControllerTest extends BaseControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void attachMedia_ShouldReturn200_WhenRequestIsValid() throws Exception {
-        AttachMediaRequestDto request = attachMediaRequest(REVIEW_MEDIA_KEY);
-
-        performAttachMedia(REVIEW_ID, request)
-                .andExpect(status().isOk());
-
-        verify(adminReviewService).attachMedia(eq(REVIEW_ID), any(AttachMediaRequestDto.class));
-    }
-
-    @Test
-    void attachMedia_ShouldReturn400_WhenS3KeyIsBlank() throws Exception {
-        AttachMediaRequestDto request = attachMediaRequest(BLANK_S3_KEY);
-
-        performAttachMedia(REVIEW_ID, request)
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void attachMedia_ShouldReturn404_WhenReviewNotFound() throws Exception {
-        AttachMediaRequestDto request = attachMediaRequest(NOT_FOUND_REVIEW_MEDIA_KEY);
-
-        doThrow(new ResourceNotFoundException(REVIEW_NOT_FOUND_MESSAGE))
-                .when(adminReviewService).attachMedia(eq(NOT_FOUND_REVIEW_ID), any(AttachMediaRequestDto.class));
-
-        performAttachMedia(NOT_FOUND_REVIEW_ID, request)
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void attachMedia_ShouldReturn400_WhenMediaAlreadyAttached() throws Exception {
-        AttachMediaRequestDto request = attachMediaRequest(REVIEW_MEDIA_KEY);
-
-        doThrow(new BadRequestException(MEDIA_ALREADY_ATTACHED_MESSAGE))
-                .when(adminReviewService).attachMedia(eq(REVIEW_ID), any(AttachMediaRequestDto.class));
-
-        performAttachMedia(REVIEW_ID, request)
-                .andExpect(status().isBadRequest());
-    }
-
     private ResultActions performGetReviews(int page, int size) throws Exception {
         return mockMvc.perform(get(REVIEWS_ENDPOINT)
                 .param("page", String.valueOf(page))
@@ -173,12 +112,6 @@ class ReviewControllerTest extends BaseControllerTest {
     private ResultActions performGetReview(Long reviewId) throws Exception {
         return mockMvc.perform(get(REVIEW_DETAILS_ENDPOINT, reviewId)
                 .contentType(MediaType.APPLICATION_JSON));
-    }
-
-    private ResultActions performAttachMedia(Long reviewId, AttachMediaRequestDto request) throws Exception {
-        return mockMvc.perform(post(ATTACH_MEDIA_ENDPOINT, reviewId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)));
     }
 
     private static PageResponse<ReviewSummaryDto> reviewPageResponse() {
@@ -228,9 +161,5 @@ class ReviewControllerTest extends BaseControllerTest {
                 true,
                 DISPLAY_ORDER
         );
-    }
-
-    private static AttachMediaRequestDto attachMediaRequest(String s3Key) {
-        return new AttachMediaRequestDto(s3Key);
     }
 }

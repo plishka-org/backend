@@ -64,7 +64,7 @@ class AdminAboutPageServiceImplTest {
     void getAboutPage_ShouldReturnMappedAboutPage() {
         AboutPageContent content = content();
         AboutPageMedia mediaEntity = media(5L, 1, ABOUT_MEDIA_KEY);
-        AboutPageContentDto contentDto = new AboutPageContentDto("History", "History text", "Current", "Current text");
+        AboutPageContentDto contentDto = new AboutPageContentDto("Main", "Main sub", "Secondary", "Secondary sub");
         AdminAboutPageMediaDto mediaDto = new AdminAboutPageMediaDto(5L, ABOUT_MEDIA_KEY, MediaType.IMAGE, 1);
 
         when(contentRepository.findById(CONTENT_ID)).thenReturn(Optional.of(content));
@@ -84,20 +84,20 @@ class AdminAboutPageServiceImplTest {
         givenContentLocked(content);
         when(contentRepository.saveAndFlush(content)).thenReturn(content);
         when(aboutPageMapper.toContentDto(content)).thenReturn(
-                new AboutPageContentDto("History title", "History text", "Current title", "Current text")
+                new AboutPageContentDto("Main title", "Main subtitle", "Secondary title", "Secondary subtitle")
         );
 
         service.updateAboutPageContent(new AdminAboutPageContentRequestDto(
-                "  History title  ",
-                "  History text  ",
-                "  Current title  ",
-                "  Current text  "
+                "Main title",
+                "Main subtitle",
+                "Secondary title",
+                "Secondary subtitle"
         ));
 
-        assertEquals("History title", content.getHistoryTitle());
-        assertEquals("History text", content.getHistoryText());
-        assertEquals("Current title", content.getCurrentTitle());
-        assertEquals("Current text", content.getCurrentText());
+        assertEquals("Main title", content.getMainTitle());
+        assertEquals("Main subtitle", content.getMainSubtitle());
+        assertEquals("Secondary title", content.getSecondaryTitle());
+        assertEquals("Secondary subtitle", content.getSecondarySubtitle());
         verify(aboutPageMapper).toContentDto(content);
     }
 
@@ -196,10 +196,10 @@ class AdminAboutPageServiceImplTest {
     private static AboutPageContent content() {
         AboutPageContent content = new AboutPageContent();
         content.setId(CONTENT_ID);
-        content.setHistoryTitle("History");
-        content.setHistoryText("History text");
-        content.setCurrentTitle("Current");
-        content.setCurrentText("Current text");
+        content.setMainTitle("Main");
+        content.setMainSubtitle("Main sub");
+        content.setSecondaryTitle("Secondary");
+        content.setSecondarySubtitle("Secondary sub");
         return content;
     }
 

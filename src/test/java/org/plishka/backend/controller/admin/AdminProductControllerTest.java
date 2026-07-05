@@ -6,7 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.plishka.backend.controller.BaseControllerTest;
 import org.plishka.backend.dto.admin.common.BulkOperationResultDto;
 import org.plishka.backend.dto.admin.product.AdminProductDetailDto;
-import org.plishka.backend.dto.admin.product.AdminProductListRequestDto;
+import org.plishka.backend.dto.admin.product.AdminProductSearchRequestDto;
 import org.plishka.backend.dto.admin.product.AdminProductRequestDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.dto.product.CategoryDto;
@@ -78,10 +78,10 @@ class AdminProductControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.content[0].productId").value(PRODUCT_ID))
                 .andExpect(jsonPath("$.content[0].media[0].mediaType").value("IMAGE"));
 
-        ArgumentCaptor<AdminProductListRequestDto> requestCaptor =
-                ArgumentCaptor.forClass(AdminProductListRequestDto.class);
+        ArgumentCaptor<AdminProductSearchRequestDto> requestCaptor =
+                ArgumentCaptor.forClass(AdminProductSearchRequestDto.class);
         verify(adminProductService).getProducts(requestCaptor.capture(), eq(2), eq(10));
-        AdminProductListRequestDto request = requestCaptor.getValue();
+        AdminProductSearchRequestDto request = requestCaptor.getValue();
         assertEquals(List.of(1L), request.categoryIds());
         assertEquals(true, request.uncategorized());
         assertEquals("bench", request.search());

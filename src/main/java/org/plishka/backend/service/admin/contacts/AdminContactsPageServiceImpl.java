@@ -37,7 +37,7 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
     public AdminContactsPageDto getContactsPage() {
         ContactsPage contactsPage = findContactsPageOrThrow();
         List<AdminContactsPageSocialLinkDto> socialLinks =
-                socialLinkRepository.findAllByContactsPageIdOrderByDisplayOrderAsc(SINGLETON_CONTENT_ID)
+                socialLinkRepository.findAllByContactsPageIdOrderByUpdatedAtDescIdDesc(SINGLETON_CONTENT_ID)
                         .stream()
                         .map(contactsPageMapper::toAdminSocialLinkDto)
                         .toList();
@@ -52,7 +52,7 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
         contactsPage.setPhoneNumber(UserInputNormalizer.normalizePhone(request.phoneNumber()));
         contactsPage.setEmail(normalizeOptionalEmail(request.email()));
         contactsPage.setAddress(normalizeOptionalText(request.address()));
-        contactsPage.setGoogleMapsUrl(normalizeOptionalText(request.googleMapsUrl()));
+        contactsPage.setGoogleMapsUrl(normalizeOptionalUrl(request.googleMapsUrl()));
 
         return contactsPageMapper.toContentDto(contactsPageRepository.saveAndFlush(contactsPage));
     }
@@ -61,12 +61,11 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
     @Transactional
     public AdminContactsPageSocialLinkDto createSocialLink(AdminContactsPageSocialLinkRequestDto request) {
         findContactsPageForUpdateOrThrow();
-        List<SocialLink> existingSocialLinks = loadSocialLinksForUpdateOrThrowCapacity();
+        requireSocialLinkCapacityAvailable();
 
         SocialLink socialLink = new SocialLink();
         applySocialLinkState(socialLink, request);
         socialLink.setContactsPageId(SINGLETON_CONTENT_ID);
-        socialLink.setDisplayOrder(resolveNextDisplayOrder(existingSocialLinks));
 
         return contactsPageMapper.toAdminSocialLinkDto(socialLinkRepository.saveAndFlush(socialLink));
     }
@@ -92,26 +91,17 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
         socialLinkRepository.flush();
     }
 
-    private List<SocialLink> loadSocialLinksForUpdateOrThrowCapacity() {
+    private void requireSocialLinkCapacityAvailable() {
         List<SocialLink> socialLinks =
-                socialLinkRepository.findAllByContactsPageIdForUpdateOrderByDisplayOrder(SINGLETON_CONTENT_ID);
+                socialLinkRepository.findAllByContactsPageIdForUpdateOrderByUpdatedAtDescIdDesc(SINGLETON_CONTENT_ID);
         if (socialLinks.size() >= MAX_SOCIAL_LINKS) {
             throw new BadRequestException(SOCIAL_LINK_LIMIT_MESSAGE.formatted(MAX_SOCIAL_LINKS));
         }
-
-        return socialLinks;
-    }
-
-    private int resolveNextDisplayOrder(List<SocialLink> socialLinks) {
-        return socialLinks.stream()
-                .mapToInt(SocialLink::getDisplayOrder)
-                .max()
-                .orElse(0) + 1;
     }
 
     private void applySocialLinkState(SocialLink socialLink, AdminContactsPageSocialLinkRequestDto request) {
         socialLink.setName(UserInputNormalizer.normalizeName(request.name()));
-        socialLink.setUrl(UserInputNormalizer.normalizeName(request.url()));
+        socialLink.setUrl(request.url().trim());
     }
 
     private String normalizeOptionalEmail(String email) {
@@ -128,6 +118,14 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
         }
 
         return UserInputNormalizer.normalizeName(value);
+    }
+
+    private String normalizeOptionalUrl(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+
+        return value.trim();
     }
 
     private ContactsPage findContactsPageOrThrow() {

@@ -12,16 +12,16 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SocialLinkRepository extends JpaRepository<SocialLink, Long> {
-    List<SocialLink> findAllByContactsPageIdOrderByDisplayOrderAsc(Long contactsPageId);
+    List<SocialLink> findAllByContactsPageIdOrderByUpdatedAtDescIdDesc(Long contactsPageId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select s
             from SocialLink s
             where s.contactsPageId = :contactsPageId
-            order by s.displayOrder asc, s.id asc
+            order by s.updatedAt desc, s.id desc
             """)
-    List<SocialLink> findAllByContactsPageIdForUpdateOrderByDisplayOrder(
+    List<SocialLink> findAllByContactsPageIdForUpdateOrderByUpdatedAtDescIdDesc(
             @Param("contactsPageId") Long contactsPageId
     );
 
