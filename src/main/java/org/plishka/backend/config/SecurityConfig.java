@@ -1,10 +1,12 @@
 package org.plishka.backend.config;
 
 import lombok.RequiredArgsConstructor;
+import org.plishka.backend.ratelimit.RateLimitFilter;
 import org.plishka.backend.security.ActiveUserAuthorizationManager;
 import org.plishka.backend.security.CustomAccessDeniedHandler;
 import org.plishka.backend.security.CustomAuthenticationEntryPoint;
 import org.plishka.backend.security.JwtAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -28,6 +30,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final ActiveUserAuthorizationManager activeUserAuthorizationManager;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
@@ -83,7 +86,8 @@ public class SecurityConfig {
                         .anyRequest().access(activeUserAuthorizationManager)
                 )
                 .addFilterBefore(
-                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -91,5 +95,15 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
+            JwtAuthenticationFilter filter
+    ) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

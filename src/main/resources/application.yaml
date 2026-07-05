@@ -48,7 +48,9 @@ spring:
     time-zone: UTC
 
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - optional:file:.env[.properties]
+      - classpath:rate-limit-policies.yaml
 
 resend:
   api-key: ${RESEND_API_KEY}
@@ -72,6 +74,11 @@ backend:
     unverified-user-ttl: ${BACKEND_CLEANUP_UNVERIFIED_USER_TTL}
   admin:
     email: ${BACKEND_ADMIN_EMAIL}
+  rate-limit:
+    enabled: ${BACKEND_RATE_LIMIT_ENABLED:true}
+    cache:
+      expire-after-access: ${BACKEND_RATE_LIMIT_CACHE_EXPIRE_AFTER_ACCESS:24h}
+      maximum-size: ${BACKEND_RATE_LIMIT_CACHE_MAXIMUM_SIZE:100000}
 
 frontend:
   base-url: ${FRONTEND_BASE_URL}

@@ -30,12 +30,13 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponseDto errorResponse = new ErrorResponseDto(
-                Instant.now(clock),
-                HttpStatus.FORBIDDEN.value(),
-                HttpStatus.FORBIDDEN.getReasonPhrase(),
-                "You do not have permission to access this resource",
-                request.getRequestURI());
+        ErrorResponseDto errorResponse = ErrorResponseDto.builder()
+                .timestamp(Instant.now(clock))
+                .status(HttpStatus.FORBIDDEN.value())
+                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                .message("You do not have permission to access this resource")
+                .path(request.getRequestURI())
+                .build();
 
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }

@@ -30,12 +30,13 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponseDto errorResponse = new ErrorResponseDto(
-                Instant.now(clock),
-                HttpStatus.UNAUTHORIZED.value(),
-                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
-                "Invalid or missing credentials",
-                request.getRequestURI());
+        ErrorResponseDto errorResponse = ErrorResponseDto.builder()
+                .timestamp(Instant.now(clock))
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .message("Invalid or missing credentials")
+                .path(request.getRequestURI())
+                .build();
 
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }

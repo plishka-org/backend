@@ -38,6 +38,8 @@ backend:
     unverified-user-ttl: 24h
   admin:
     email: admin@example.com
+  rate-limit:
+    enabled: false
 
 frontend:
   base-url: http://localhost:3000
