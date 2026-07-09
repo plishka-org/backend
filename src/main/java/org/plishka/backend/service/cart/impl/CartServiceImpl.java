@@ -239,7 +239,7 @@ public class CartServiceImpl implements CartService {
 
     private Cart getLockedCartAggregate(Long userId) {
         cartRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user id=" + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user ID " + userId));
         return loadCartAggregateOrThrow(userId);
     }
 

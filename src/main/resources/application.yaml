@@ -52,6 +52,16 @@ spring:
       - optional:file:.env[.properties]
       - classpath:rate-limit-policies.yaml
 
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
+    tags-sorter: alpha
+  packages-to-scan: org.plishka.backend.controller
+  paths-to-exclude:
+    - /error
+
 resend:
   api-key: ${RESEND_API_KEY}
   from-email: ${RESEND_FROM_EMAIL}

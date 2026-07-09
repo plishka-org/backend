@@ -1,5 +1,6 @@
 package org.plishka.backend.domain.media;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Arrays;
 import java.util.Optional;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
+@Schema(description = "Media type: IMAGE or VIDEO.")
 public enum MediaType {
     IMAGE("images"),
     VIDEO("videos");
