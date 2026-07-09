@@ -67,7 +67,7 @@ public class HomePageServiceImpl implements HomePageService {
     }
 
     private List<HomePageProductDto> getHomePageProducts() {
-        List<HomePageProduct> homePageProducts = homePageProductRepository.findAllByOrderByDisplayOrderAsc();
+        List<HomePageProduct> homePageProducts = homePageProductRepository.findAllVisibleByOrderByDisplayOrderAsc();
         Map<Long, ProductMedia> primaryMediaByProductId = productMediaQueryService.findPrimaryMediaForProducts(
                 extractProducts(homePageProducts)
         );

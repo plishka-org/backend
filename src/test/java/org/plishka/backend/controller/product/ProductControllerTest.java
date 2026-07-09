@@ -36,6 +36,7 @@ class ProductControllerTest extends BaseControllerTest {
     private static final long PRODUCT_ID = 10L;
     private static final long RELATED_PRODUCT_ID = 11L;
     private static final long NOT_FOUND_PRODUCT_ID = 999L;
+    private static final long UNCATEGORIZED_PRODUCT_ID = 777L;
     private static final long PRODUCT_CATEGORY_ID = 1L;
     private static final long RELATED_PRODUCT_CATEGORY_ID = 2L;
     private static final long PRODUCT_MEDIA_ID = 5L;
@@ -182,6 +183,16 @@ class ProductControllerTest extends BaseControllerTest {
                 .thenThrow(new ResourceNotFoundException("Product not found"));
 
         mockMvc.perform(get("/products/{id}", NOT_FOUND_PRODUCT_ID)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getProduct_ShouldReturn404_WhenProductIsNotPubliclyVisible() throws Exception {
+        when(productService.getProduct(UNCATEGORIZED_PRODUCT_ID))
+                .thenThrow(new ResourceNotFoundException("Product with ID 777 not found"));
+
+        mockMvc.perform(get("/products/{id}", UNCATEGORIZED_PRODUCT_ID)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }

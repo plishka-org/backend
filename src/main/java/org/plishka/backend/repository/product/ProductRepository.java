@@ -23,11 +23,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Page<Product> findAll(org.springframework.data.jpa.domain.Specification<Product> specification, Pageable pageable);
 
     @EntityGraph(attributePaths = "category")
-    @Query("SELECT p FROM Product p")
-    Page<Product> findAllWithCategory(Pageable pageable);
+    @Query("SELECT p FROM Product p WHERE p.category IS NOT NULL")
+    Page<Product> findAllVisibleWithCategory(Pageable pageable);
 
     @EntityGraph(attributePaths = "category")
     Page<Product> findAllByCategory_IdIn(Collection<Long> categoryIds, Pageable pageable);
+
+    @EntityGraph(attributePaths = "category")
+    @Query("SELECT p FROM Product p WHERE p.id = :id AND p.category IS NOT NULL")
+    Optional<Product> findVisibleByIdWithCategory(@Param("id") Long id);
 
     @EntityGraph(attributePaths = "category")
     @Query("SELECT p FROM Product p WHERE p.id = :id")
@@ -39,6 +43,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @EntityGraph(attributePaths = {"category", "media"})
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findDetailsById(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"category", "media"})
+    @Query("SELECT p FROM Product p WHERE p.id = :id AND p.category IS NOT NULL")
+    Optional<Product> findVisibleDetailsById(@Param("id") Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
@@ -72,7 +80,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             where p.id in :ids
             order by p.id
             """)
-    List<Product> findAllWithCategoryByIdInOrderById(@Param("ids") Collection<Long> ids);
+    List<Product> findAllByIdInWithCategoryOrderById(@Param("ids") Collection<Long> ids);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""

@@ -12,7 +12,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     @EntityGraph(attributePaths = {"product", "product.category"})
-    Page<Favorite> findAllByUser_Id(Long userId, Pageable pageable);
+    @Query("""
+            select f
+            from Favorite f
+            where f.user.id = :userId
+              and f.product.category is not null
+            """)
+    Page<Favorite> findAllVisibleByUserId(@Param("userId") Long userId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"product", "product.category"})
     Optional<Favorite> findByUser_IdAndProduct_Id(Long userId, Long productId);

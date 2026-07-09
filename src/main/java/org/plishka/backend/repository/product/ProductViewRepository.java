@@ -13,7 +13,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProductViewRepository extends JpaRepository<ProductView, Long> {
     @EntityGraph(attributePaths = {"product", "product.category"})
-    List<ProductView> findAllByUser_IdOrderByViewedAtDescIdDesc(Long userId);
+    @Query("""
+            select pv
+            from ProductView pv
+            where pv.user.id = :userId
+              and pv.product.category is not null
+            order by pv.viewedAt desc, pv.id desc
+            """)
+    List<ProductView> findAllVisibleByUserIdOrderByViewedAtDescIdDesc(@Param("userId") Long userId);
 
     @EntityGraph(attributePaths = {"product", "product.category"})
     Optional<ProductView> findByUser_IdAndProduct_Id(Long userId, Long productId);

@@ -51,7 +51,7 @@ public class ProductViewServiceImpl implements ProductViewService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductViewDto> getViewedProducts(Long userId) {
-        List<ProductView> recentViews = productViewRepository.findAllByUser_IdOrderByViewedAtDescIdDesc(userId);
+        List<ProductView> recentViews = productViewRepository.findAllVisibleByUserIdOrderByViewedAtDescIdDesc(userId);
         return productViewDtoAssembler.toDtos(recentViews);
     }
 
@@ -108,7 +108,7 @@ public class ProductViewServiceImpl implements ProductViewService {
     }
 
     private Product findProductByIdOrThrow(Long productId) {
-        return productRepository.findByIdWithCategory(productId)
+        return productRepository.findVisibleByIdWithCategory(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 

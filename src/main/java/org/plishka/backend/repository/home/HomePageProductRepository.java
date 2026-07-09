@@ -14,7 +14,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface HomePageProductRepository extends JpaRepository<HomePageProduct, Long> {
     @EntityGraph(attributePaths = {"product", "product.category"})
-    List<HomePageProduct> findAllByOrderByDisplayOrderAsc();
+    @Query("""
+            select h
+            from HomePageProduct h
+            where h.product.category is not null
+            order by h.displayOrder
+            """)
+    List<HomePageProduct> findAllVisibleByOrderByDisplayOrderAsc();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

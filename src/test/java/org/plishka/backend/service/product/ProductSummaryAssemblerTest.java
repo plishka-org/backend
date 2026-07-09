@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.plishka.backend.domain.product.Category;
 import org.plishka.backend.domain.product.Product;
+import org.plishka.backend.dto.product.CategoryDto;
 import org.plishka.backend.dto.product.ProductSummaryDto;
 import org.plishka.backend.mapper.product.ProductMapper;
 
@@ -18,6 +20,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ProductSummaryAssemblerTest {
     private static final long PRODUCT_ID = 10L;
+    private static final long CATEGORY_ID = 5L;
     private static final long PRODUCT_PRICE = 450L;
 
     @Mock
@@ -43,7 +46,7 @@ class ProductSummaryAssemblerTest {
     @Test
     void toDtos_ShouldHidePrices_WhenShopModeIsDisabled() {
         Product product = product();
-        ProductSummaryDto summary = new ProductSummaryDto(PRODUCT_ID, product.getName(), null, null, null);
+        ProductSummaryDto summary = new ProductSummaryDto(PRODUCT_ID, product.getName(), categoryDto(), null, null);
 
         when(priceVisibilityPolicy.isCurrentPriceVisible()).thenReturn(false);
         when(productMediaQueryService.findPrimaryMediaForProducts(List.of(product))).thenReturn(Map.of());
@@ -62,6 +65,18 @@ class ProductSummaryAssemblerTest {
         product.setId(PRODUCT_ID);
         product.setName("Oak Garden Bench");
         product.setPrice(PRODUCT_PRICE);
+        product.setCategory(category());
         return product;
+    }
+
+    private Category category() {
+        Category category = new Category();
+        category.setId(CATEGORY_ID);
+        category.setName("Outdoor Tables and Benches");
+        return category;
+    }
+
+    private CategoryDto categoryDto() {
+        return new CategoryDto(CATEGORY_ID, "Outdoor Tables and Benches");
     }
 }

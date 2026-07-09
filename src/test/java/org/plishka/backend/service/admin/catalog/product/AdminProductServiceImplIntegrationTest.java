@@ -10,6 +10,8 @@ import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.domain.product.ProductMedia;
 import org.plishka.backend.dto.admin.common.SelectionMode;
 import org.plishka.backend.dto.admin.category.CategoryDeleteStrategy;
+import org.plishka.backend.dto.admin.product.AdminProductDetailDto;
+import org.plishka.backend.dto.admin.product.AdminProductSearchRequestDto;
 import org.plishka.backend.dto.admin.product.BulkProductPriceOperation;
 import org.plishka.backend.dto.admin.product.BulkProductPriceRequestDto;
 import org.plishka.backend.exception.BadRequestException;
@@ -29,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -71,6 +74,28 @@ class AdminProductServiceImplIntegrationTest {
 
         assertNull(findStoredCategoryId(product.getId()));
         assertEquals(0, countHomeRows(product.getId()));
+    }
+
+    @Test
+    void adminProducts_ShouldStillReturnUncategorizedProduct_WhenCategoryWasKept() {
+        Product product = createProductWithCategory("Admin Uncategorized Product", "Admin Deleted Category");
+        Long productId = product.getId();
+        Long categoryId = product.getCategory().getId();
+
+        adminCategoryService.deleteCategory(categoryId, CategoryDeleteStrategy.KEEP_PRODUCTS, null);
+        entityManager.flush();
+        entityManager.clear();
+
+        AdminProductDetailDto detail = adminProductService.getProduct(productId);
+        var page = adminProductService.getProducts(
+                new AdminProductSearchRequestDto(null, null, "Admin Uncategorized Product", null),
+                0,
+                16
+        );
+
+        assertNull(detail.category());
+        assertTrue(page.content().stream()
+                .anyMatch(item -> productId.equals(item.productId()) && item.category() == null));
     }
 
     @Test
