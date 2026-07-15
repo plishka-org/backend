@@ -70,6 +70,39 @@ server:
   servlet:
     context-path: /api
 
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9090}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+      slo:
+        "[http.server.requests]": 100ms,250ms,500ms,1s,2s,5s
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${APP_ENV:production}
+  release: ${SENTRY_RELEASE:${RAILWAY_GIT_COMMIT_SHA:${RAILWAY_DEPLOYMENT_ID:local}}}
+  server-name: ${SENTRY_SERVER_NAME:plishka-backend}
+  send-default-pii: false
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  logging:
+    enabled: false
+
 jwt:
   secret: ${JWT_ACCESS_SECRET}
   expiration: ${JWT_ACCESS_EXPIRATION}

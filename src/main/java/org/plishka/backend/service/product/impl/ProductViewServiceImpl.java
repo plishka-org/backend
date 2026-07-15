@@ -10,6 +10,8 @@ import org.plishka.backend.domain.product.ProductView;
 import org.plishka.backend.domain.user.User;
 import org.plishka.backend.dto.product.ProductViewDto;
 import org.plishka.backend.exception.ResourceNotFoundException;
+import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
+import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.product.ProductViewRepository;
 import org.plishka.backend.service.product.ProductViewDtoAssembler;
@@ -26,26 +28,39 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductViewServiceImpl implements ProductViewService {
     private static final int RECENT_PRODUCT_VIEW_LIMIT = 10;
     private static final String PRODUCT_VIEWS_USER_PRODUCT_CONSTRAINT = "uk_product_views_user_product";
+    private static final String OUTCOME_FAILURE = "failure";
+    private static final String OUTCOME_SUCCESS = "success";
 
     private final ProductViewRepository productViewRepository;
     private final ProductRepository productRepository;
     private final EligibleUserProvider eligibleUserProvider;
     private final ProductViewDtoAssembler productViewDtoAssembler;
     private final Clock clock;
+    private final BusinessMetricsRecorder businessMetricsRecorder;
+    private final TransactionalMetricsPublisher transactionalMetricsPublisher;
 
     @Override
     @Transactional
     public ProductViewDto recordProductView(Long userId, Long productId) {
-        User viewer = eligibleUserProvider.getEligibleUserOrThrow(userId);
-        Product viewedProduct = findProductByIdOrThrow(productId);
-        Instant viewedAt = Instant.now(clock);
+        try {
+            User viewer = eligibleUserProvider.getEligibleUserOrThrow(userId);
+            Product viewedProduct = findProductByIdOrThrow(productId);
+            Instant viewedAt = Instant.now(clock);
 
-        ProductView productView = recordOrRefreshProductView(viewer, viewedProduct, viewedAt);
-        enforceRecentViewLimit(viewer.getId());
+            final ProductView productView = recordOrRefreshProductView(viewer, viewedProduct, viewedAt);
+            enforceRecentViewLimit(viewer.getId());
 
-        log.info("Product view recorded: userId={}, productId={}", userId, productId);
+            transactionalMetricsPublisher.afterCompletionOrNow(
+                    () -> businessMetricsRecorder.recordProductViewRecord(OUTCOME_SUCCESS),
+                    () -> businessMetricsRecorder.recordProductViewRecord(OUTCOME_FAILURE)
+            );
+            log.info("Product view recorded: userId={}", userId);
 
-        return productViewDtoAssembler.toDto(productView);
+            return productViewDtoAssembler.toDto(productView);
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordProductViewRecord(OUTCOME_FAILURE);
+            throw exception;
+        }
     }
 
     @Override

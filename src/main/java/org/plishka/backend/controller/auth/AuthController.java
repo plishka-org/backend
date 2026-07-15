@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -72,21 +71,19 @@ public class AuthController {
             summary = "Verify email address",
             description = "Verifies an email action token and redirects to the configured frontend URL."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "302",
-                    description = "Email verified; Location redirects to frontend.",
-                    headers = @Header(
-                            name = HttpHeaders.LOCATION,
-                            description = "Frontend redirect URL.",
-                            schema = @Schema(type = "string", format = "uri")
-                    ),
-                    content = @Content
+    @ApiResponse(
+            responseCode = "302",
+            description = "Email verified; Location redirects to frontend.",
+            headers = @Header(
+                    name = HttpHeaders.LOCATION,
+                    description = "Frontend redirect URL.",
+                    schema = @Schema(type = "string", format = "uri")
             ),
-            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
-            @ApiResponse(responseCode = "429", ref = "#/components/responses/TooManyRequests"),
-            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalServerError")
-    })
+            content = @Content
+    )
+    @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest")
+    @ApiResponse(responseCode = "429", ref = "#/components/responses/TooManyRequests")
+    @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalServerError")
     @GetMapping("/verify")
     public ResponseEntity<Void> verifyEmail(
             @Parameter(

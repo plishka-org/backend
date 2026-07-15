@@ -2,7 +2,6 @@ package org.plishka.backend.controller.favorite;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -59,10 +58,8 @@ public class FavoriteController {
             summary = "Add product to favorites",
             description = "Requires an active user: authenticated, email verified, and not banned."
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Favorite was created."),
-            @ApiResponse(responseCode = "200", description = "Favorite already existed.")
-    })
+    @ApiResponse(responseCode = "201", description = "Favorite was created.")
+    @ApiResponse(responseCode = "200", description = "Favorite already existed.")
     @PostMapping("/{productId}")
     public ResponseEntity<FavoriteDto> addFavorite(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,

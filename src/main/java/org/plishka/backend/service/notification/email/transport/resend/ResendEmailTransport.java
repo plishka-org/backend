@@ -14,6 +14,7 @@ import org.plishka.backend.config.properties.ResendProperties;
 import org.plishka.backend.exception.InvalidEmailRecipientException;
 import org.plishka.backend.exception.NonRetryableEmailException;
 import org.plishka.backend.exception.RetryableEmailException;
+import org.plishka.backend.service.notification.email.EmailType;
 import org.plishka.backend.service.notification.email.transport.EmailTransport;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -41,7 +42,7 @@ public class ResendEmailTransport implements EmailTransport {
     }
 
     @Override
-    public void sendEmail(String to, String subject, String text) {
+    public void sendEmail(EmailType emailType, String to, String subject, String text) {
         if (!StringUtils.hasText(to)) {
             throw new InvalidEmailRecipientException("Email recipient must not be blank");
         }
@@ -55,7 +56,7 @@ public class ResendEmailTransport implements EmailTransport {
                     HttpResponse.BodyHandlers.ofString()
             );
 
-            throwIfRequestFailed(response, to, subject);
+            throwIfRequestFailed(response, emailType);
 
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -65,17 +66,16 @@ public class ResendEmailTransport implements EmailTransport {
         }
     }
 
-    private void throwIfRequestFailed(HttpResponse<String> response, String to, String subject) {
+    private void throwIfRequestFailed(HttpResponse<String> response, EmailType emailType) {
         int status = response.statusCode();
         if (isSuccessful(response)) {
             return;
         }
 
         log.warn(
-                "Resend email request failed: status={}, to={}, subject={}",
+                "Resend email request failed: status={}, emailType={}",
                 status,
-                to,
-                subject
+                emailType.getMetricValue()
         );
 
         if (status == 429 || status >= 500) {

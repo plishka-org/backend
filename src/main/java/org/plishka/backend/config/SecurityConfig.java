@@ -53,6 +53,8 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/actuator/health",
+                                "/actuator/prometheus",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs",
@@ -94,6 +96,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify",
+                                "/health",
                                 "/version",
                                 "/home",
                                 "/about",

@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.config.properties.RateLimitProperties;
+import org.plishka.backend.monitoring.metrics.RateLimitMetricsRecorder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +19,7 @@ public class RateLimitService {
 
     private final RateLimitProperties rateLimitProperties;
     private final Cache<String, Bucket> bucketCache;
+    private final RateLimitMetricsRecorder rateLimitMetricsRecorder;
 
     public RateLimitResult consume(List<RateLimitKey> keys) {
         if (!rateLimitProperties.enabled() || keys.isEmpty()) {
@@ -30,10 +32,14 @@ public class RateLimitService {
 
         Duration retryAfter = maxRetryAfter(buckets);
         if (!retryAfter.isZero()) {
-            return RateLimitResult.blockedResult(retryAfter);
+            RateLimitResult result = RateLimitResult.blockedResult(retryAfter);
+            recordDecision(keys, result);
+            return result;
         }
 
-        return consumeAll(buckets);
+        RateLimitResult result = consumeAll(buckets);
+        recordDecision(keys, result);
+        return result;
     }
 
     private Duration maxRetryAfter(List<Bucket> buckets) {
@@ -85,6 +91,13 @@ public class RateLimitService {
                 .refillGreedy(bandwidth.capacity(), bandwidth.period())
                 .build()));
         return builder.build();
+    }
+
+    private void recordDecision(List<RateLimitKey> keys, RateLimitResult result) {
+        String decision = result.allowed()
+                ? RateLimitMetricsRecorder.DECISION_ALLOWED
+                : RateLimitMetricsRecorder.DECISION_BLOCKED;
+        keys.forEach(key -> rateLimitMetricsRecorder.recordDecision(key.policy(), decision));
     }
 
     private List<RateLimitPolicy.BandwidthLimit> resolveBandwidths(RateLimitPolicy policy) {

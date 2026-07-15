@@ -10,6 +10,8 @@ import org.plishka.backend.dto.callback.CallbackRequestDto;
 import org.plishka.backend.dto.common.PageResponse;
 import org.plishka.backend.event.callback.CallbackRequestCreatedEvent;
 import org.plishka.backend.mapper.callback.CallbackRequestMapper;
+import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
+import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.callback.CallbackRequestRepository;
 import org.plishka.backend.service.callback.CallbackRequestService;
 import org.plishka.backend.service.user.EligibleUserProvider;
@@ -25,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class CallbackRequestServiceImpl implements CallbackRequestService {
+    private static final String OUTCOME_FAILURE = "failure";
+    private static final String OUTCOME_SUCCESS = "success";
+
     private static final Sort CALLBACK_REQUESTS_SORT = Sort.by(
             Sort.Order.desc("createdAt"),
             Sort.Order.desc("id")
@@ -34,33 +39,45 @@ public class CallbackRequestServiceImpl implements CallbackRequestService {
     private final EligibleUserProvider eligibleUserProvider;
     private final CallbackRequestMapper callbackRequestMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final BusinessMetricsRecorder businessMetricsRecorder;
+    private final TransactionalMetricsPublisher transactionalMetricsPublisher;
 
     @Override
     @Transactional
     public CallbackRequestDto createCallbackRequest(Long userId, CallbackRequestCreateDto request) {
-        User user = eligibleUserProvider.getEligibleUserOrThrow(userId);
+        try {
+            User user = eligibleUserProvider.getEligibleUserOrThrow(userId);
 
-        CallbackRequest callbackRequest = CallbackRequest.builder()
-                .user(user)
-                .name(UserInputNormalizer.normalizeName(request.name()))
-                .phone(UserInputNormalizer.normalizePhone(request.phone()))
-                .message(request.message().trim())
-                .build();
+            CallbackRequest callbackRequest = CallbackRequest.builder()
+                    .user(user)
+                    .name(UserInputNormalizer.normalizeName(request.name()))
+                    .phone(UserInputNormalizer.normalizePhone(request.phone()))
+                    .message(request.message().trim())
+                    .build();
 
-        CallbackRequest savedRequest = callbackRequestRepository.saveAndFlush(callbackRequest);
-        applicationEventPublisher.publishEvent(CallbackRequestCreatedEvent.builder()
-                .callbackRequestId(savedRequest.getId())
-                .userId(user.getId())
-                .userEmail(user.getEmail())
-                .name(savedRequest.getName())
-                .phone(savedRequest.getPhone())
-                .message(savedRequest.getMessage())
-                .createdAt(savedRequest.getCreatedAt())
-                .build());
+            CallbackRequest savedRequest = callbackRequestRepository.saveAndFlush(callbackRequest);
+            applicationEventPublisher.publishEvent(CallbackRequestCreatedEvent.builder()
+                    .callbackRequestId(savedRequest.getId())
+                    .userId(user.getId())
+                    .userEmail(user.getEmail())
+                    .name(savedRequest.getName())
+                    .phone(savedRequest.getPhone())
+                    .message(savedRequest.getMessage())
+                    .createdAt(savedRequest.getCreatedAt())
+                    .build());
 
-        log.info("Callback request created: callbackRequestId={}, userId={}", savedRequest.getId(), userId);
+            transactionalMetricsPublisher.afterCompletionOrNow(
+                    () -> businessMetricsRecorder.recordCallbackRequest(OUTCOME_SUCCESS),
+                    () -> businessMetricsRecorder.recordCallbackRequest(OUTCOME_FAILURE)
+            );
 
-        return callbackRequestMapper.toDto(savedRequest);
+            log.info("Callback request created: callbackRequestId={}, userId={}", savedRequest.getId(), userId);
+
+            return callbackRequestMapper.toDto(savedRequest);
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordCallbackRequest(OUTCOME_FAILURE);
+            throw exception;
+        }
     }
 
     @Override

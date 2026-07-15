@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,8 @@ import org.plishka.backend.dto.cart.UpdateCartItemRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.cart.CartItemMapper;
+import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
+import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.user.UserRepository;
@@ -53,12 +56,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CartServiceImpl implements CartService {
     private static final int MAX_ITEM_QUANTITY = 50;
+    private static final String CART_OPERATION_ADD = "add";
+    private static final String CART_OPERATION_CLEAR = "clear";
+    private static final String CART_OPERATION_MERGE = "merge";
+    private static final String CART_OPERATION_REMOVE = "remove";
+    private static final String CART_OPERATION_UPDATE = "update";
+    private static final String OUTCOME_ERROR = "error";
+    private static final String OUTCOME_SUCCESS = "success";
 
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final CartItemMapper cartItemMapper;
     private final ShopModeService shopModeService;
+    private final BusinessMetricsRecorder businessMetricsRecorder;
+    private final TransactionalMetricsPublisher transactionalMetricsPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,84 +91,94 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartSummaryDto addItem(Long userId, AddCartItemRequestDto requestDto) {
-        shopModeService.requireEnabled();
-        log.debug("Adding product id={} to cart for user id={}, quantity={}",
-                requestDto.productId(), userId, requestDto.quantity());
+        return recordCartOperation(CART_OPERATION_ADD, () -> {
+            shopModeService.requireEnabled();
+            log.debug("Adding product id={} to cart for user id={}, quantity={}",
+                    requestDto.productId(), userId, requestDto.quantity());
 
-        Cart cart = getOrCreateLockedCartAggregate(userId);
-        Product product = findProductOrThrow(requestDto.productId());
-        addItemToCart(cart, product, requestDto.quantity());
-        cartRepository.save(cart);
+            Cart cart = getOrCreateLockedCartAggregate(userId);
+            Product product = findProductOrThrow(requestDto.productId());
+            addItemToCart(cart, product, requestDto.quantity());
+            cartRepository.save(cart);
 
-        log.debug("Successfully added product to cart for user id={}", userId);
-        return toCartSummaryDto(cart);
+            log.debug("Successfully added product to cart for user id={}", userId);
+            return toCartSummaryDto(cart);
+        });
     }
 
     @Override
     @Transactional
     public CartSummaryDto updateItem(Long userId, Long productId, UpdateCartItemRequestDto requestDto) {
-        shopModeService.requireEnabled();
-        log.debug("Updating product id={} in cart for user id={}, new quantity={}",
-                productId, userId, requestDto.quantity());
+        return recordCartOperation(CART_OPERATION_UPDATE, () -> {
+            shopModeService.requireEnabled();
+            log.debug("Updating product id={} in cart for user id={}, new quantity={}",
+                    productId, userId, requestDto.quantity());
 
-        Cart cart = getLockedCartAggregate(userId);
-        CartItem cartItem = findCartItem(cart, productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found in cart"));
-        cartItem.setQuantity(requestDto.quantity());
+            Cart cart = getLockedCartAggregate(userId);
+            CartItem cartItem = findCartItem(cart, productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found in cart"));
+            cartItem.setQuantity(requestDto.quantity());
 
-        log.debug("Successfully updated product quantity in cart for user id={}", userId);
-        return toCartSummaryDto(cart);
+            log.debug("Successfully updated product quantity in cart for user id={}", userId);
+            return toCartSummaryDto(cart);
+        });
     }
 
     @Override
     @Transactional
     public CartSummaryDto removeItem(Long userId, Long productId) {
-        shopModeService.requireEnabled();
-        log.debug("Removing product id={} from cart for user id={}", productId, userId);
+        return recordCartOperation(CART_OPERATION_REMOVE, () -> {
+            shopModeService.requireEnabled();
+            log.debug("Removing product id={} from cart for user id={}", productId, userId);
 
-        Cart cart = getLockedCartAggregate(userId);
-        boolean removed = cart.getCartItems()
-                .removeIf(item -> item.getProduct().getId().equals(productId));
-        if (!removed) {
-            throw new ResourceNotFoundException("Product not found in cart");
-        }
+            Cart cart = getLockedCartAggregate(userId);
+            boolean removed = cart.getCartItems()
+                    .removeIf(item -> item.getProduct().getId().equals(productId));
+            if (!removed) {
+                throw new ResourceNotFoundException("Product not found in cart");
+            }
 
-        log.debug("Successfully removed product from cart for user id={}", userId);
-        return toCartSummaryDto(cart);
+            log.debug("Successfully removed product from cart for user id={}", userId);
+            return toCartSummaryDto(cart);
+        });
     }
 
     @Override
     @Transactional
     public void clearCart(Long userId) {
-        shopModeService.requireEnabled();
-        log.debug("Clearing cart for user id={}", userId);
+        recordCartOperation(CART_OPERATION_CLEAR, () -> {
+            shopModeService.requireEnabled();
+            log.debug("Clearing cart for user id={}", userId);
 
-        Cart cart = getLockedCartAggregate(userId);
-        cart.getCartItems().clear();
-        cartRepository.save(cart);
+            Cart cart = getLockedCartAggregate(userId);
+            cart.getCartItems().clear();
+            cartRepository.save(cart);
 
-        log.debug("Successfully cleared cart for user id={}", userId);
+            log.debug("Successfully cleared cart for user id={}", userId);
+        });
     }
 
     @Override
     @Transactional
     public CartSummaryDto mergeCart(Long userId, MergeCartRequestDto requestDto) {
-        shopModeService.requireEnabled();
-        log.debug("Merging client cart with {} item(s) into user id={} cart",
-                requestDto.items().size(), userId);
+        return recordCartOperation(CART_OPERATION_MERGE, () -> {
+            shopModeService.requireEnabled();
+            log.debug("Merging client cart with {} item(s) into user id={} cart",
+                    requestDto.items().size(), userId);
 
-        Cart targetCart = getOrCreateLockedCartAggregate(userId);
-        Map<Long, Integer> aggregatedItems = aggregateItemsByProductId(requestDto.items());
-        Map<Long, Product> productsById = findProductsByIdOrThrow(aggregatedItems.keySet());
+            Cart targetCart = getOrCreateLockedCartAggregate(userId);
+            Map<Long, Integer> aggregatedItems = aggregateItemsByProductId(requestDto.items());
+            Map<Long, Product> productsById = findProductsByIdOrThrow(aggregatedItems.keySet());
 
-        aggregatedItems.forEach((productId, quantity) ->
-                mergeItemToCart(targetCart, productsById.get(productId), quantity)
-        );
+            aggregatedItems.forEach((productId, quantity) ->
+                    mergeItemToCart(targetCart, productsById.get(productId), quantity)
+            );
 
-        cartRepository.save(targetCart);
+            cartRepository.save(targetCart);
 
-        log.debug("Successfully merged client cart into user id={} cart", userId);
-        return toCartSummaryDto(targetCart);
+            log.debug("Successfully merged client cart into user id={} cart", userId);
+            return toCartSummaryDto(targetCart);
+        });
     }
 
     private void addItemToCart(Cart cart, Product product, int quantityToAdd) {
@@ -235,6 +257,27 @@ public class CartServiceImpl implements CartService {
 
     private CartSummaryDto emptyCartSummary() {
         return new CartSummaryDto(List.of(), 0L);
+    }
+
+    private void recordCartOperation(String operation, Runnable action) {
+        recordCartOperation(operation, () -> {
+            action.run();
+            return null;
+        });
+    }
+
+    private <T> T recordCartOperation(String operation, Supplier<T> action) {
+        try {
+            T result = action.get();
+            transactionalMetricsPublisher.afterCompletionOrNow(
+                    () -> businessMetricsRecorder.recordCartOperation(operation, OUTCOME_SUCCESS),
+                    () -> businessMetricsRecorder.recordCartOperation(operation, OUTCOME_ERROR)
+            );
+            return result;
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordCartOperation(operation, OUTCOME_ERROR);
+            throw exception;
+        }
     }
 
     private Cart getLockedCartAggregate(Long userId) {

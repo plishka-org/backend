@@ -28,6 +28,8 @@ import org.plishka.backend.exception.InvalidVerificationTokenException;
 import org.plishka.backend.exception.RefreshTokenDeviceMismatchException;
 import org.plishka.backend.exception.RefreshTokenExpiredException;
 import org.plishka.backend.exception.RefreshTokenNotFoundException;
+import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
+import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.user.EmailVerificationTokenRepository;
 import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
@@ -59,6 +61,20 @@ public class AuthServiceImpl implements AuthService {
     private static final String RESET_PASSWORD_PATH = "/#/reset-password?token=";
     private static final String VERIFY_TOKEN_PATH = "/auth/verify?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
+    private static final String AUTH_OPERATION_EMAIL_VERIFICATION = "email_verification";
+    private static final String AUTH_OPERATION_LOGIN = "login";
+    private static final String AUTH_OPERATION_PASSWORD_RESET = "password_reset";
+    private static final String AUTH_OPERATION_PASSWORD_RESET_REQUEST = "password_reset_request";
+    private static final String AUTH_OPERATION_REGISTER = "register";
+    private static final String AUTH_OPERATION_VERIFICATION_RESEND = "verification_resend";
+    private static final String OUTCOME_ACCEPTED = "accepted";
+    private static final String OUTCOME_ALREADY_EXISTS = "already_exists";
+    private static final String OUTCOME_EMAIL_NOT_VERIFIED = "email_not_verified";
+    private static final String OUTCOME_ERROR = "error";
+    private static final String OUTCOME_EXPIRED = "expired";
+    private static final String OUTCOME_FORBIDDEN = "forbidden";
+    private static final String OUTCOME_INVALID = "invalid";
+    private static final String OUTCOME_SUCCESS = "success";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -71,178 +87,212 @@ public class AuthServiceImpl implements AuthService {
     private final BackendProperties backendProperties;
     private final FrontendProperties frontendProperties;
     private final Clock clock;
+    private final BusinessMetricsRecorder businessMetricsRecorder;
+    private final TransactionalMetricsPublisher transactionalMetricsPublisher;
 
     @Override
     @Transactional
     public void register(RegisterRequestDto request) {
-        String normalizedEmail = UserInputNormalizer.normalizeEmail(request.email());
-        User user = buildUser(request, normalizedEmail);
-
         try {
-            userRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException exception) {
-            if (isUsersEmailUniqueConstraintViolation(exception)) {
-                throw new EmailAlreadyExistsException(
-                        "User with email '%s' already exists".formatted(normalizedEmail)
-                );
-            }
+            String normalizedEmail = UserInputNormalizer.normalizeEmail(request.email());
+            User user = buildUser(request, normalizedEmail);
+
+            saveUserOrThrowEmailAlreadyExists(user);
+
+            String rawVerificationToken = TokenGenerator.generateEmailVerificationToken();
+            emailVerificationTokenRepository.save(buildEmailVerificationToken(user, rawVerificationToken));
+
+            applicationEventPublisher.publishEvent(
+                    new EmailVerificationRequestedEvent(user.getEmail(), buildVerificationLink(rawVerificationToken))
+            );
+
+            recordAuthFlowAfterCompletion(AUTH_OPERATION_REGISTER, OUTCOME_SUCCESS);
+            log.info("User registered: userId={}", user.getId());
+        } catch (EmailAlreadyExistsException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_REGISTER, OUTCOME_ALREADY_EXISTS);
+            throw exception;
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_REGISTER, OUTCOME_ERROR);
             throw exception;
         }
-
-        String rawVerificationToken = TokenGenerator.generateEmailVerificationToken();
-        emailVerificationTokenRepository.save(buildEmailVerificationToken(user, rawVerificationToken));
-
-        applicationEventPublisher.publishEvent(
-                new EmailVerificationRequestedEvent(user.getEmail(), buildVerificationLink(rawVerificationToken))
-        );
-
-        log.info("User registered: userId={}, email={}", user.getId(), user.getEmail());
     }
 
     @Override
     @Transactional
     public void verifyEmail(String rawToken) {
-        EmailVerificationToken verificationToken = findEmailVerificationTokenOrThrow(rawToken);
+        try {
+            EmailVerificationToken verificationToken = findEmailVerificationTokenOrThrow(rawToken);
 
-        User user = userRepository.findByIdForUpdate(verificationToken.getUser().getId())
-                .orElseThrow(() -> new InvalidVerificationTokenException("User not found"));
+            User user = userRepository.findByIdForUpdate(verificationToken.getUser().getId())
+                    .orElseThrow(() -> new InvalidVerificationTokenException("User not found"));
 
-        if (user.isEmailVerified()) {
+            if (user.isEmailVerified()) {
+                emailVerificationTokenRepository.deleteAllByUser(user);
+                recordAuthFlowAfterCompletion(AUTH_OPERATION_EMAIL_VERIFICATION, OUTCOME_SUCCESS);
+                return;
+            }
+
+            // Lock the token row only after the User row is locked to keep the order: User -> token rows.
+            EmailVerificationToken lockedVerificationToken = findEmailVerificationTokenForUpdateOrThrow(rawToken);
+            if (lockedVerificationToken.getExpiresAt().isBefore(now())) {
+                throw new InvalidVerificationTokenException("Verification token has expired");
+            }
+
+            user.setEmailVerified(true);
             emailVerificationTokenRepository.deleteAllByUser(user);
-            return;
+
+            recordAuthFlowAfterCompletion(AUTH_OPERATION_EMAIL_VERIFICATION, OUTCOME_SUCCESS);
+            log.info("Email verified successfully, userId={}", user.getId());
+        } catch (InvalidVerificationTokenException exception) {
+            businessMetricsRecorder.recordAuthFlow(
+                    AUTH_OPERATION_EMAIL_VERIFICATION,
+                    tokenFailureOutcome(exception)
+            );
+            throw exception;
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_EMAIL_VERIFICATION, OUTCOME_ERROR);
+            throw exception;
         }
-
-        // Lock the token row only after the User row is locked to keep the order: User -> token rows.
-        EmailVerificationToken lockedVerificationToken = findEmailVerificationTokenForUpdateOrThrow(rawToken);
-        if (lockedVerificationToken.getExpiresAt().isBefore(now())) {
-            throw new InvalidVerificationTokenException("Verification token has expired");
-        }
-
-        user.setEmailVerified(true);
-        emailVerificationTokenRepository.deleteAllByUser(user);
-
-        log.info("Email verified successfully, userId={}", user.getId());
     }
 
     @Override
     @Transactional
     public void resendVerificationEmail(String email) {
-        String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
+        try {
+            String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
 
-        userRepository.findByEmailForUpdate(normalizedEmail)
-                .filter(user -> !user.isEmailVerified())
-                .ifPresent(user -> {
-                    emailVerificationTokenRepository.deleteAllByUser(user);
-                    emailVerificationTokenRepository.flush();
+            userRepository.findByEmailForUpdate(normalizedEmail)
+                    .filter(user -> !user.isEmailVerified())
+                    .ifPresent(user -> {
+                        emailVerificationTokenRepository.deleteAllByUser(user);
+                        emailVerificationTokenRepository.flush();
 
-                    String rawVerificationToken = TokenGenerator.generateEmailVerificationToken();
-                    EmailVerificationToken emailVerificationToken =
-                            buildEmailVerificationToken(user, rawVerificationToken);
+                        String rawVerificationToken = TokenGenerator.generateEmailVerificationToken();
+                        EmailVerificationToken emailVerificationToken =
+                                buildEmailVerificationToken(user, rawVerificationToken);
 
-                    emailVerificationTokenRepository.save(emailVerificationToken);
+                        emailVerificationTokenRepository.save(emailVerificationToken);
 
-                    String verificationLink = buildVerificationLink(rawVerificationToken);
-                    applicationEventPublisher.publishEvent(
-                            new EmailVerificationRequestedEvent(user.getEmail(), verificationLink)
-                    );
+                        String verificationLink = buildVerificationLink(rawVerificationToken);
+                        applicationEventPublisher.publishEvent(
+                                new EmailVerificationRequestedEvent(user.getEmail(), verificationLink)
+                        );
 
-                    log.info(
-                            "Verification email resent: email={}, userId={}",
-                            user.getEmail(),
-                            user.getId()
-                    );
-                });
+                        log.info("Verification email resent: userId={}", user.getId());
+                    });
+            recordAuthFlowAfterCompletion(AUTH_OPERATION_VERIFICATION_RESEND, OUTCOME_ACCEPTED);
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_VERIFICATION_RESEND, OUTCOME_ERROR);
+            throw exception;
+        }
     }
 
     @Override
     @Transactional
     public void forgotPassword(String email) {
-        String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
+        try {
+            String normalizedEmail = UserInputNormalizer.normalizeEmail(email);
 
-        userRepository.findByEmailForUpdate(normalizedEmail)
-                .filter(User::isEmailVerified)
-                .filter(user -> !user.isBanned())
-                .ifPresent(user -> {
-                    passwordResetTokenRepository.deleteAllByUser(user);
-                    passwordResetTokenRepository.flush();
+            userRepository.findByEmailForUpdate(normalizedEmail)
+                    .filter(User::isEmailVerified)
+                    .filter(user -> !user.isBanned())
+                    .ifPresent(user -> {
+                        passwordResetTokenRepository.deleteAllByUser(user);
+                        passwordResetTokenRepository.flush();
 
-                    String rawResetToken = TokenGenerator.generatePasswordResetToken();
-                    PasswordResetToken passwordResetToken = buildPasswordResetToken(user, rawResetToken);
+                        String rawResetToken = TokenGenerator.generatePasswordResetToken();
+                        PasswordResetToken passwordResetToken = buildPasswordResetToken(user, rawResetToken);
 
-                    passwordResetTokenRepository.save(passwordResetToken);
+                        passwordResetTokenRepository.save(passwordResetToken);
 
-                    applicationEventPublisher.publishEvent(
-                            new PasswordResetRequestedEvent(
-                                    user.getEmail(),
-                                    buildResetPasswordLink(rawResetToken)
-                            )
-                    );
+                        applicationEventPublisher.publishEvent(
+                                new PasswordResetRequestedEvent(
+                                        user.getEmail(),
+                                        buildResetPasswordLink(rawResetToken)
+                                )
+                        );
 
-                    log.info(
-                            "Password reset requested: email={}, userId={}",
-                            user.getEmail(),
-                            user.getId()
-                    );
-                });
+                        log.info("Password reset requested: userId={}", user.getId());
+                    });
+            recordAuthFlowAfterCompletion(AUTH_OPERATION_PASSWORD_RESET_REQUEST, OUTCOME_ACCEPTED);
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_PASSWORD_RESET_REQUEST, OUTCOME_ERROR);
+            throw exception;
+        }
     }
 
     @Override
     @Transactional(noRollbackFor = InvalidPasswordResetTokenException.class)
     public void resetPassword(ResetPasswordRequestDto request) {
-        PasswordResetToken passwordResetToken = findPasswordResetTokenOrThrow(request.token());
+        try {
+            PasswordResetToken passwordResetToken = findPasswordResetTokenOrThrow(request.token());
 
-        User lockedUser = userRepository.findByIdForUpdate(passwordResetToken.getUser().getId())
-                .orElseThrow(() -> new InvalidPasswordResetTokenException("User not found"));
+            User lockedUser = userRepository.findByIdForUpdate(passwordResetToken.getUser().getId())
+                    .orElseThrow(() -> new InvalidPasswordResetTokenException("User not found"));
 
-        // Lock the token row only after the User row is locked to keep the order: User -> token rows.
-        PasswordResetToken lockedPasswordResetToken = findPasswordResetTokenForUpdateOrThrow(request.token());
-        if (lockedPasswordResetToken.getExpiresAt().isBefore(now())) {
-            passwordResetTokenRepository.delete(lockedPasswordResetToken);
-            throw new InvalidPasswordResetTokenException("Password reset token has expired");
+            // Lock the token row only after the User row is locked to keep the order: User -> token rows.
+            PasswordResetToken lockedPasswordResetToken = findPasswordResetTokenForUpdateOrThrow(request.token());
+            if (lockedPasswordResetToken.getExpiresAt().isBefore(now())) {
+                passwordResetTokenRepository.delete(lockedPasswordResetToken);
+                throw new InvalidPasswordResetTokenException("Password reset token has expired");
+            }
+
+            lockedUser.setPasswordHash(passwordEncoder.encode(request.password()));
+            refreshTokenRepository.deleteAllByUserId(lockedUser.getId());
+            passwordResetTokenRepository.deleteAllByUser(lockedUser);
+
+            recordAuthFlowAfterCompletion(AUTH_OPERATION_PASSWORD_RESET, OUTCOME_SUCCESS);
+            log.info("Password reset successful: userId={}", lockedUser.getId());
+        } catch (InvalidPasswordResetTokenException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_PASSWORD_RESET, tokenFailureOutcome(exception));
+            throw exception;
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_PASSWORD_RESET, OUTCOME_ERROR);
+            throw exception;
         }
-
-        lockedUser.setPasswordHash(passwordEncoder.encode(request.password()));
-        refreshTokenRepository.deleteAllByUserId(lockedUser.getId());
-        passwordResetTokenRepository.deleteAllByUser(lockedUser);
-
-        log.info(
-                "Password reset successful: userId={}, email={}",
-                lockedUser.getId(),
-                lockedUser.getEmail()
-        );
     }
 
     @Override
     @Transactional
     public AuthResponseDto login(LoginRequestDto request, String deviceId) {
-        String normalizedEmail = UserInputNormalizer.normalizeEmail(request.email());
+        try {
+            String normalizedEmail = UserInputNormalizer.normalizeEmail(request.email());
 
-        User user = findUserByEmailOrThrow(normalizedEmail);
-        validatePasswordOrThrow(request.password(), user);
+            User user = findUserByEmailOrThrow(normalizedEmail);
+            validatePasswordOrThrow(request.password(), user);
 
-        User lockedUser = findUserByIdForUpdateOrThrow(user.getId());
-        if (!lockedUser.getPasswordHash().equals(user.getPasswordHash())) {
-            throw new AuthenticationFailedException("Invalid email or password");
+            User lockedUser = findUserByIdForUpdateOrThrow(user.getId());
+            if (!lockedUser.getPasswordHash().equals(user.getPasswordHash())) {
+                throw new AuthenticationFailedException("Invalid email or password");
+            }
+            validateUserCanAuthenticateOrThrow(lockedUser);
+
+            String normalizedDeviceId = normalizeDeviceId(deviceId);
+            refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getId(), normalizedDeviceId);
+            refreshTokenRepository.flush();
+
+            final String accessToken = jwtService.generateAccessToken(lockedUser);
+            final String rawRefreshToken = TokenGenerator.generateRefreshToken();
+
+            persistRefreshToken(lockedUser, rawRefreshToken, normalizedDeviceId);
+
+            recordAuthFlowAfterCompletion(AUTH_OPERATION_LOGIN, OUTCOME_SUCCESS);
+            log.info("Login successful: userId={}", lockedUser.getId());
+
+            return new AuthResponseDto(accessToken, rawRefreshToken);
+        } catch (AuthenticationFailedException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_LOGIN, OUTCOME_INVALID);
+            throw exception;
+        } catch (EmailNotVerifiedException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_LOGIN, OUTCOME_EMAIL_NOT_VERIFIED);
+            throw exception;
+        } catch (ForbiddenException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_LOGIN, OUTCOME_FORBIDDEN);
+            throw exception;
+        } catch (RuntimeException exception) {
+            businessMetricsRecorder.recordAuthFlow(AUTH_OPERATION_LOGIN, OUTCOME_ERROR);
+            throw exception;
         }
-        validateUserCanAuthenticateOrThrow(lockedUser);
-
-        String normalizedDeviceId = normalizeDeviceId(deviceId);
-        refreshTokenRepository.deleteAllByUserIdAndDeviceId(lockedUser.getId(), normalizedDeviceId);
-        refreshTokenRepository.flush();
-
-        final String accessToken = jwtService.generateAccessToken(lockedUser);
-        final String rawRefreshToken = TokenGenerator.generateRefreshToken();
-
-        persistRefreshToken(lockedUser, rawRefreshToken, normalizedDeviceId);
-
-        log.info(
-                "Login successful: userId={}, email={}, deviceId={}",
-                lockedUser.getId(),
-                lockedUser.getEmail(),
-                normalizedDeviceId
-        );
-
-        return new AuthResponseDto(accessToken, rawRefreshToken);
     }
 
     @Override
@@ -266,12 +316,7 @@ public class AuthServiceImpl implements AuthService {
 
         persistRefreshToken(lockedUser, newRefreshToken, normalizedDeviceId);
 
-        log.info(
-                "Token refresh successful: userId={}, email={}, deviceId={}",
-                lockedUser.getId(),
-                lockedUser.getEmail(),
-                normalizedDeviceId
-        );
+        log.info("Token refresh successful: userId={}", lockedUser.getId());
 
         return new AuthResponseDto(newAccessToken, newRefreshToken);
     }
@@ -286,12 +331,7 @@ public class AuthServiceImpl implements AuthService {
                 normalizedDeviceId
         );
 
-        log.info(
-                "Logout current device: userId={}, deviceId={}, deletedTokens={}",
-                userId,
-                normalizedDeviceId,
-                deletedTokens
-        );
+        log.info("Logout current device: userId={}, deletedTokens={}", userId, deletedTokens);
     }
 
     private User buildUser(RegisterRequestDto request, String normalizedEmail) {
@@ -307,6 +347,17 @@ public class AuthServiceImpl implements AuthService {
                 .isBanned(false)
                 .isEmailVerified(false)
                 .build();
+    }
+
+    private void saveUserOrThrowEmailAlreadyExists(User user) {
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException exception) {
+            if (isUsersEmailUniqueConstraintViolation(exception)) {
+                throw new EmailAlreadyExistsException("User with this email already exists");
+            }
+            throw exception;
+        }
     }
 
     private EmailVerificationToken buildEmailVerificationToken(User user, String rawToken) {
@@ -437,6 +488,18 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return false;
+    }
+
+    private String tokenFailureOutcome(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message != null && message.contains("expired") ? OUTCOME_EXPIRED : OUTCOME_INVALID;
+    }
+
+    private void recordAuthFlowAfterCompletion(String operation, String outcome) {
+        transactionalMetricsPublisher.afterCompletionOrNow(
+                () -> businessMetricsRecorder.recordAuthFlow(operation, outcome),
+                () -> businessMetricsRecorder.recordAuthFlow(operation, OUTCOME_ERROR)
+        );
     }
 
     private String buildVerificationLink(String rawVerificationToken) {

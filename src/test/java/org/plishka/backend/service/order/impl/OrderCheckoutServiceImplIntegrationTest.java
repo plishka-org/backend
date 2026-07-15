@@ -1,5 +1,7 @@
 package org.plishka.backend.service.order.impl;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.search.MeterNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.domain.cart.Cart;
@@ -19,9 +21,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -50,6 +54,9 @@ class OrderCheckoutServiceImplIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
     @MockitoBean
     private ResendEmailTransport resendEmailTransport;
 
@@ -67,6 +74,12 @@ class OrderCheckoutServiceImplIntegrationTest {
         orderCheckoutService.checkout(user.getId(), "checkout-long-product-name", createOrderRequest());
 
         assertEquals(LONG_PRODUCT_NAME, findStoredProductNameSnapshot());
+        assertThrows(MeterNotFoundException.class, () -> checkoutAttemptCounter("success"));
+
+        // Checkout success metrics are transaction-aware; this test transaction rolls back.
+        TestTransaction.end();
+
+        assertEquals(1.0, checkoutAttemptCounter("error"));
     }
 
     private User createUser() {
@@ -119,5 +132,9 @@ class OrderCheckoutServiceImplIntegrationTest {
                 "select product_name_snapshot from order_items",
                 String.class
         );
+    }
+
+    private double checkoutAttemptCounter(String outcome) {
+        return meterRegistry.get("checkout.attempt").tag("outcome", outcome).counter().count();
     }
 }

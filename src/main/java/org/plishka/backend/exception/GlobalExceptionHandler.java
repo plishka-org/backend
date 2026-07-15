@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.dto.common.ErrorResponseDto;
 import org.plishka.backend.dto.common.ValidationErrorResponseDto;
+import org.plishka.backend.monitoring.sentry.SentryMonitoringService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.MethodParameter;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -50,6 +52,7 @@ public class GlobalExceptionHandler {
     private static final String GLOBAL_ERROR_FIELD = "global";
 
     private final Clock clock;
+    private final ObjectProvider<SentryMonitoringService> sentryMonitoringServiceProvider;
 
     @ExceptionHandler({
             EmailAlreadyExistsException.class,
@@ -121,6 +124,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         log.warn("Storage provider error while processing {}", request.getRequestURI(), exception);
+        captureException(exception, "storage", "http_request");
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request);
     }
 
@@ -195,7 +199,15 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         log.error("Unhandled exception while processing {}", request.getRequestURI(), exception);
+        captureException(exception, "api", "unexpected_exception");
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE, request);
+    }
+
+    private void captureException(Exception exception, String area, String operation) {
+        SentryMonitoringService sentryMonitoringService = sentryMonitoringServiceProvider.getIfAvailable();
+        if (sentryMonitoringService != null) {
+            sentryMonitoringService.captureException(exception, area, operation);
+        }
     }
 
     private ResponseEntity<ErrorResponseDto> buildErrorResponse(

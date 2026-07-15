@@ -17,7 +17,7 @@ public class NotificationService {
         try {
             emailService.sendEmailVerificationEmail(email, verificationLink);
         } catch (Exception exception) {
-            log.error("Failed to send email verification notification: email={}", email, exception);
+            log.error("Failed to send email verification notification", exception);
         }
     }
 
@@ -25,7 +25,7 @@ public class NotificationService {
         try {
             emailService.sendPasswordResetEmail(email, resetPasswordLink);
         } catch (Exception exception) {
-            log.error("Failed to send password reset notification: email={}", email, exception);
+            log.error("Failed to send password reset notification", exception);
         }
     }
 
@@ -33,7 +33,7 @@ public class NotificationService {
         try {
             emailService.sendEmailChangeVerificationEmail(email, verificationLink);
         } catch (Exception exception) {
-            log.error("Failed to send email change verification notification: email={}", email, exception);
+            log.error("Failed to send email change verification notification", exception);
         }
     }
 
@@ -41,12 +41,7 @@ public class NotificationService {
         try {
             emailService.sendEmailChangedNotificationEmail(oldEmail, newEmail);
         } catch (Exception exception) {
-            log.error(
-                    "Failed to send email changed notification: oldEmail={}, newEmail={}",
-                    oldEmail,
-                    newEmail,
-                    exception
-            );
+            log.error("Failed to send email changed notification", exception);
         }
     }
 
@@ -55,9 +50,8 @@ public class NotificationService {
             emailService.sendOrderCreatedNotifications(event);
         } catch (Exception exception) {
             log.error(
-                    "Failed to send order notification: orderId={}, orderNumber={}",
+                    "Failed to send order notification: orderId={}",
                     event.orderId(),
-                    event.orderNumber(),
                     exception
             );
         }

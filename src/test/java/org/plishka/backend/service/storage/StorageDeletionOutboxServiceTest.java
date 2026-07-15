@@ -1,5 +1,6 @@
 package org.plishka.backend.service.storage;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -18,6 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.plishka.backend.domain.storage.StorageDeletionOutbox;
 import org.plishka.backend.domain.storage.StorageDeletionOutboxStatus;
 import org.plishka.backend.exception.StorageOperationException;
+import org.plishka.backend.monitoring.metrics.StorageMetricsRecorder;
+import org.plishka.backend.monitoring.sentry.SentryMonitoringService;
 import org.plishka.backend.repository.storage.StorageDeletionOutboxRepository;
 import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator;
 import org.springframework.data.domain.Pageable;
@@ -57,15 +60,19 @@ class StorageDeletionOutboxServiceTest {
     };
 
     private StorageDeletionOutboxService service;
+    private SimpleMeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
         service = new StorageDeletionOutboxService(
                 storageDeletionOutboxRepository,
                 objectStorageService,
                 s3ObjectKeyValidator,
                 transactionOperations,
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new StorageMetricsRecorder(meterRegistry),
+                new SentryMonitoringService()
         );
     }
 
@@ -109,6 +116,8 @@ class StorageDeletionOutboxServiceTest {
         verify(objectStorageService).deleteObject("second.jpg");
         verify(storageDeletionOutboxRepository).delete(first);
         verify(storageDeletionOutboxRepository).delete(second);
+        assertEquals(2.0, outboxEntriesCounter("processed"));
+        assertEquals(2.0, outboxEntriesCounter("deleted"));
     }
 
     @Test
@@ -152,6 +161,8 @@ class StorageDeletionOutboxServiceTest {
         assertEquals(NOW.plus(Duration.ofHours(1)), entry.getNextAttemptAt());
         assertEquals("S3 is down", entry.getLastError());
         verify(storageDeletionOutboxRepository, never()).delete(entry);
+        assertEquals(1.0, outboxEntriesCounter("processed"));
+        assertEquals(1.0, outboxEntriesCounter("failed"));
     }
 
     @Test
@@ -204,5 +215,12 @@ class StorageDeletionOutboxServiceTest {
         return IntStream.range(firstId, firstId + count)
                 .mapToObj(id -> outboxEntry((long) id, "object-" + id + ".jpg", 0))
                 .toList();
+    }
+
+    private double outboxEntriesCounter(String outcome) {
+        return meterRegistry.get("storage.deletion.outbox.entries")
+                .tag("outcome", outcome)
+                .counter()
+                .count();
     }
 }

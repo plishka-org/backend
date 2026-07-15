@@ -1,21 +1,27 @@
 package org.plishka.backend.ratelimit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.bucket4j.Bucket;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.config.properties.RateLimitProperties;
+import org.plishka.backend.monitoring.metrics.RateLimitMetricsRecorder;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RateLimitServiceTest {
+    private SimpleMeterRegistry meterRegistry;
     private RateLimitService rateLimitService;
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
         RateLimitProperties properties = new RateLimitProperties(
                 true,
                 defaultCache(),
@@ -23,7 +29,11 @@ class RateLimitServiceTest {
                         RateLimitPolicy.AUTH_LOGIN_IP.getPropertyName(),
                         policy(2, Duration.ofHours(1))
                 ));
-        rateLimitService = new RateLimitService(properties, Caffeine.newBuilder().build());
+        rateLimitService = new RateLimitService(
+                properties,
+                bucketCache(),
+                new RateLimitMetricsRecorder(meterRegistry)
+        );
     }
 
     @Test
@@ -42,6 +52,8 @@ class RateLimitServiceTest {
         rateLimitService.consume(List.of(key));
 
         assertFalse(rateLimitService.consume(List.of(key)).allowed());
+        assertEquals(2.0, rateLimitCounter(RateLimitPolicy.AUTH_LOGIN_IP, RateLimitMetricsRecorder.DECISION_ALLOWED));
+        assertEquals(1.0, rateLimitCounter(RateLimitPolicy.AUTH_LOGIN_IP, RateLimitMetricsRecorder.DECISION_BLOCKED));
     }
 
     @Test
@@ -73,7 +85,11 @@ class RateLimitServiceTest {
     @Test
     void consume_ShouldBlockDefaultHighLimitPolicyAfterCapacity() {
         RateLimitProperties properties = defaultProperties();
-        RateLimitService service = new RateLimitService(properties, Caffeine.newBuilder().build());
+        RateLimitService service = new RateLimitService(
+                properties,
+                bucketCache(),
+                new RateLimitMetricsRecorder(new SimpleMeterRegistry())
+        );
         RateLimitKey key = new RateLimitKey(
                 RateLimitPolicy.FILE_DOWNLOAD_PRESIGN,
                 "127.0.0.1"
@@ -101,5 +117,17 @@ class RateLimitServiceTest {
     private static RateLimitProperties.Policy policy(long capacity, Duration period) {
         RateLimitProperties.Bandwidth bandwidth = new RateLimitProperties.Bandwidth(capacity, period);
         return new RateLimitProperties.Policy(List.of(bandwidth));
+    }
+
+    private static com.github.benmanes.caffeine.cache.Cache<String, Bucket> bucketCache() {
+        return Caffeine.newBuilder().build();
+    }
+
+    private double rateLimitCounter(RateLimitPolicy policy, String decision) {
+        return meterRegistry.get("rate.limit.requests")
+                .tag("policy", policy.getPropertyName())
+                .tag("decision", decision)
+                .counter()
+                .count();
     }
 }

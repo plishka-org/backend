@@ -1,5 +1,6 @@
 package org.plishka.backend.service.order.impl;
 
+import io.micrometer.core.instrument.Timer;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +11,11 @@ import org.plishka.backend.dto.order.CreateOrderRequestDto;
 import org.plishka.backend.dto.order.OrderDetailDto;
 import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.ForbiddenException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.order.OrderMapper;
+import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
+import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.order.OrderRepository;
 import org.plishka.backend.service.order.OrderCheckoutService;
@@ -41,6 +45,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderCheckoutServiceImpl implements OrderCheckoutService {
+    private static final String EMPTY_CART_MESSAGE = "Cart is empty, cannot proceed with checkout";
+    private static final String OUTCOME_EMPTY_CART = "empty_cart";
+    private static final String OUTCOME_ERROR = "error";
+    private static final String OUTCOME_SHOP_DISABLED = "shop_disabled";
+    private static final String OUTCOME_SUCCESS = "success";
+
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
@@ -49,37 +59,80 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private final OrderItemFactory orderItemFactory;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ShopModeService shopModeService;
+    private final BusinessMetricsRecorder businessMetricsRecorder;
+    private final TransactionalMetricsPublisher transactionalMetricsPublisher;
 
     @Override
     @Transactional
     public OrderDetailDto checkout(Long userId, String idempotencyKey, CreateOrderRequestDto requestDto) {
-        shopModeService.requireEnabled();
-        log.debug("Starting checkout for user id={}", userId);
+        var sample = businessMetricsRecorder.startTimer();
+        String outcome = OUTCOME_ERROR;
 
-        Cart cart = findLockedCartAggregateOrThrow(userId);
+        try {
+            shopModeService.requireEnabled();
+            log.debug("Starting checkout for user id={}", userId);
 
-        String requestHash = calculateRequestHash(requestDto);
-        Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(userId, idempotencyKey, requestHash);
-        if (existingOrder.isPresent()) {
-            log.debug("Returning existing order id={} for idempotent retry by user id={}",
-                    existingOrder.get().getId(), userId);
-            return orderMapper.toDetailDto(existingOrder.get());
+            Cart cart = findLockedCartAggregateOrThrow(userId);
+
+            String requestHash = calculateRequestHash(requestDto);
+            Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(
+                    userId,
+                    idempotencyKey,
+                    requestHash
+            );
+            if (existingOrder.isPresent()) {
+                log.debug("Returning existing order id={} for idempotent retry by user id={}",
+                        existingOrder.get().getId(), userId);
+                outcome = OUTCOME_SUCCESS;
+                return orderMapper.toDetailDto(existingOrder.get());
+            }
+
+            validateCartNotEmpty(cart);
+
+            Order order = createOrderFromCart(cart, requestDto);
+            order.setIdempotencyKey(idempotencyKey);
+            order.setRequestHash(requestHash);
+            Order savedOrder = orderRepository.saveAndFlush(order);
+
+            clearCart(cart);
+
+            applicationEventPublisher.publishEvent(OrderCreatedEvent.fromOrder(savedOrder));
+
+            log.debug("Order created with id={} for user id={}", savedOrder.getId(), userId);
+
+            outcome = OUTCOME_SUCCESS;
+            return orderMapper.toDetailDto(savedOrder);
+        } catch (BadRequestException exception) {
+            outcome = EMPTY_CART_MESSAGE.equals(exception.getMessage()) ? OUTCOME_EMPTY_CART : OUTCOME_ERROR;
+            throw exception;
+        } catch (ForbiddenException exception) {
+            outcome = ShopModeService.SHOP_MODE_DISABLED_MESSAGE.equals(exception.getMessage())
+                    ? OUTCOME_SHOP_DISABLED
+                    : OUTCOME_ERROR;
+            throw exception;
+        } catch (RuntimeException exception) {
+            outcome = OUTCOME_ERROR;
+            throw exception;
+        } finally {
+            recordCheckoutAfterCompletionOrNow(sample, outcome);
+        }
+    }
+
+    private void recordCheckoutAfterCompletionOrNow(Timer.Sample sample, String outcome) {
+        if (!OUTCOME_SUCCESS.equals(outcome)) {
+            recordCheckout(sample, outcome);
+            return;
         }
 
-        validateCartNotEmpty(cart);
+        transactionalMetricsPublisher.afterCompletionOrNow(
+                () -> recordCheckout(sample, OUTCOME_SUCCESS),
+                () -> recordCheckout(sample, OUTCOME_ERROR)
+        );
+    }
 
-        Order order = createOrderFromCart(cart, requestDto);
-        order.setIdempotencyKey(idempotencyKey);
-        order.setRequestHash(requestHash);
-        Order savedOrder = orderRepository.saveAndFlush(order);
-
-        clearCart(cart);
-
-        applicationEventPublisher.publishEvent(OrderCreatedEvent.fromOrder(savedOrder));
-
-        log.debug("Order created with id={} for user id={}", savedOrder.getId(), userId);
-
-        return orderMapper.toDetailDto(savedOrder);
+    private void recordCheckout(Timer.Sample sample, String outcome) {
+        businessMetricsRecorder.recordCheckoutAttempt(outcome);
+        businessMetricsRecorder.recordCheckoutDuration(sample, outcome);
     }
 
     private Order createOrderFromCart(Cart cart, CreateOrderRequestDto requestDto) {
@@ -111,7 +164,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
 
     private void validateCartNotEmpty(Cart cart) {
         if (cart.getCartItems().isEmpty()) {
-            throw new BadRequestException("Cart is empty, cannot proceed with checkout");
+            throw new BadRequestException(EMPTY_CART_MESSAGE);
         }
     }
 
