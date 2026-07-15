@@ -1,5 +1,6 @@
 package org.plishka.backend.config;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.ratelimit.RateLimitFilter;
 import org.plishka.backend.security.ActiveUserAuthorizationManager;
@@ -48,6 +49,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/swagger-ui.html",
