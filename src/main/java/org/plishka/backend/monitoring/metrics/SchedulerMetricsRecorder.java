@@ -18,32 +18,32 @@ public class SchedulerMetricsRecorder {
     private final SentryMonitoringService sentryMonitoringService;
     private final TransactionalMetricsPublisher transactionalMetricsPublisher;
 
-    public void recordJob(String job, Runnable action) {
+    public void recordJob(String schedulerJob, Runnable action) {
         Timer.Sample sample = Timer.start(meterRegistry);
         try {
             action.run();
             transactionalMetricsPublisher.afterCompletionOrNow(
-                    () -> recordCompletedJob(sample, job, OUTCOME_SUCCESS),
-                    () -> recordCompletedJob(sample, job, OUTCOME_FAILURE)
+                    () -> recordCompletedJob(sample, schedulerJob, OUTCOME_SUCCESS),
+                    () -> recordCompletedJob(sample, schedulerJob, OUTCOME_FAILURE)
             );
         } catch (RuntimeException exception) {
-            recordCompletedJob(sample, job, OUTCOME_FAILURE);
-            sentryMonitoringService.captureException(exception, "scheduler", job);
+            recordCompletedJob(sample, schedulerJob, OUTCOME_FAILURE);
+            sentryMonitoringService.captureException(exception, "scheduler", schedulerJob);
             throw exception;
         }
     }
 
-    private void recordCompletedJob(Timer.Sample sample, String job, String outcome) {
-        counter(job, outcome).increment();
+    private void recordCompletedJob(Timer.Sample sample, String schedulerJob, String outcome) {
+        counter(schedulerJob, outcome).increment();
         sample.stop(Timer.builder("scheduler.job.duration")
-                .tag("job", job)
+                .tag("scheduler_job", schedulerJob)
                 .tag("outcome", outcome)
                 .register(meterRegistry));
     }
 
-    private Counter counter(String job, String outcome) {
+    private Counter counter(String schedulerJob, String outcome) {
         return Counter.builder("scheduler.job")
-                .tag("job", job)
+                .tag("scheduler_job", schedulerJob)
                 .tag("outcome", outcome)
                 .register(meterRegistry);
     }
