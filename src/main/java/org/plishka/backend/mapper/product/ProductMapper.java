@@ -16,17 +16,17 @@ public interface ProductMapper {
     @Mapping(target = "productId", source = "product.id")
     @Mapping(target = "name", source = "product.name")
     @Mapping(target = "category", source = "product.category")
-    @Mapping(target = "price", source = "product.price")
+    @Mapping(target = "price", source = "visiblePrice")
     @Mapping(target = "primaryMedia", source = "primaryMedia")
-    ProductSummaryDto toSummaryDto(Product product, ProductMedia primaryMedia);
+    ProductSummaryDto toSummaryDto(Product product, ProductMedia primaryMedia, Long visiblePrice);
 
     @Mapping(target = "productId", source = "product.id")
     @Mapping(target = "name", source = "product.name")
     @Mapping(target = "description", source = "product.description")
-    @Mapping(target = "price", source = "product.price")
+    @Mapping(target = "price", source = "visiblePrice")
     @Mapping(target = "category", source = "product.category")
     @Mapping(target = "media", source = "media")
-    ProductDetailDto toDetailDto(Product product, List<ProductMedia> media);
+    ProductDetailDto toDetailDto(Product product, List<ProductMedia> media, Long visiblePrice);
 
     @Mapping(target = "productMediaId", source = "id")
     ProductMediaDto toMediaDto(ProductMedia media);

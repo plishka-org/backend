@@ -3,6 +3,7 @@ package org.plishka.backend.repository.storage;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.plishka.backend.domain.storage.StorageDeletionOutbox;
 import org.plishka.backend.domain.storage.StorageDeletionOutboxStatus;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,17 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface StorageDeletionOutboxRepository extends JpaRepository<StorageDeletionOutbox, Long> {
+    long countByStatus(StorageDeletionOutboxStatus status);
+
+    long countByStatusAndNextAttemptAtLessThanEqual(StorageDeletionOutboxStatus status, Instant now);
+
+    @Query("""
+            select min(o.createdAt)
+            from StorageDeletionOutbox o
+            where o.status = :status
+            """)
+    Optional<Instant> findOldestCreatedAtByStatus(@Param("status") StorageDeletionOutboxStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select o

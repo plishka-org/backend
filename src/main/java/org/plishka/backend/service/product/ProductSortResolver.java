@@ -15,10 +15,13 @@ public final class ProductSortResolver {
     private ProductSortResolver() {
     }
 
+    public static boolean isPriceSort(String sort) {
+        String normalizedSort = normalize(sort);
+        return PRICE_ASC_SORT.equals(normalizedSort) || PRICE_DESC_SORT.equals(normalizedSort);
+    }
+
     public static Sort resolve(String sort) {
-        String normalizedSort = StringUtils.hasText(sort)
-                ? sort.trim().toLowerCase(Locale.ROOT)
-                : DEFAULT_SORT;
+        String normalizedSort = normalize(sort);
 
         return switch (normalizedSort) {
             case NAME_ASC_SORT -> Sort.by(Sort.Order.asc("name"), Sort.Order.asc("id"));
@@ -27,5 +30,11 @@ public final class ProductSortResolver {
             case PRICE_DESC_SORT -> Sort.by(Sort.Order.desc("price"), Sort.Order.desc("id"));
             default -> throw new BadRequestException("Unsupported product sort");
         };
+    }
+
+    private static String normalize(String sort) {
+        return StringUtils.hasText(sort)
+                ? sort.trim().toLowerCase(Locale.ROOT)
+                : DEFAULT_SORT;
     }
 }

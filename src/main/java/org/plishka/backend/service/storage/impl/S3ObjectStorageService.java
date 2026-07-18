@@ -9,11 +9,13 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.config.properties.StorageProperties;
 import org.plishka.backend.domain.media.MediaTargetType;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.exception.StorageOperationException;
+import org.plishka.backend.monitoring.metrics.StorageMetricsRecorder;
 import org.plishka.backend.service.storage.ObjectStorageService;
 import org.plishka.backend.service.storage.model.PresignedStorageUrl;
 import org.plishka.backend.service.storage.model.StorageObjectMetadata;
@@ -62,6 +64,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
     private final StorageProperties storageProperties;
     private final S3ObjectKeyValidator s3ObjectKeyValidator;
     private final Clock clock;
+    private final StorageMetricsRecorder storageMetricsRecorder;
 
     @Override
     public PresignedStorageUrl presignUpload(String s3Key, String contentType, String checksumSha256Base64) {
@@ -69,22 +72,24 @@ public class S3ObjectStorageService implements ObjectStorageService {
         Duration ttl = storageProperties.s3().uploadPresignTtl();
         String bucket = storageProperties.s3().bucket();
 
-        try {
-            PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(
-                    PutObjectPresignRequest.builder()
-                            .signatureDuration(ttl)
-                            .putObjectRequest(request -> request
-                                    .bucket(bucket)
-                                    .key(normalizedKey)
-                                    .contentType(contentType)
-                                    .checksumSHA256(checksumSha256Base64)
-                                    .tagging(PENDING_UPLOAD_TAGGING))
-                            .build()
-            );
-            return buildUploadUrl(presignedRequest, contentType, checksumSha256Base64, ttl);
-        } catch (SdkException exception) {
-            throw new StorageOperationException("File storage is temporarily unavailable", exception);
-        }
+        return recordS3Operation("presign_upload", () -> {
+            try {
+                PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(
+                        PutObjectPresignRequest.builder()
+                                .signatureDuration(ttl)
+                                .putObjectRequest(request -> request
+                                        .bucket(bucket)
+                                        .key(normalizedKey)
+                                        .contentType(contentType)
+                                        .checksumSHA256(checksumSha256Base64)
+                                        .tagging(PENDING_UPLOAD_TAGGING))
+                                .build()
+                );
+                return buildUploadUrl(presignedRequest, contentType, checksumSha256Base64, ttl);
+            } catch (SdkException exception) {
+                throw new StorageOperationException("File storage is temporarily unavailable", exception);
+            }
+        });
     }
 
     @Override
@@ -93,19 +98,21 @@ public class S3ObjectStorageService implements ObjectStorageService {
         Duration ttl = storageProperties.s3().downloadPresignTtl();
         String bucket = storageProperties.s3().bucket();
 
-        try {
-            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(
-                    GetObjectPresignRequest.builder()
-                            .signatureDuration(ttl)
-                            .getObjectRequest(request -> request
-                                    .bucket(bucket)
-                                    .key(normalizedKey))
-                            .build()
-            );
-            return buildDownloadUrl(presignedRequest, ttl);
-        } catch (SdkException exception) {
-            throw new StorageOperationException("File storage is temporarily unavailable", exception);
-        }
+        return recordS3Operation("presign_download", () -> {
+            try {
+                PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(
+                        GetObjectPresignRequest.builder()
+                                .signatureDuration(ttl)
+                                .getObjectRequest(request -> request
+                                        .bucket(bucket)
+                                        .key(normalizedKey))
+                                .build()
+                );
+                return buildDownloadUrl(presignedRequest, ttl);
+            } catch (SdkException exception) {
+                throw new StorageOperationException("File storage is temporarily unavailable", exception);
+            }
+        });
     }
 
     @Override
@@ -113,21 +120,23 @@ public class S3ObjectStorageService implements ObjectStorageService {
         String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
         String bucket = storageProperties.s3().bucket();
 
-        try {
-            HeadObjectResponse response = s3Client.headObject(
-                    HeadObjectRequest.builder()
-                            .bucket(bucket)
-                            .key(normalizedKey)
-                            .build()
-            );
-            return buildObjectMetadata(normalizedKey, response);
-        } catch (SdkException exception) {
-            if (exception instanceof S3Exception s3Exception && s3Exception.statusCode() == S3_NOT_FOUND_STATUS) {
-                throw new ResourceNotFoundException("File object was not found", exception);
-            }
+        return recordS3Operation("head_object", () -> {
+            try {
+                HeadObjectResponse response = s3Client.headObject(
+                        HeadObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(normalizedKey)
+                                .build()
+                );
+                return buildObjectMetadata(normalizedKey, response);
+            } catch (SdkException exception) {
+                if (exception instanceof S3Exception s3Exception && s3Exception.statusCode() == S3_NOT_FOUND_STATUS) {
+                    throw new ResourceNotFoundException("File object was not found", exception);
+                }
 
-            throw new StorageOperationException("File storage is temporarily unavailable", exception);
-        }
+                throw new StorageOperationException("File storage is temporarily unavailable", exception);
+            }
+        });
     }
 
     @Override
@@ -135,33 +144,37 @@ public class S3ObjectStorageService implements ObjectStorageService {
         String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
         String bucket = storageProperties.s3().bucket();
 
-        try {
-            s3Client.putObjectTagging(
-                    PutObjectTaggingRequest.builder()
-                            .bucket(bucket)
-                            .key(normalizedKey)
-                            .tagging(tagging -> tagging.tagSet(List.of(
-                                    Tag.builder()
-                                            .key(UPLOAD_STATUS_TAG_KEY)
-                                            .value(ATTACHED_UPLOAD_STATUS)
-                                            .build()
-                            )))
-                            .build()
-            );
-        } catch (SdkException exception) {
-            throw new StorageOperationException("Failed to update file storage tags", exception);
-        }
+        recordS3Operation("put_object_tags", () -> {
+            try {
+                s3Client.putObjectTagging(
+                        PutObjectTaggingRequest.builder()
+                                .bucket(bucket)
+                                .key(normalizedKey)
+                                .tagging(tagging -> tagging.tagSet(List.of(
+                                        Tag.builder()
+                                                .key(UPLOAD_STATUS_TAG_KEY)
+                                                .value(ATTACHED_UPLOAD_STATUS)
+                                                .build()
+                                )))
+                                .build()
+                );
+            } catch (SdkException exception) {
+                throw new StorageOperationException("Failed to update file storage tags", exception);
+            }
+        });
     }
 
     @Override
     public boolean isObjectMarkedAsAttached(String s3Key) {
         String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
 
-        try {
-            return hasUploadStatusTag(normalizedKey, ATTACHED_UPLOAD_STATUS);
-        } catch (SdkException exception) {
-            throw new StorageOperationException("Failed to inspect file storage tags", exception);
-        }
+        return recordS3Operation("get_object_tags", () -> {
+            try {
+                return hasUploadStatusTag(normalizedKey, ATTACHED_UPLOAD_STATUS);
+            } catch (SdkException exception) {
+                throw new StorageOperationException("Failed to inspect file storage tags", exception);
+            }
+        });
     }
 
     @Override
@@ -170,29 +183,31 @@ public class S3ObjectStorageService implements ObjectStorageService {
             throw new IllegalArgumentException("Threshold is required");
         }
 
-        String bucket = storageProperties.s3().bucket();
-        try {
-            List<String> pendingUploadKeys = new ArrayList<>();
-            for (String prefix : CLEANUP_PREFIXES) {
-                s3Client.listObjectsV2Paginator(
-                                ListObjectsV2Request.builder()
-                                        .bucket(bucket)
-                                        .prefix(prefix)
-                                        .build()
-                        )
-                        .contents()
-                        .stream()
-                        .filter(object -> object.lastModified() != null
-                                && object.lastModified().isBefore(threshold))
-                        .map(S3Object::key)
-                        .filter(s3Key -> hasUploadStatusTag(s3Key, PENDING_UPLOAD_STATUS))
-                        .forEach(pendingUploadKeys::add);
-            }
+        return recordS3Operation("find_pending_uploads", () -> {
+            String bucket = storageProperties.s3().bucket();
+            try {
+                List<String> pendingUploadKeys = new ArrayList<>();
+                for (String prefix : CLEANUP_PREFIXES) {
+                    s3Client.listObjectsV2Paginator(
+                                    ListObjectsV2Request.builder()
+                                            .bucket(bucket)
+                                            .prefix(prefix)
+                                            .build()
+                            )
+                            .contents()
+                            .stream()
+                            .filter(object -> object.lastModified() != null
+                                    && object.lastModified().isBefore(threshold))
+                            .map(S3Object::key)
+                            .filter(s3Key -> hasUploadStatusTag(s3Key, PENDING_UPLOAD_STATUS))
+                            .forEach(pendingUploadKeys::add);
+                }
 
-            return List.copyOf(pendingUploadKeys);
-        } catch (SdkException exception) {
-            throw new StorageOperationException("Failed to inspect pending uploads in storage", exception);
-        }
+                return List.copyOf(pendingUploadKeys);
+            } catch (SdkException exception) {
+                throw new StorageOperationException("Failed to inspect pending uploads in storage", exception);
+            }
+        });
     }
 
     @Override
@@ -203,7 +218,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
     )
     public void deleteObject(String s3Key) {
         String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
-        deleteObjectsInBatches(List.of(normalizedKey));
+        recordS3Operation("delete_object", () -> deleteObjectsInBatches(List.of(normalizedKey)));
     }
 
     @Override
@@ -218,7 +233,26 @@ public class S3ObjectStorageService implements ObjectStorageService {
             return;
         }
 
-        deleteObjectsInBatches(normalizedKeys);
+        recordS3Operation("delete_objects", () -> deleteObjectsInBatches(normalizedKeys));
+    }
+
+    private void recordS3Operation(String operation, Runnable action) {
+        recordS3Operation(operation, () -> {
+            action.run();
+            return null;
+        });
+    }
+
+    private <T> T recordS3Operation(String operation, Supplier<T> action) {
+        var sample = storageMetricsRecorder.startTimer();
+        String outcome = StorageMetricsRecorder.OUTCOME_FAILURE;
+        try {
+            T result = action.get();
+            outcome = StorageMetricsRecorder.OUTCOME_SUCCESS;
+            return result;
+        } finally {
+            storageMetricsRecorder.recordS3Operation(sample, operation, outcome);
+        }
     }
 
     private List<String> normalizeKeys(Collection<String> s3Keys) {

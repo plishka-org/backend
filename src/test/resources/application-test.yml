@@ -3,7 +3,7 @@ spring:
     contexts: test
 
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    url: jdbc:h2:mem:backend-${random.uuid};DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -30,6 +30,8 @@ jwt:
 
 backend:
   base-url: http://localhost:8080/api
+  scheduling:
+    enabled: false
   refresh-token-expiration: 30d
   auth:
     email-verification-token-ttl: 24h
@@ -38,6 +40,8 @@ backend:
     unverified-user-ttl: 24h
   admin:
     email: admin@example.com
+  rate-limit:
+    enabled: false
 
 frontend:
   base-url: http://localhost:3000

@@ -11,6 +11,7 @@ import org.plishka.backend.dto.cart.UpdateCartItemRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.service.cart.CartService;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -24,6 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,6 +78,19 @@ class CartControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPrice").value(900));
 
         verify(cartService).getCart(USER_ID);
+    }
+
+    @Test
+    void getCart_ShouldReturn403_WhenShopModeIsDisabled() throws Exception {
+        when(shopModeService.isShopModeEnabled()).thenReturn(false);
+
+        mockMvc.perform(get("/cart")
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(ShopModeService.SHOP_MODE_DISABLED_MESSAGE));
+
+        verifyNoInteractions(cartService);
     }
 
     @Test

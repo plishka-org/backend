@@ -65,7 +65,7 @@ class NotificationServiceTest {
 
         doThrow(new RuntimeException("email failed"))
                 .when(emailService)
-                .sendOrderCreatedNotifications(event);
+                .sendOrderCreatedUserNotification(event);
 
         assertDoesNotThrow(() -> notificationService.notifyOrderCreated(event));
     }
@@ -84,7 +84,7 @@ class NotificationServiceTest {
 
         doThrow(new RuntimeException("email failed"))
                 .when(emailService)
-                .sendCallbackCreatedNotifications(event);
+                .sendCallbackCreatedUserNotification(event);
 
         assertDoesNotThrow(() -> notificationService.notifyCallbackRequestCreated(event));
     }

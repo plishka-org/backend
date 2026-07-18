@@ -72,7 +72,7 @@ public class AdminHomeProductServiceImpl implements AdminHomeProductService {
         }
 
         productRepository.findAllByIdInForUpdateOrderById(productIds);
-        List<Product> products = productRepository.findAllWithCategoryByIdInOrderById(productIds);
+        List<Product> products = productRepository.findAllByIdInWithCategoryOrderById(productIds);
         EntityPresenceValidator.requireAllIdsFound(
                 productIds,
                 products.stream().map(Product::getId).toList(),

@@ -48,7 +48,19 @@ spring:
     time-zone: UTC
 
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - optional:file:.env[.properties]
+      - classpath:rate-limit-policies.yaml
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
+    tags-sorter: alpha
+  packages-to-scan: org.plishka.backend.controller
+  paths-to-exclude:
+    - /error
 
 resend:
   api-key: ${RESEND_API_KEY}
@@ -57,6 +69,39 @@ resend:
 server:
   servlet:
     context-path: /api
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9090}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+      slo:
+        "[http.server.requests]": 100ms,250ms,500ms,1s,2s,5s
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${APP_ENV:production}
+  release: ${SENTRY_RELEASE:${RAILWAY_GIT_COMMIT_SHA:${RAILWAY_DEPLOYMENT_ID:local}}}
+  server-name: ${SENTRY_SERVER_NAME:plishka-backend}
+  send-default-pii: false
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  logging:
+    enabled: false
 
 jwt:
   secret: ${JWT_ACCESS_SECRET}
@@ -72,6 +117,11 @@ backend:
     unverified-user-ttl: ${BACKEND_CLEANUP_UNVERIFIED_USER_TTL}
   admin:
     email: ${BACKEND_ADMIN_EMAIL}
+  rate-limit:
+    enabled: ${BACKEND_RATE_LIMIT_ENABLED:true}
+    cache:
+      expire-after-access: ${BACKEND_RATE_LIMIT_CACHE_EXPIRE_AFTER_ACCESS:24h}
+      maximum-size: ${BACKEND_RATE_LIMIT_CACHE_MAXIMUM_SIZE:100000}
 
 frontend:
   base-url: ${FRONTEND_BASE_URL}

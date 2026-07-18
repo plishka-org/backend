@@ -13,6 +13,7 @@ import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.service.order.OrderCheckoutService;
 import org.plishka.backend.service.order.OrderService;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -26,6 +27,7 @@ import tools.jackson.databind.ObjectMapper;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -215,6 +217,17 @@ class OrderControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void createOrder_ShouldReturn403_WhenShopModeIsDisabled() throws Exception {
+        when(shopModeService.isShopModeEnabled()).thenReturn(false);
+
+        performCreateOrder(createOrderRequest(CUSTOMER_NAME))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(ShopModeService.SHOP_MODE_DISABLED_MESSAGE));
+
+        verifyNoInteractions(orderCheckoutService);
+    }
+
+    @Test
     void createOrder_ShouldReturn400_WhenCustomerNameIsBlank() throws Exception {
         CreateOrderRequestDto request = createOrderRequest("");
 
@@ -259,6 +272,20 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[0].quantity").value(QUANTITY));
 
         verify(orderService).repeatOrder(ORDER_ID, USER_ID, IDEMPOTENCY_KEY);
+    }
+
+    @Test
+    void repeatOrder_ShouldReturn403_WhenShopModeIsDisabled() throws Exception {
+        when(shopModeService.isShopModeEnabled()).thenReturn(false);
+
+        mockMvc.perform(post("/users/me/orders/{orderId}/repeat", ORDER_ID)
+                        .with(authenticatedUser(USER_ID, USER_EMAIL))
+                        .header(IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(ShopModeService.SHOP_MODE_DISABLED_MESSAGE));
+
+        verifyNoInteractions(orderService);
     }
 
     @Test

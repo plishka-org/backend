@@ -117,7 +117,7 @@ class AdminHomeProductServiceImplTest {
     }
 
     private void givenProductsLoadedWithCategory(List<Long> productIds, Product... products) {
-        when(productRepository.findAllWithCategoryByIdInOrderById(productIds))
+        when(productRepository.findAllByIdInWithCategoryOrderById(productIds))
                 .thenReturn(List.of(products));
     }
 
@@ -131,12 +131,12 @@ class AdminHomeProductServiceImplTest {
     private void verifyProductLockThenCategoryLoad(List<Long> productIds) {
         InOrder inOrder = inOrder(productRepository);
         inOrder.verify(productRepository).findAllByIdInForUpdateOrderById(productIds);
-        inOrder.verify(productRepository).findAllWithCategoryByIdInOrderById(productIds);
+        inOrder.verify(productRepository).findAllByIdInWithCategoryOrderById(productIds);
     }
 
     private void verifyNoProductLoad() {
         verify(productRepository, never()).findAllByIdInForUpdateOrderById(any());
-        verify(productRepository, never()).findAllWithCategoryByIdInOrderById(any());
+        verify(productRepository, never()).findAllByIdInWithCategoryOrderById(any());
     }
 
     private void verifySavedHomeRows(Long... expectedProductIds) {

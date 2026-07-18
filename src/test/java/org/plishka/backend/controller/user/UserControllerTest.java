@@ -8,6 +8,7 @@ import org.plishka.backend.dto.user.DeleteAccountRequestDto;
 import org.plishka.backend.dto.user.UserProfileDto;
 import org.plishka.backend.dto.user.UserProfileUpdateRequestDto;
 import org.plishka.backend.dto.user.UserProfileUpdateResponseDto;
+import org.plishka.backend.exception.EmailAlreadyExistsException;
 import org.plishka.backend.service.user.UserAccountService;
 import org.plishka.backend.service.user.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +21,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.ObjectMapper;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -121,6 +126,25 @@ class UserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.message").value("Email change verification has been sent."));
 
         verify(userProfileService).requestEmailChange(eq(USER_ID), any(ChangeEmailRequestDto.class));
+    }
+
+    @Test
+    void requestEmailChange_ShouldNotExposeSubmittedEmail_WhenEmailAlreadyExists() throws Exception {
+        ChangeEmailRequestDto request = new ChangeEmailRequestDto(
+                NEW_USER_EMAIL,
+                CURRENT_PASSWORD
+        );
+        doThrow(new EmailAlreadyExistsException("User with email '%s' already exists".formatted(NEW_USER_EMAIL)))
+                .when(userProfileService)
+                .requestEmailChange(eq(USER_ID), any(ChangeEmailRequestDto.class));
+
+        mockMvc.perform(put("/users/me/email")
+                        .with(currentUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already exists"))
+                .andExpect(content().string(not(containsString(NEW_USER_EMAIL))));
     }
 
     @Test

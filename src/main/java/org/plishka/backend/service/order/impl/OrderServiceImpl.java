@@ -23,11 +23,13 @@ import org.plishka.backend.mapper.order.OrderMapper;
 import org.plishka.backend.repository.order.OrderRepository;
 import org.plishka.backend.repository.product.ProductRepository;
 import org.plishka.backend.repository.user.UserRepository;
+import org.plishka.backend.service.notification.email.AdminNotificationOutboxService;
 import org.plishka.backend.service.order.OrderIdempotencyGuard;
 import org.plishka.backend.service.order.OrderItemFactory;
 import org.plishka.backend.service.order.OrderNumberGenerator;
 import org.plishka.backend.service.order.OrderService;
 import org.plishka.backend.service.pricing.PriceCalculator;
+import org.plishka.backend.service.settings.ShopModeService;
 import org.plishka.backend.util.RequestHashUtil;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -60,7 +62,9 @@ public class OrderServiceImpl implements OrderService {
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderIdempotencyGuard orderIdempotencyGuard;
     private final OrderItemFactory orderItemFactory;
+    private final AdminNotificationOutboxService adminNotificationOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ShopModeService shopModeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -76,12 +80,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDetailDto getOrderByOrderNumber(String orderNumber, Long userId) {
-        log.debug("Fetching order by orderNumber={} for user id={}", orderNumber, userId);
+        log.debug("Fetching order by order number for user id={}", userId);
 
         Order order = orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Order with number " + orderNumber + " not found"));
 
-        log.debug("Successfully fetched order by orderNumber={} for user id={}", orderNumber, userId);
+        log.debug("Successfully fetched order by order number for user id={}", userId);
         return orderMapper.toDetailDto(order);
     }
 
@@ -104,6 +108,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderDetailDto repeatOrder(Long orderId, Long userId, String idempotencyKey) {
+        shopModeService.requireEnabled();
         log.debug("Repeating order id={} for user id={}", orderId, userId);
 
         lockUserOrThrow(userId);
@@ -123,7 +128,9 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setRequestHash(requestHash);
         Order savedOrder = orderRepository.saveAndFlush(newOrder);
 
-        applicationEventPublisher.publishEvent(OrderCreatedEvent.fromOrder(savedOrder));
+        OrderCreatedEvent orderCreatedEvent = OrderCreatedEvent.fromOrder(savedOrder);
+        adminNotificationOutboxService.enqueueOrderCreated(orderCreatedEvent);
+        applicationEventPublisher.publishEvent(orderCreatedEvent);
 
         log.debug("Successfully repeated order id={} as new order id={} for user id={}",
                 orderId, savedOrder.getId(), userId);

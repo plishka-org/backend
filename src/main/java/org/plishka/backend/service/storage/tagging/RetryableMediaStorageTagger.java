@@ -23,7 +23,7 @@ public class RetryableMediaStorageTagger {
     public void markObjectAsAttached(String s3Key) {
         objectStorageService.markObjectAsAttached(s3Key);
 
-        log.info("Media object marked as attached in storage: s3Key={}", s3Key);
+        log.info("Media object marked as attached in storage");
     }
 
     @Recover

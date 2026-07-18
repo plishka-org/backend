@@ -15,6 +15,7 @@ import org.plishka.backend.mapper.home.HomePageMapper;
 import org.plishka.backend.repository.home.HomePageContentRepository;
 import org.plishka.backend.repository.home.HomePageProductRepository;
 import org.plishka.backend.service.home.HomePageService;
+import org.plishka.backend.service.product.PriceVisibilityPolicy;
 import org.plishka.backend.service.product.ProductMediaQueryService;
 import org.plishka.backend.service.review.FeaturedReviewQueryService;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class HomePageServiceImpl implements HomePageService {
     private final ProductMediaQueryService productMediaQueryService;
     private final FeaturedReviewQueryService featuredReviewQueryService;
     private final HomePageMapper homePageMapper;
+    private final PriceVisibilityPolicy priceVisibilityPolicy;
 
     @Override
     @Transactional(readOnly = true)
@@ -65,15 +67,17 @@ public class HomePageServiceImpl implements HomePageService {
     }
 
     private List<HomePageProductDto> getHomePageProducts() {
-        List<HomePageProduct> homePageProducts = homePageProductRepository.findAllByOrderByDisplayOrderAsc();
+        List<HomePageProduct> homePageProducts = homePageProductRepository.findAllVisibleByOrderByDisplayOrderAsc();
         Map<Long, ProductMedia> primaryMediaByProductId = productMediaQueryService.findPrimaryMediaForProducts(
                 extractProducts(homePageProducts)
         );
+        boolean currentPriceVisible = priceVisibilityPolicy.isCurrentPriceVisible();
 
         return homePageProducts.stream()
                 .map(homePageProduct -> homePageMapper.toHomePageProductDto(
                         homePageProduct,
-                        primaryMediaByProductId.get(homePageProduct.getProduct().getId())
+                        primaryMediaByProductId.get(homePageProduct.getProduct().getId()),
+                        priceVisibilityPolicy.visiblePrice(homePageProduct.getProduct(), currentPriceVisible)
                 ))
                 .toList();
     }

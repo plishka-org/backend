@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmailChangeServiceImpl implements EmailChangeService {
     private static final String EMAIL_CHANGE_VERIFICATION_PATH = "/#/verify-email-change?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
-    private static final String USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE = "User with email '%s' already exists";
+    private static final String USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE = "Email already exists";
 
     private final EmailChangeTokenRepository emailChangeTokenRepository;
     private final UserRepository userRepository;
@@ -55,7 +55,7 @@ public class EmailChangeServiceImpl implements EmailChangeService {
             emailChangeTokenRepository.saveAndFlush(token);
         } catch (DataIntegrityViolationException exception) {
             if (isEmailConstraintViolation(exception)) {
-                throw new EmailAlreadyExistsException(USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE.formatted(newEmail));
+                throw new EmailAlreadyExistsException(USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE);
             }
             throw exception;
         }
@@ -90,14 +90,14 @@ public class EmailChangeServiceImpl implements EmailChangeService {
             userRepository.flush();
         } catch (DataIntegrityViolationException exception) {
             if (isEmailConstraintViolation(exception)) {
-                throw new EmailAlreadyExistsException(USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE.formatted(newEmail));
+                throw new EmailAlreadyExistsException(USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE);
             }
             throw exception;
         }
         emailChangeTokenRepository.deleteAllByUser(user);
         applicationEventPublisher.publishEvent(new EmailChangedEvent(oldEmail, newEmail));
 
-        log.info("Email change verified successfully: userId={}, newEmail={}", user.getId(), newEmail);
+        log.info("Email change verified successfully: userId={}", user.getId());
     }
 
     private EmailChangeToken buildEmailChangeToken(User user, String newEmail, String rawToken, Instant now) {
@@ -126,7 +126,7 @@ public class EmailChangeServiceImpl implements EmailChangeService {
 
     private void validateEmailIsAvailable(String email) {
         if (userRepository.existsByEmail(email)) {
-            throw new EmailAlreadyExistsException(USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE.formatted(email));
+            throw new EmailAlreadyExistsException(USER_WITH_EMAIL_ALREADY_EXISTS_MESSAGE);
         }
     }
 

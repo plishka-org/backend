@@ -42,7 +42,7 @@ public class FavoriteServiceImpl implements FavoriteService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<FavoriteDto> getFavorites(Long userId, int page, int size) {
-        Page<Favorite> favoritesPage = favoriteRepository.findAllByUser_Id(
+        Page<Favorite> favoritesPage = favoriteRepository.findAllVisibleByUserId(
                 userId,
                 PageRequest.of(page, size, FAVORITES_SORT)
         );
@@ -120,7 +120,7 @@ public class FavoriteServiceImpl implements FavoriteService {
     }
 
     private Product findProductByIdOrThrow(Long productId) {
-        return productRepository.findByIdWithCategory(productId)
+        return productRepository.findVisibleByIdWithCategory(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 

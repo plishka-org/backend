@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.storage.StorageDeletionOutbox;
 import org.plishka.backend.domain.storage.StorageDeletionOutboxStatus;
+import org.plishka.backend.monitoring.metrics.StorageMetricsRecorder;
+import org.plishka.backend.monitoring.sentry.SentryMonitoringService;
 import org.plishka.backend.repository.storage.StorageDeletionOutboxRepository;
 import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +35,8 @@ public class StorageDeletionOutboxService {
     private final S3ObjectKeyValidator s3ObjectKeyValidator;
     private final TransactionOperations transactionOperations;
     private final Clock clock;
+    private final StorageMetricsRecorder storageMetricsRecorder;
+    private final SentryMonitoringService sentryMonitoringService;
 
     @Transactional
     public void enqueueDelete(String s3Key) {
@@ -64,6 +68,11 @@ public class StorageDeletionOutboxService {
                     totalResult.failedCount()
             );
         }
+        storageMetricsRecorder.recordDeletionOutboxEntries(
+                totalResult.checkedCount(),
+                totalResult.deletedCount(),
+                totalResult.failedCount()
+        );
 
         return totalResult.checkedCount();
     }
@@ -119,10 +128,10 @@ public class StorageDeletionOutboxService {
         boolean terminalFailure = attempts >= MAX_ATTEMPTS;
         if (terminalFailure) {
             entry.setStatus(StorageDeletionOutboxStatus.FAILED);
+            sentryMonitoringService.captureException(exception, "storage", "deletion_outbox_terminal_failure");
             log.warn(
-                    "Storage deletion outbox terminal failure: id={}, s3Key={}, attempts={}, error={}",
+                    "Storage deletion outbox terminal failure: id={}, attempts={}, error={}",
                     entry.getId(),
-                    entry.getS3Key(),
                     attempts,
                     entry.getLastError(),
                     exception
@@ -131,9 +140,8 @@ public class StorageDeletionOutboxService {
         }
 
         log.warn(
-                "Storage deletion outbox failed: id={}, s3Key={}, attempts={}, error={}",
+                "Storage deletion outbox failed: id={}, attempts={}, error={}",
                 entry.getId(),
-                entry.getS3Key(),
                 attempts,
                 entry.getLastError()
         );
