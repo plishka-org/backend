@@ -16,8 +16,6 @@ databaseChangeLog:
               - column:
                   name: user_id
                   type: BIGINT
-                  constraints:
-                    nullable: false
               - column:
                   name: order_number
                   type: VARCHAR(50)
@@ -80,7 +78,7 @@ databaseChangeLog:
             constraintName: fk_orders_user
             referencedTableName: users
             referencedColumnNames: id
-            onDelete: RESTRICT
+            onDelete: SET NULL
         - createIndex:
             tableName: orders
             indexName: idx_orders_user_id_created_at_id

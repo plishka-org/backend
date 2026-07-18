@@ -56,4 +56,6 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/029-create-storage-deletion-outbox-table.yaml
   - include:
+      file: db/changelog/changes/031-create-admin-notification-outbox-table.yaml
+  - include:
       file: db/changelog/changes/030-seed-dev-integration-data.yaml

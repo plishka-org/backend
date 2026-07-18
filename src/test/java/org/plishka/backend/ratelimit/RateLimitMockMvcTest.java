@@ -53,6 +53,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
         "backend.rate-limit.enabled=true",
+        "backend.rate-limit.policies[auth-login-email].bandwidths[0].capacity=5",
+        "backend.rate-limit.policies[auth-login-email].bandwidths[0].period=1h",
         "backend.rate-limit.policies[cart-write].bandwidths[0].capacity=120",
         "backend.rate-limit.policies[cart-write].bandwidths[0].period=1h",
         "backend.rate-limit.policies[file-download-presign].bandwidths[0].capacity=300",
@@ -129,6 +131,17 @@ class RateLimitMockMvcTest extends BaseControllerTest {
         }
 
         performLogin("login@example.com", "10.1.0.1")
+                .andExpect(rateLimitExceeded());
+    }
+
+    @Test
+    void login_ShouldLimitSameEmailAcrossDifferentIps() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            performLogin("distributed-login@example.com", "10.1.0.%d".formatted(i + 10))
+                    .andExpect(status().isOk());
+        }
+
+        performLogin("distributed-login@example.com", "10.1.0.99")
                 .andExpect(rateLimitExceeded());
     }
 

@@ -22,6 +22,10 @@ import lombok.Getter;
  */
 @Getter
 public enum RateLimitPolicy {
+    AUTH_LOGIN_EMAIL("auth-login-email", bandwidths(
+            bandwidth(20, Duration.ofHours(1)),
+            bandwidth(100, Duration.ofDays(1))
+    )),
     AUTH_LOGIN_EMAIL_IP("auth-login-email-ip", bandwidths(bandwidth(5, Duration.ofMinutes(10)))),
     AUTH_LOGIN_IP("auth-login-ip", bandwidths(bandwidth(60, Duration.ofMinutes(10)))),
     AUTH_REGISTER_IP("auth-register-ip", bandwidths(

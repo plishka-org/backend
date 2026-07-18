@@ -13,6 +13,7 @@ import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.config.properties.FrontendProperties;
 import org.plishka.backend.domain.user.EmailChangeToken;
 import org.plishka.backend.domain.user.User;
+import org.plishka.backend.exception.EmailAlreadyExistsException;
 import org.plishka.backend.exception.InvalidVerificationTokenException;
 import org.plishka.backend.repository.user.EmailChangeTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
@@ -21,7 +22,9 @@ import org.plishka.backend.util.TokenHashUtil;
 import org.springframework.context.ApplicationEventPublisher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -106,6 +109,22 @@ class EmailChangeServiceImplTest {
         verify(refreshTokenRepository).deleteAllByUserId(USER_ID);
         verify(userRepository).flush();
         verify(emailChangeTokenRepository).deleteAllByUser(lockedUser);
+    }
+
+    @Test
+    void initiateEmailChange_ShouldThrowGenericMessage_WhenEmailAlreadyExists() {
+        User user = user(true, false);
+        when(userRepository.existsByEmail(NEW_EMAIL)).thenReturn(true);
+
+        EmailAlreadyExistsException exception = assertThrows(
+                EmailAlreadyExistsException.class,
+                () -> emailChangeService.initiateEmailChange(user, NEW_EMAIL)
+        );
+
+        assertEquals("Email already exists", exception.getMessage());
+        assertFalse(exception.getMessage().contains(NEW_EMAIL));
+        verify(emailChangeTokenRepository, never()).saveAndFlush(any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
     private static User user(boolean emailVerified, boolean banned) {

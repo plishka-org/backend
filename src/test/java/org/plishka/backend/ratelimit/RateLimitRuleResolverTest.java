@@ -22,13 +22,14 @@ class RateLimitRuleResolverTest {
     }
 
     @Test
-    void resolve_ShouldUseEmailIpIdentityOrder_ForLoginEmailIpPolicy() {
+    void resolve_ShouldUseEmailIdentityThenEmailIpThenIp_ForLoginPolicies() {
         MockHttpServletRequest request = request("POST", "/auth/login");
         request.setRemoteAddr("127.0.0.1");
 
         List<RateLimitKey> keys = resolver.resolve(request, Map.of("email", "User@Example.com"));
 
         assertEquals(List.of(
+                new RateLimitKey(RateLimitPolicy.AUTH_LOGIN_EMAIL, "user@example.com"),
                 new RateLimitKey(RateLimitPolicy.AUTH_LOGIN_EMAIL_IP, "user@example.com:127.0.0.1"),
                 new RateLimitKey(RateLimitPolicy.AUTH_LOGIN_IP, "127.0.0.1")
         ), keys);

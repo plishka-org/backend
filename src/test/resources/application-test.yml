@@ -30,6 +30,8 @@ jwt:
 
 backend:
   base-url: http://localhost:8080/api
+  scheduling:
+    enabled: false
   refresh-token-expiration: 30d
   auth:
     email-verification-token-ttl: 24h

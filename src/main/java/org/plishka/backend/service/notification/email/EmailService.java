@@ -3,7 +3,6 @@ package org.plishka.backend.service.notification.email;
 import java.util.concurrent.RejectedExecutionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.event.callback.CallbackRequestCreatedEvent;
 import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.monitoring.metrics.EmailMetricsRecorder;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Service;
 public class EmailService {
     private final AsyncEmailSender asyncEmailSender;
     private final EmailTemplateBuilder templateBuilder;
-    private final BackendProperties backendProperties;
     private final EmailMetricsRecorder emailMetricsRecorder;
     private final SentryMonitoringService sentryMonitoringService;
 
@@ -57,33 +55,21 @@ public class EmailService {
         );
     }
 
-    public void sendOrderCreatedNotifications(OrderCreatedEvent event) {
+    public void sendOrderCreatedUserNotification(OrderCreatedEvent event) {
         queueEmail(
                 EmailType.ORDER_USER,
                 event.userEmail(),
                 EmailSubjects.orderConfirmationUser(event.orderNumber()),
                 templateBuilder.buildOrderEmailText(event)
         );
-        queueEmail(
-                EmailType.ORDER_ADMIN,
-                backendProperties.admin().email(),
-                EmailSubjects.orderNotificationAdmin(event.orderNumber()),
-                templateBuilder.buildOrderAdminEmailText(event)
-        );
     }
 
-    public void sendCallbackCreatedNotifications(CallbackRequestCreatedEvent event) {
+    public void sendCallbackCreatedUserNotification(CallbackRequestCreatedEvent event) {
         queueEmail(
                 EmailType.CALLBACK_USER,
                 event.userEmail(),
                 EmailSubjects.CALLBACK_CONFIRMATION_USER,
                 templateBuilder.buildCallbackConfirmationUserText(event)
-        );
-        queueEmail(
-                EmailType.CALLBACK_ADMIN,
-                backendProperties.admin().email(),
-                EmailSubjects.CALLBACK_NOTIFICATION_ADMIN,
-                templateBuilder.buildCallbackNotificationAdminText(event)
         );
     }
 

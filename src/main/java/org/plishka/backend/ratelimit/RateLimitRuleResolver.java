@@ -98,10 +98,10 @@ public class RateLimitRuleResolver {
 
         if (isPost(method, path, "/auth/login")) {
             List<RateLimitKey> keys = new ArrayList<>();
-            normalizedEmail(bodyFields).ifPresent(email -> keys.add(key(
-                    RateLimitPolicy.AUTH_LOGIN_EMAIL_IP,
-                    "%s:%s".formatted(email, ip)
-            )));
+            normalizedEmail(bodyFields).ifPresent(email -> {
+                keys.add(key(RateLimitPolicy.AUTH_LOGIN_EMAIL, email));
+                keys.add(key(RateLimitPolicy.AUTH_LOGIN_EMAIL_IP, "%s:%s".formatted(email, ip)));
+            });
             keys.add(key(RateLimitPolicy.AUTH_LOGIN_IP, ip));
             return keys;
         }

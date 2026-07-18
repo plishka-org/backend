@@ -17,16 +17,22 @@ public class OrderIdempotencyGuard {
     private final OrderRepository orderRepository;
 
     public Optional<Order> findExistingOrder(Long userId, String idempotencyKey, String requestHash) {
+        return findExistingOrder(userId, idempotencyKey)
+                .map(existingOrder -> requireMatchingRequestHash(existingOrder, requestHash));
+    }
+
+    public Optional<Order> findExistingOrder(Long userId, String idempotencyKey) {
         validateIdempotencyKey(idempotencyKey);
 
-        return orderRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
-                .map(existingOrder -> {
-                    if (!Objects.equals(existingOrder.getRequestHash(), requestHash)) {
-                        throw new ConflictException(
-                                "Idempotency key was already used with a different request payload");
-                    }
-                    return existingOrder;
-                });
+        return orderRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
+    }
+
+    public Order requireMatchingRequestHash(Order existingOrder, String requestHash) {
+        if (!Objects.equals(existingOrder.getRequestHash(), requestHash)) {
+            throw new ConflictException(
+                    "Idempotency key was already used with a different request payload");
+        }
+        return existingOrder;
     }
 
     private void validateIdempotencyKey(String idempotencyKey) {

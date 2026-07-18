@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.event.callback.CallbackRequestCreatedEvent;
 import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.monitoring.metrics.EmailMetricsRecorder;
@@ -25,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +32,6 @@ import static org.mockito.Mockito.when;
 class EmailServiceTest {
     private static final Instant CREATED_AT = Instant.parse("2026-06-19T10:00:00Z");
     private static final String USER_EMAIL = "user@example.com";
-    private static final String ADMIN_EMAIL = "admin@example.com";
     private static final String VERIFICATION_LINK = "https://example.com/verify";
     private static final String RESET_LINK = "https://example.com/reset";
 
@@ -43,20 +41,15 @@ class EmailServiceTest {
     @Mock
     private EmailTemplateBuilder templateBuilder;
 
-    @Mock
-    private BackendProperties backendProperties;
-
     private SimpleMeterRegistry meterRegistry;
     private EmailService emailService;
 
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        lenient().when(backendProperties.admin()).thenReturn(new BackendProperties.Admin(ADMIN_EMAIL));
         emailService = new EmailService(
                 asyncEmailSender,
                 templateBuilder,
-                backendProperties,
                 new EmailMetricsRecorder(meterRegistry),
                 new SentryMonitoringService()
         );
@@ -124,12 +117,11 @@ class EmailServiceTest {
     }
 
     @Test
-    void sendOrderCreatedNotifications_ShouldQueueCustomerAndAdminEmails() {
+    void sendOrderCreatedUserNotification_ShouldQueueOnlyCustomerEmail() {
         OrderCreatedEvent event = sampleOrderEvent();
         when(templateBuilder.buildOrderEmailText(event)).thenReturn("order user body");
-        when(templateBuilder.buildOrderAdminEmailText(event)).thenReturn("order admin body");
 
-        emailService.sendOrderCreatedNotifications(event);
+        emailService.sendOrderCreatedUserNotification(event);
 
         verify(asyncEmailSender).sendEmailAsync(
                 EmailType.ORDER_USER,
@@ -137,21 +129,16 @@ class EmailServiceTest {
                 EmailSubjects.orderConfirmationUser("ORD-123"),
                 "order user body"
         );
-        verify(asyncEmailSender).sendEmailAsync(
-                EmailType.ORDER_ADMIN,
-                ADMIN_EMAIL,
-                EmailSubjects.orderNotificationAdmin("ORD-123"),
-                "order admin body"
-        );
+        verify(templateBuilder, never()).buildOrderAdminEmailText(event);
+        verify(asyncEmailSender, never()).sendEmailAsync(eq(EmailType.ORDER_ADMIN), any(), any(), any());
     }
 
     @Test
-    void sendCallbackCreatedNotifications_ShouldQueueUserAndAdminEmails() {
+    void sendCallbackCreatedUserNotification_ShouldQueueOnlyUserEmail() {
         CallbackRequestCreatedEvent event = sampleCallbackEvent();
         when(templateBuilder.buildCallbackConfirmationUserText(event)).thenReturn("callback user body");
-        when(templateBuilder.buildCallbackNotificationAdminText(event)).thenReturn("callback admin body");
 
-        emailService.sendCallbackCreatedNotifications(event);
+        emailService.sendCallbackCreatedUserNotification(event);
 
         verify(asyncEmailSender).sendEmailAsync(
                 EmailType.CALLBACK_USER,
@@ -159,12 +146,8 @@ class EmailServiceTest {
                 EmailSubjects.CALLBACK_CONFIRMATION_USER,
                 "callback user body"
         );
-        verify(asyncEmailSender).sendEmailAsync(
-                EmailType.CALLBACK_ADMIN,
-                ADMIN_EMAIL,
-                EmailSubjects.CALLBACK_NOTIFICATION_ADMIN,
-                "callback admin body"
-        );
+        verify(templateBuilder, never()).buildCallbackNotificationAdminText(event);
+        verify(asyncEmailSender, never()).sendEmailAsync(eq(EmailType.CALLBACK_ADMIN), any(), any(), any());
     }
 
     @Test

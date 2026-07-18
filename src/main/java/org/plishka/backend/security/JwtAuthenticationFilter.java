@@ -60,11 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             if (!email.equals(userDetails.getUsername())) {
-                log.debug(
-                        "JWT subject does not match loaded user: tokenEmail={}, loadedUsername={}",
-                        email,
-                        userDetails.getUsername()
-                );
+                log.debug("JWT subject does not match loaded user");
                 filterChain.doFilter(request, response);
                 return;
             }

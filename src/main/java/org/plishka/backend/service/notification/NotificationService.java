@@ -47,7 +47,7 @@ public class NotificationService {
 
     public void notifyOrderCreated(OrderCreatedEvent event) {
         try {
-            emailService.sendOrderCreatedNotifications(event);
+            emailService.sendOrderCreatedUserNotification(event);
         } catch (Exception exception) {
             log.error(
                     "Failed to send order notification: orderId={}",
@@ -59,7 +59,7 @@ public class NotificationService {
 
     public void notifyCallbackRequestCreated(CallbackRequestCreatedEvent event) {
         try {
-            emailService.sendCallbackCreatedNotifications(event);
+            emailService.sendCallbackCreatedUserNotification(event);
         } catch (Exception exception) {
             log.error(
                     "Failed to send callback notification: callbackRequestId={}",

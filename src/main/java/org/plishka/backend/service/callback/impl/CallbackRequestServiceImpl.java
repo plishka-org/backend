@@ -14,6 +14,7 @@ import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
 import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.callback.CallbackRequestRepository;
 import org.plishka.backend.service.callback.CallbackRequestService;
+import org.plishka.backend.service.notification.email.AdminNotificationOutboxService;
 import org.plishka.backend.service.user.EligibleUserProvider;
 import org.plishka.backend.util.UserInputNormalizer;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,6 +39,7 @@ public class CallbackRequestServiceImpl implements CallbackRequestService {
     private final CallbackRequestRepository callbackRequestRepository;
     private final EligibleUserProvider eligibleUserProvider;
     private final CallbackRequestMapper callbackRequestMapper;
+    private final AdminNotificationOutboxService adminNotificationOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final BusinessMetricsRecorder businessMetricsRecorder;
     private final TransactionalMetricsPublisher transactionalMetricsPublisher;
@@ -56,7 +58,7 @@ public class CallbackRequestServiceImpl implements CallbackRequestService {
                     .build();
 
             CallbackRequest savedRequest = callbackRequestRepository.saveAndFlush(callbackRequest);
-            applicationEventPublisher.publishEvent(CallbackRequestCreatedEvent.builder()
+            CallbackRequestCreatedEvent callbackRequestCreatedEvent = CallbackRequestCreatedEvent.builder()
                     .callbackRequestId(savedRequest.getId())
                     .userId(user.getId())
                     .userEmail(user.getEmail())
@@ -64,7 +66,9 @@ public class CallbackRequestServiceImpl implements CallbackRequestService {
                     .phone(savedRequest.getPhone())
                     .message(savedRequest.getMessage())
                     .createdAt(savedRequest.getCreatedAt())
-                    .build());
+                    .build();
+            adminNotificationOutboxService.enqueueCallbackCreated(callbackRequestCreatedEvent);
+            applicationEventPublisher.publishEvent(callbackRequestCreatedEvent);
 
             transactionalMetricsPublisher.afterCompletionOrNow(
                     () -> businessMetricsRecorder.recordCallbackRequest(OUTCOME_SUCCESS),

@@ -1,6 +1,12 @@
 backend:
   rate-limit:
     policies:
+      auth-login-email:
+        bandwidths:
+          - capacity: 20
+            period: 1h
+          - capacity: 100
+            period: 1d
       auth-login-email-ip:
         bandwidths:
           - capacity: 5

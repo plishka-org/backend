@@ -61,3 +61,88 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
         run: railway up --ci --service backend --environment production
+
+      - name: Select post-deploy smoke URL
+        run: |
+          if [ "${{ github.event.inputs.target }}" = "dev" ]; then
+            SMOKE_BASE_URL="${{ vars.RAILWAY_PUBLIC_URL_DEV }}"
+          else
+            SMOKE_BASE_URL="${{ vars.RAILWAY_PUBLIC_URL_PROD }}"
+          fi
+
+          if [ -z "$SMOKE_BASE_URL" ]; then
+            echo "Missing Railway public URL for target '${{ github.event.inputs.target }}'"
+            echo "Configure RAILWAY_PUBLIC_URL_DEV and RAILWAY_PUBLIC_URL_PROD repository variables."
+            exit 1
+          fi
+
+          echo "SMOKE_BASE_URL=${SMOKE_BASE_URL%/}" >> "$GITHUB_ENV"
+
+      - name: Post-deploy smoke
+        run: |
+          smoke_request() {
+            local endpoint="$1"
+            local response_file
+            local status
+
+            response_file="$(mktemp)"
+            status="$(curl --silent --show-error --location --max-time 10 \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              "${SMOKE_BASE_URL}${endpoint}" || true)"
+
+            if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+              echo "Smoke failed for ${endpoint}: HTTP ${status}"
+              cat "$response_file" || true
+              rm -f "$response_file"
+              return 1
+            fi
+
+            python3 - "$endpoint" "$response_file" <<'PY'
+          import json
+          import sys
+
+          endpoint = sys.argv[1]
+          response_file = sys.argv[2]
+
+          with open(response_file, encoding="utf-8") as file:
+              body = file.read()
+
+          try:
+              payload = json.loads(body)
+          except json.JSONDecodeError as exception:
+              print(f"Smoke failed for {endpoint}: invalid JSON: {exception}", file=sys.stderr)
+              sys.exit(1)
+
+          if endpoint == "/api/health" and payload.get("status") != "UP":
+              print(f"Smoke failed for {endpoint}: expected status=UP, got {payload}", file=sys.stderr)
+              sys.exit(1)
+
+          if endpoint == "/api/version" and not isinstance(payload, int):
+              print(f"Smoke failed for {endpoint}: expected JSON integer, got {payload}", file=sys.stderr)
+              sys.exit(1)
+
+          if endpoint == "/api/settings" and not isinstance(payload, dict):
+              print(f"Smoke failed for {endpoint}: expected JSON object, got {payload}", file=sys.stderr)
+              sys.exit(1)
+          PY
+            local validation_status=$?
+            rm -f "$response_file"
+            return "$validation_status"
+          }
+
+          for attempt in $(seq 1 30); do
+            echo "Post-deploy smoke attempt ${attempt}/30"
+
+            if smoke_request "/api/health" \
+              && smoke_request "/api/version" \
+              && smoke_request "/api/settings"; then
+              echo "Post-deploy smoke passed"
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Post-deploy smoke failed after 30 attempts"
+          exit 1

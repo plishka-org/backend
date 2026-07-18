@@ -9,9 +9,11 @@ import io.micrometer.core.instrument.config.MeterFilter;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import org.plishka.backend.domain.notification.AdminNotificationOutboxStatus;
 import org.plishka.backend.domain.storage.StorageDeletionOutboxStatus;
 import org.plishka.backend.monitoring.http.HttpAreaObservationConvention;
 import org.plishka.backend.monitoring.metrics.CatalogMetricsSnapshot;
+import org.plishka.backend.repository.notification.AdminNotificationOutboxRepository;
 import org.plishka.backend.repository.storage.StorageDeletionOutboxRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -81,6 +83,32 @@ public class MonitoringConfig {
     }
 
     @Bean
+    public MeterBinder adminNotificationOutboxGauges(
+            AdminNotificationOutboxRepository repository,
+            Clock clock
+    ) {
+        return registry -> {
+            Gauge.builder("email.admin.notification.outbox.pending", repository,
+                            this::pendingAdminNotificationOutboxCount)
+                    .description("Pending admin notification outbox entries")
+                    .register(registry);
+            Gauge.builder("email.admin.notification.outbox.due", repository,
+                            repo -> dueAdminNotificationOutboxCount(repo, clock))
+                    .description("Due admin notification outbox entries")
+                    .register(registry);
+            Gauge.builder("email.admin.notification.outbox.failed", repository,
+                            this::failedAdminNotificationOutboxCount)
+                    .description("Failed admin notification outbox entries")
+                    .register(registry);
+            Gauge.builder("email.admin.notification.outbox.oldest.pending.age", repository,
+                            repo -> oldestAdminNotificationPendingAgeSeconds(repo, clock))
+                    .baseUnit("seconds")
+                    .description("Age of the oldest pending admin notification outbox entry")
+                    .register(registry);
+        };
+    }
+
+    @Bean
     public MeterBinder catalogGauges(CatalogMetricsSnapshot snapshot) {
         return registry -> {
             Gauge.builder("shop.mode.enabled", snapshot, CatalogMetricsSnapshot::shopModeEnabled)
@@ -129,6 +157,31 @@ public class MonitoringConfig {
 
     private double oldestPendingAgeSeconds(StorageDeletionOutboxRepository repository, Clock clock) {
         return repository.findOldestCreatedAtByStatus(StorageDeletionOutboxStatus.PENDING)
+                .map(createdAt -> Duration.between(createdAt, Instant.now(clock)).toSeconds())
+                .filter(ageSeconds -> ageSeconds > 0)
+                .orElse(0L);
+    }
+
+    private double pendingAdminNotificationOutboxCount(AdminNotificationOutboxRepository repository) {
+        return repository.countByStatus(AdminNotificationOutboxStatus.PENDING);
+    }
+
+    private double dueAdminNotificationOutboxCount(AdminNotificationOutboxRepository repository, Clock clock) {
+        return repository.countByStatusAndNextAttemptAtLessThanEqual(
+                AdminNotificationOutboxStatus.PENDING,
+                Instant.now(clock)
+        );
+    }
+
+    private double failedAdminNotificationOutboxCount(AdminNotificationOutboxRepository repository) {
+        return repository.countByStatus(AdminNotificationOutboxStatus.FAILED);
+    }
+
+    private double oldestAdminNotificationPendingAgeSeconds(
+            AdminNotificationOutboxRepository repository,
+            Clock clock
+    ) {
+        return repository.findOldestCreatedAtByStatus(AdminNotificationOutboxStatus.PENDING)
                 .map(createdAt -> Duration.between(createdAt, Instant.now(clock)).toSeconds())
                 .filter(ageSeconds -> ageSeconds > 0)
                 .orElse(0L);

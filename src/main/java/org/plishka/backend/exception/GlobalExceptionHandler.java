@@ -47,6 +47,7 @@ public class GlobalExceptionHandler {
     private static final String MALFORMED_REQUEST_BODY_MESSAGE = "Malformed JSON request body";
     private static final String INTERNAL_SERVER_ERROR_MESSAGE = "An unexpected error occurred";
     private static final String DATA_CONFLICT_MESSAGE = "The request conflicts with the current state of the resource";
+    private static final String EMAIL_ALREADY_EXISTS_MESSAGE = "Email already exists";
     private static final String REQUIRED_HEADER_MISSING_MESSAGE = "Required header is missing";
     private static final String REQUIRED_PARAMETER_MISSING_MESSAGE = "Required request parameter is missing";
     private static final String GLOBAL_ERROR_FIELD = "global";
@@ -54,10 +55,15 @@ public class GlobalExceptionHandler {
     private final Clock clock;
     private final ObjectProvider<SentryMonitoringService> sentryMonitoringServiceProvider;
 
-    @ExceptionHandler({
-            EmailAlreadyExistsException.class,
-            ConflictException.class
-    })
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponseDto> handleEmailAlreadyExists(
+            EmailAlreadyExistsException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.CONFLICT, EMAIL_ALREADY_EXISTS_MESSAGE, request);
+    }
+
+    @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponseDto> handleConflict(
             RuntimeException exception,
             HttpServletRequest request

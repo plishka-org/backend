@@ -2,6 +2,7 @@ package org.plishka.backend.service.auth.impl;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -475,12 +476,12 @@ public class AuthServiceImpl implements AuthService {
 
         while (cause != null) {
             if (cause instanceof org.hibernate.exception.ConstraintViolationException cve
-                    && USERS_EMAIL_CONSTRAINT.equalsIgnoreCase(cve.getConstraintName())) {
+                    && containsUsersEmailConstraint(cve.getConstraintName())) {
                 return true;
             }
 
             String message = cause.getMessage();
-            if (message != null && message.contains(USERS_EMAIL_CONSTRAINT)) {
+            if (containsUsersEmailConstraint(message)) {
                 return true;
             }
 
@@ -488,6 +489,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return false;
+    }
+
+    private boolean containsUsersEmailConstraint(String value) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(USERS_EMAIL_CONSTRAINT);
     }
 
     private String tokenFailureOutcome(RuntimeException exception) {

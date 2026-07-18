@@ -1,10 +1,14 @@
 package org.plishka.backend.service.order.impl;
 
 import io.micrometer.core.instrument.Timer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.cart.Cart;
+import org.plishka.backend.domain.cart.CartItem;
 import org.plishka.backend.domain.order.Order;
 import org.plishka.backend.domain.order.OrderItem;
 import org.plishka.backend.dto.order.CreateOrderRequestDto;
@@ -18,6 +22,7 @@ import org.plishka.backend.monitoring.metrics.BusinessMetricsRecorder;
 import org.plishka.backend.monitoring.transaction.TransactionalMetricsPublisher;
 import org.plishka.backend.repository.cart.CartRepository;
 import org.plishka.backend.repository.order.OrderRepository;
+import org.plishka.backend.service.notification.email.AdminNotificationOutboxService;
 import org.plishka.backend.service.order.OrderCheckoutService;
 import org.plishka.backend.service.order.OrderIdempotencyGuard;
 import org.plishka.backend.service.order.OrderItemFactory;
@@ -50,6 +55,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private static final String OUTCOME_ERROR = "error";
     private static final String OUTCOME_SHOP_DISABLED = "shop_disabled";
     private static final String OUTCOME_SUCCESS = "success";
+    private static final Comparator<Long> NULLABLE_LONG_COMPARATOR = Comparator.nullsFirst(Long::compareTo);
 
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
@@ -57,6 +63,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderIdempotencyGuard orderIdempotencyGuard;
     private final OrderItemFactory orderItemFactory;
+    private final AdminNotificationOutboxService adminNotificationOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ShopModeService shopModeService;
     private final BusinessMetricsRecorder businessMetricsRecorder;
@@ -74,13 +81,10 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
 
             Cart cart = findLockedCartAggregateOrThrow(userId);
 
-            String requestHash = calculateRequestHash(requestDto);
-            Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(
-                    userId,
-                    idempotencyKey,
-                    requestHash
-            );
+            Optional<Order> existingOrder = orderIdempotencyGuard.findExistingOrder(userId, idempotencyKey);
             if (existingOrder.isPresent()) {
+                String retryRequestHash = calculateRetryRequestHash(requestDto, cart, existingOrder.get());
+                orderIdempotencyGuard.requireMatchingRequestHash(existingOrder.get(), retryRequestHash);
                 log.debug("Returning existing order id={} for idempotent retry by user id={}",
                         existingOrder.get().getId(), userId);
                 outcome = OUTCOME_SUCCESS;
@@ -89,6 +93,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
 
             validateCartNotEmpty(cart);
 
+            String requestHash = calculateRequestHash(requestDto, cart);
             Order order = createOrderFromCart(cart, requestDto);
             order.setIdempotencyKey(idempotencyKey);
             order.setRequestHash(requestHash);
@@ -96,7 +101,9 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
 
             clearCart(cart);
 
-            applicationEventPublisher.publishEvent(OrderCreatedEvent.fromOrder(savedOrder));
+            OrderCreatedEvent orderCreatedEvent = OrderCreatedEvent.fromOrder(savedOrder);
+            adminNotificationOutboxService.enqueueOrderCreated(orderCreatedEvent);
+            applicationEventPublisher.publishEvent(orderCreatedEvent);
 
             log.debug("Order created with id={} for user id={}", savedOrder.getId(), userId);
 
@@ -153,13 +160,50 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
         return order;
     }
 
-    private String calculateRequestHash(CreateOrderRequestDto requestDto) {
-        return RequestHashUtil.hash(
-                requestDto.customerName(),
-                requestDto.deliveryCity(),
-                requestDto.phone(),
-                requestDto.notes()
+    private String calculateRetryRequestHash(CreateOrderRequestDto requestDto, Cart cart, Order existingOrder) {
+        if (cart.getCartItems().isEmpty()) {
+            return calculateRequestHash(requestDto, existingOrder);
+        }
+        return calculateRequestHash(requestDto, cart);
+    }
+
+    private String calculateRequestHash(CreateOrderRequestDto requestDto, Cart cart) {
+        List<String> fields = requestHashFields(requestDto);
+        cart.getCartItems().stream()
+                .sorted(Comparator.comparing(cartItem -> cartItem.getProduct().getId()))
+                .map(this::cartItemHashField)
+                .forEach(fields::add);
+        return RequestHashUtil.hash(fields.toArray(String[]::new));
+    }
+
+    private String calculateRequestHash(CreateOrderRequestDto requestDto, Order order) {
+        List<String> fields = requestHashFields(requestDto);
+        order.getOrderItems().stream()
+                .sorted(Comparator.comparing(OrderItem::getProductId, NULLABLE_LONG_COMPARATOR))
+                .map(this::orderItemHashField)
+                .forEach(fields::add);
+        return RequestHashUtil.hash(fields.toArray(String[]::new));
+    }
+
+    private List<String> requestHashFields(CreateOrderRequestDto requestDto) {
+        List<String> fields = new ArrayList<>();
+        fields.add(requestDto.customerName());
+        fields.add(requestDto.deliveryCity());
+        fields.add(requestDto.phone());
+        fields.add(requestDto.notes());
+        return fields;
+    }
+
+    private String cartItemHashField(CartItem cartItem) {
+        return "%d:%d:%d".formatted(
+                cartItem.getProduct().getId(),
+                cartItem.getQuantity(),
+                cartItem.getProduct().getPrice()
         );
+    }
+
+    private String orderItemHashField(OrderItem orderItem) {
+        return "%s:%s:%s".formatted(orderItem.getProductId(), orderItem.getQuantity(), orderItem.getUnitPrice());
     }
 
     private void validateCartNotEmpty(Cart cart) {

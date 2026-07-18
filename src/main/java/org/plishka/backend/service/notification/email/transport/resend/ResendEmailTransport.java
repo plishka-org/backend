@@ -16,6 +16,7 @@ import org.plishka.backend.exception.NonRetryableEmailException;
 import org.plishka.backend.exception.RetryableEmailException;
 import org.plishka.backend.service.notification.email.EmailType;
 import org.plishka.backend.service.notification.email.transport.EmailTransport;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
@@ -28,14 +29,24 @@ public class ResendEmailTransport implements EmailTransport {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
     private final HttpClient httpClient;
+    private final URI emailsUri;
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String fromEmail;
 
+    @Autowired
     public ResendEmailTransport(ObjectMapper objectMapper, ResendProperties resendProperties) {
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(CONNECT_TIMEOUT)
-                .build();
+        this(objectMapper, resendProperties, defaultHttpClient(), RESEND_EMAILS_URI);
+    }
+
+    ResendEmailTransport(
+            ObjectMapper objectMapper,
+            ResendProperties resendProperties,
+            HttpClient httpClient,
+            URI emailsUri
+    ) {
+        this.httpClient = httpClient;
+        this.emailsUri = emailsUri;
         this.objectMapper = objectMapper;
         this.apiKey = resendProperties.apiKey();
         this.fromEmail = resendProperties.fromEmail();
@@ -90,7 +101,7 @@ public class ResendEmailTransport implements EmailTransport {
     }
 
     private HttpRequest buildHttpRequest(String requestBodyJson) {
-        return HttpRequest.newBuilder(RESEND_EMAILS_URI)
+        return HttpRequest.newBuilder(emailsUri)
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
                 .timeout(REQUEST_TIMEOUT)
@@ -106,5 +117,11 @@ public class ResendEmailTransport implements EmailTransport {
         requestBody.put("text", text);
 
         return objectMapper.writeValueAsString(requestBody);
+    }
+
+    private static HttpClient defaultHttpClient() {
+        return HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
     }
 }

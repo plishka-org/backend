@@ -17,6 +17,7 @@ import org.plishka.backend.repository.user.PasswordResetTokenRepository;
 import org.plishka.backend.repository.user.RefreshTokenRepository;
 import org.plishka.backend.repository.user.UserRepository;
 import org.plishka.backend.service.file.MediaReferenceService;
+import org.plishka.backend.service.notification.email.AdminNotificationOutboxService;
 import org.plishka.backend.service.storage.ObjectStorageService;
 import org.plishka.backend.service.storage.StorageDeletionOutboxService;
 import org.plishka.backend.service.storage.tagging.RetryableMediaStorageTagger;
@@ -39,6 +40,7 @@ public class SchedulerService {
     private final StorageProperties storageProperties;
     private final ObjectStorageService objectStorageService;
     private final StorageDeletionOutboxService storageDeletionOutboxService;
+    private final AdminNotificationOutboxService adminNotificationOutboxService;
     private final MediaReferenceService mediaReferenceService;
     private final RetryableMediaStorageTagger retryableMediaStorageTagger;
     private final Clock clock;
@@ -197,6 +199,14 @@ public class SchedulerService {
         schedulerMetricsRecorder.recordJob(
                 "process_storage_deletion_outbox",
                 storageDeletionOutboxService::processDueDeletions
+        );
+    }
+
+    @Scheduled(cron = "0 */10 * * * *", zone = EUROPE_KYIV)
+    public void processAdminNotificationOutbox() {
+        schedulerMetricsRecorder.recordJob(
+                "process_admin_notification_outbox",
+                adminNotificationOutboxService::processDueNotifications
         );
     }
 
