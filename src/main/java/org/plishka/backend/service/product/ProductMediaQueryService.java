@@ -21,6 +21,11 @@ public class ProductMediaQueryService {
     @Transactional(readOnly = true)
     public Map<Long, ProductMedia> findPrimaryMediaForProducts(Collection<Product> products) {
         List<Long> productIds = extractProductIds(products);
+        return findPrimaryMediaByProductIds(productIds);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, ProductMedia> findPrimaryMediaByProductIds(Collection<Long> productIds) {
         if (productIds.isEmpty()) {
             return Map.of();
         }

@@ -16,6 +16,7 @@ import org.plishka.backend.dto.home.HomePageContentDto;
 import org.plishka.backend.dto.home.HomePageProductDto;
 import org.plishka.backend.dto.home.HomePageResponse;
 import org.plishka.backend.dto.product.CategoryDto;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.mapper.home.HomePageMapper;
 import org.plishka.backend.repository.home.HomePageContentRepository;
 import org.plishka.backend.repository.home.HomePageProductRepository;
@@ -23,6 +24,7 @@ import org.plishka.backend.service.product.PriceVisibilityPolicy;
 import org.plishka.backend.service.product.ProductMediaQueryService;
 import org.plishka.backend.service.review.FeaturedReviewQueryService;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,6 +92,13 @@ class HomePageServiceImplTest {
 
         assertSame(response, result);
         verify(homePageProductRepository).findAllVisibleByOrderByDisplayOrderAsc();
+    }
+
+    @Test
+    void getHomePageData_ShouldThrowOperationalException_WhenContentMissing() {
+        when(contentRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(RequiredSingletonUnavailableException.class, service::getHomePageData);
     }
 
     private static HomePageContent homeContent() {

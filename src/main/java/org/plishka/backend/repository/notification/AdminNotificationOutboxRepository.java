@@ -9,6 +9,7 @@ import org.plishka.backend.domain.notification.AdminNotificationOutboxStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,5 +39,16 @@ public interface AdminNotificationOutboxRepository extends JpaRepository<AdminNo
             @Param("status") AdminNotificationOutboxStatus status,
             @Param("now") Instant now,
             Pageable pageable
+    );
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update AdminNotificationOutbox o
+            set o.recipient = :newRecipient
+            where o.status = :status
+            """)
+    void updateRecipientsByStatus(
+            @Param("newRecipient") String newRecipient,
+            @Param("status") AdminNotificationOutboxStatus status
     );
 }

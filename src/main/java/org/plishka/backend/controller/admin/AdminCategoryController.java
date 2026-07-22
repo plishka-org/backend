@@ -12,6 +12,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.dto.admin.category.AdminCategoryRequestDto;
 import org.plishka.backend.dto.admin.category.CategoryDeleteStrategy;
+import org.plishka.backend.dto.admin.category.CategoryOrderRequestDto;
 import org.plishka.backend.dto.product.CategoryDto;
 import org.plishka.backend.service.admin.catalog.category.AdminCategoryService;
 import org.springframework.http.HttpStatus;
@@ -71,6 +72,22 @@ public class AdminCategoryController {
             @Valid @RequestBody AdminCategoryRequestDto request
     ) {
         return adminCategoryService.updateCategory(id, request);
+    }
+
+    @Operation(
+            operationId = "adminUpdateCategoryOrder",
+            summary = "Admin update category display order",
+            description = "Requires active user with ROLE_ADMIN. The request must contain every current category id."
+    )
+    @ApiResponse(
+            responseCode = "204",
+            description = "Category order updated.",
+            content = @io.swagger.v3.oas.annotations.media.Content
+    )
+    @PutMapping("/order")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateCategoryOrder(@Valid @RequestBody CategoryOrderRequestDto categoryOrderRequest) {
+        adminCategoryService.updateCategoryOrder(categoryOrderRequest);
     }
 
     @Operation(

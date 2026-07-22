@@ -17,6 +17,7 @@ import org.plishka.backend.dto.admin.about.AdminAboutPageDto;
 import org.plishka.backend.dto.admin.about.AdminAboutPageMediaDto;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.about.AboutPageMapper;
 import org.plishka.backend.repository.about.AboutPageContentRepository;
@@ -168,12 +169,12 @@ public class AdminAboutPageServiceImpl implements AdminAboutPageService {
 
     private AboutPageContent findContentOrThrow() {
         return contentRepository.findById(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new ResourceNotFoundException(CONTENT_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(CONTENT_NOT_FOUND_MESSAGE));
     }
 
     private AboutPageContent findContentForUpdateOrThrow() {
         return contentRepository.findByIdForUpdate(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new ResourceNotFoundException(CONTENT_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(CONTENT_NOT_FOUND_MESSAGE));
     }
 
     private void lockContentOrThrow() {

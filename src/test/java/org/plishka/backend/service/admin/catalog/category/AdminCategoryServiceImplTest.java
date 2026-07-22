@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.plishka.backend.domain.product.Category;
 import org.plishka.backend.dto.admin.category.AdminCategoryRequestDto;
 import org.plishka.backend.dto.admin.category.CategoryDeleteStrategy;
+import org.plishka.backend.dto.admin.category.CategoryOrderRequestDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.mapper.product.CategoryMapper;
@@ -77,6 +78,33 @@ class AdminCategoryServiceImplTest {
         );
 
         assertEquals("Category with this name already exists", exception.getMessage());
+    }
+
+    @Test
+    void updateCategoryOrder_ShouldApplyRequestedDisplayOrder() {
+        Category first = category(1L);
+        first.setDisplayOrder(1);
+        Category second = category(2L);
+        second.setDisplayOrder(2);
+        when(categoryRepository.findAllForUpdateOrderByDisplayOrder()).thenReturn(List.of(first, second));
+
+        service.updateCategoryOrder(new CategoryOrderRequestDto(List.of(2L, 1L)));
+
+        assertEquals(2, first.getDisplayOrder());
+        assertEquals(1, second.getDisplayOrder());
+        verify(categoryRepository).flush();
+    }
+
+    @Test
+    void updateCategoryOrder_ShouldRejectIncompleteIdSet() {
+        when(categoryRepository.findAllForUpdateOrderByDisplayOrder()).thenReturn(List.of(category(1L), category(2L)));
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> service.updateCategoryOrder(new CategoryOrderRequestDto(List.of(1L)))
+        );
+
+        assertEquals("Category order must contain the current category ids", exception.getMessage());
     }
 
     @Test

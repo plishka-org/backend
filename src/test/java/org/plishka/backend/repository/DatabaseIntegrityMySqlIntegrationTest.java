@@ -152,8 +152,8 @@ class DatabaseIntegrityMySqlIntegrationTest extends MySqlIntegrationTest {
 
     private Long createCategory(String prefix) {
         return insertAndReturnId(
-                "insert into categories (name, created_at, updated_at) values (?, current_timestamp(6), "
-                        + "current_timestamp(6))",
+                "insert into categories (name, display_order, created_at, updated_at) "
+                        + "values (?, 1, current_timestamp(6), current_timestamp(6))",
                 prefix + "-category-" + System.nanoTime()
         );
     }

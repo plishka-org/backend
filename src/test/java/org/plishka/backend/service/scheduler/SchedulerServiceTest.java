@@ -213,8 +213,7 @@ class SchedulerServiceTest {
                 "http://localhost:8080/api",
                 Duration.ofDays(30),
                 new BackendProperties.Auth(Duration.ofHours(24), Duration.ofHours(3)),
-                new BackendProperties.Cleanup(UNVERIFIED_USER_TTL),
-                new BackendProperties.Admin("admin@example.com")
+                new BackendProperties.Cleanup(UNVERIFIED_USER_TTL)
         );
     }
 

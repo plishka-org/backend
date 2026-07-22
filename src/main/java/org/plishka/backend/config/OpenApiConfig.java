@@ -56,6 +56,8 @@ public class OpenApiConfig {
                         tag("Admin - Contacts"),
                         tag("Admin - Files"),
                         tag("Admin - Home"),
+                        tag("Admin - Callback"),
+                        tag("Admin - Orders"),
                         tag("Admin - Product Media"),
                         tag("Admin - Products"),
                         tag("Admin - Review Media"),

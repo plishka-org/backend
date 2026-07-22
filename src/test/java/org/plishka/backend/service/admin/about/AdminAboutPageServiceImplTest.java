@@ -17,6 +17,7 @@ import org.plishka.backend.dto.admin.about.AdminAboutPageDto;
 import org.plishka.backend.dto.admin.about.AdminAboutPageMediaDto;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.about.AboutPageMapper;
 import org.plishka.backend.repository.about.AboutPageContentRepository;
@@ -102,6 +103,28 @@ class AdminAboutPageServiceImplTest {
     }
 
     @Test
+    void getAboutPage_ShouldThrowOperationalException_WhenContentMissing() {
+        when(contentRepository.findById(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(RequiredSingletonUnavailableException.class, service::getAboutPage);
+    }
+
+    @Test
+    void updateAboutPageContent_ShouldThrowOperationalException_WhenContentMissing() {
+        when(contentRepository.findByIdForUpdate(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(
+                RequiredSingletonUnavailableException.class,
+                () -> service.updateAboutPageContent(new AdminAboutPageContentRequestDto(
+                        "Main title",
+                        "Main subtitle",
+                        "Secondary title",
+                        "Secondary subtitle"
+                ))
+        );
+    }
+
+    @Test
     void attachMedia_ShouldDelegateToAboutPageService() {
         AttachMediaRequestDto request = new AttachMediaRequestDto(ABOUT_MEDIA_KEY);
 
@@ -168,6 +191,14 @@ class AdminAboutPageServiceImplTest {
 
         assertThrows(ResourceNotFoundException.class, () -> service.deleteMedia(99L));
         verify(storageDeletionOutboxService, never()).enqueueDelete(any());
+    }
+
+    @Test
+    void deleteAllMedia_ShouldThrowOperationalException_WhenContentMissing() {
+        when(contentRepository.findByIdForUpdate(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(RequiredSingletonUnavailableException.class, service::deleteAllMedia);
+        verify(storageDeletionOutboxService, never()).enqueueDeletes(any());
     }
 
     private void givenContentLocked() {

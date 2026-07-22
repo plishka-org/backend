@@ -79,6 +79,9 @@ databaseChangeLog:
                   name: is_shop_mode_enabled
                   valueBoolean: false
               - column:
+                  name: admin_email
+                  value: admin@example.com
+              - column:
                   name: created_at
                   valueComputed: CURRENT_TIMESTAMP(6)
               - column:

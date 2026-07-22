@@ -22,7 +22,7 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryDto> getCategories() {
         log.debug("Fetching categories");
 
-        List<CategoryDto> result = categoryRepository.findAllByOrderByNameAsc()
+        List<CategoryDto> result = categoryRepository.findAllByOrderByDisplayOrderAscIdAsc()
                 .stream()
                 .map(categoryMapper::toDto)
                 .toList();

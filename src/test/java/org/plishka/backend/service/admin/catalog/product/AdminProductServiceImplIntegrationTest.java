@@ -99,6 +99,16 @@ class AdminProductServiceImplIntegrationTest {
     }
 
     @Test
+    void adminProducts_ShouldTreatLikeWildcardsAsLiteralText() {
+        Product percentMatch = createProductWithCategory("Product % Literal", "Product Search Category A");
+        Product underscoreMatch = createProductWithCategory("Product _ Literal", "Product Search Category B");
+        createProductWithCategory("Regular Product", "Product Search Category C");
+
+        assertEquals(List.of(percentMatch.getId()), findProductIds("%"));
+        assertEquals(List.of(underscoreMatch.getId()), findProductIds("_"));
+    }
+
+    @Test
     void deleteProduct_ShouldEnqueueMediaDeletionBeforeCascadeDeletesMediaRows() {
         Product product = createProductWithCategory("Product With Media", "Category With Media");
         String s3Key = "products/" + product.getId()
@@ -146,6 +156,18 @@ class AdminProductServiceImplIntegrationTest {
         product.setPrice(10L);
         product.setCategory(category);
         return productRepository.saveAndFlush(product);
+    }
+
+    private List<Long> findProductIds(String searchQuery) {
+        return adminProductService.getProducts(
+                        new AdminProductSearchRequestDto(null, null, searchQuery, "name,asc"),
+                        0,
+                        10
+                )
+                .content()
+                .stream()
+                .map(AdminProductDetailDto::productId)
+                .toList();
     }
 
     private void createHomeProduct(Product product) {

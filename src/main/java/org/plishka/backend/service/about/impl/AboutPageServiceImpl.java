@@ -8,6 +8,7 @@ import org.plishka.backend.domain.about.AboutPageMedia;
 import org.plishka.backend.domain.media.MediaTargetType;
 import org.plishka.backend.dto.about.AboutPageResponse;
 import org.plishka.backend.dto.file.AttachMediaRequestDto;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.mapper.about.AboutPageMapper;
 import org.plishka.backend.repository.about.AboutPageContentRepository;
 import org.plishka.backend.repository.about.AboutPageMediaRepository;
@@ -48,7 +49,7 @@ public class AboutPageServiceImpl implements AboutPageService {
 
     private AboutPageContent findContentOrThrow() {
         return contentRepository.findById(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(
                         "About page content not found. Please verify database initialization."
                 ));
     }

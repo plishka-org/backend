@@ -8,7 +8,10 @@ import io.sentry.protocol.Request;
 import io.sentry.protocol.User;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.ResourceNotFoundException;
+import org.springframework.http.HttpMethod;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -22,12 +25,17 @@ class SentryPrivacyConfigTest {
 
         assertNull(callback.execute(new SentryEvent(new BadRequestException("bad request")), new Hint()));
         assertNull(callback.execute(new SentryEvent(new ResourceNotFoundException("not found")), new Hint()));
+        assertNull(callback.execute(new SentryEvent(new NoResourceFoundException(
+                HttpMethod.GET,
+                "/missing",
+                "classpath:/static/"
+        )), new Hint()));
     }
 
     @Test
     void beforeSend_ShouldRemovePotentialPiiFromUnexpectedExceptions() {
         SentryOptions.BeforeSendCallback callback = sentryPrivacyConfig.sentryBeforeSendCallback();
-        SentryEvent event = new SentryEvent(new IllegalStateException("boom"));
+        SentryEvent event = new SentryEvent(new RequiredSingletonUnavailableException("Required singleton missing"));
         event.setUser(new User());
         event.setRequest(new Request());
         event.addBreadcrumb(new Breadcrumb());

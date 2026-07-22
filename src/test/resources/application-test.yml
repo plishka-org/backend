@@ -38,8 +38,6 @@ backend:
     password-reset-token-ttl: 3h
   cleanup:
     unverified-user-ttl: 24h
-  admin:
-    email: admin@example.com
   rate-limit:
     enabled: false
 

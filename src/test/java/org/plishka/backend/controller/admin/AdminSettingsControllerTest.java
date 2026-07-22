@@ -2,9 +2,9 @@ package org.plishka.backend.controller.admin;
 
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
+import org.plishka.backend.dto.admin.settings.AdminSettingsDto;
 import org.plishka.backend.dto.admin.settings.AdminSettingsRequestDto;
-import org.plishka.backend.dto.settings.SystemSettingsDto;
-import org.plishka.backend.exception.ResourceNotFoundException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.service.admin.settings.AdminSettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,24 +35,26 @@ class AdminSettingsControllerTest extends BaseControllerTest {
 
     @Test
     void getSettings_ShouldReturnSettings() throws Exception {
-        when(adminSettingsService.getSettings()).thenReturn(new SystemSettingsDto(true));
+        when(adminSettingsService.getSettings()).thenReturn(new AdminSettingsDto(true, "admin@example.com"));
 
         mockMvc.perform(get("/admin/settings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isShopModeEnabled").value(true));
+                .andExpect(jsonPath("$.isShopModeEnabled").value(true))
+                .andExpect(jsonPath("$.adminEmail").value("admin@example.com"));
     }
 
     @Test
     void updateSettings_ShouldReturnUpdatedSettings() throws Exception {
-        AdminSettingsRequestDto request = new AdminSettingsRequestDto(false);
+        AdminSettingsRequestDto request = new AdminSettingsRequestDto(false, "admin@example.com");
         when(adminSettingsService.updateSettings(any(AdminSettingsRequestDto.class)))
-                .thenReturn(new SystemSettingsDto(false));
+                .thenReturn(new AdminSettingsDto(false, "admin@example.com"));
 
         mockMvc.perform(put("/admin/settings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isShopModeEnabled").value(false));
+                .andExpect(jsonPath("$.isShopModeEnabled").value(false))
+                .andExpect(jsonPath("$.adminEmail").value("admin@example.com"));
     }
 
     @Test
@@ -64,11 +66,25 @@ class AdminSettingsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void getSettings_ShouldReturn404_WhenSettingsMissing() throws Exception {
+    void getSettings_ShouldReturn500_WhenSettingsMissing() throws Exception {
         when(adminSettingsService.getSettings())
-                .thenThrow(new ResourceNotFoundException("System settings not found"));
+                .thenThrow(new RequiredSingletonUnavailableException("System settings not found"));
 
         mockMvc.perform(get("/admin/settings"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+    }
+
+    @Test
+    void updateSettings_ShouldReturn500_WhenSettingsMissing() throws Exception {
+        AdminSettingsRequestDto request = new AdminSettingsRequestDto(false, "admin@example.com");
+        when(adminSettingsService.updateSettings(any(AdminSettingsRequestDto.class)))
+                .thenThrow(new RequiredSingletonUnavailableException("System settings not found"));
+
+        mockMvc.perform(put("/admin/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
     }
 }

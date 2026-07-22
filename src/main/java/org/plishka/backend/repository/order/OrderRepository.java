@@ -1,16 +1,33 @@
 package org.plishka.backend.repository.order;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.plishka.backend.domain.order.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
+    @Query("""
+            SELECT DISTINCT o FROM Order o
+            LEFT JOIN FETCH o.orderItems
+            WHERE o.id = :id
+            """)
+    Optional<Order> findByIdWithItems(@Param("id") Long id);
+
+    @Query("""
+            SELECT DISTINCT o FROM Order o
+            LEFT JOIN FETCH o.orderItems
+            WHERE o.id IN :orderIds
+            """)
+    List<Order> findAllByIdInWithItems(@Param("orderIds") Collection<Long> orderIds);
+
     @Query("""
             SELECT DISTINCT o FROM Order o
             LEFT JOIN FETCH o.orderItems

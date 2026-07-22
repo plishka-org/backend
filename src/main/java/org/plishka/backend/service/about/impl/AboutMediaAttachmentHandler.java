@@ -5,6 +5,7 @@ import org.plishka.backend.domain.about.AboutPageContent;
 import org.plishka.backend.domain.about.AboutPageMedia;
 import org.plishka.backend.domain.media.MediaTargetType;
 import org.plishka.backend.domain.media.MediaType;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.repository.about.AboutPageContentRepository;
 import org.plishka.backend.repository.about.AboutPageMediaRepository;
 import org.plishka.backend.service.file.MediaAttachmentHandler;
@@ -46,7 +47,7 @@ public class AboutMediaAttachmentHandler implements MediaAttachmentHandler {
 
     private AboutPageContent lockContentOrThrow(Long targetId) {
         return contentRepository.findByIdForUpdate(targetId)
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(
                         "About page content not found. Please verify database initialization."
                 ));
     }

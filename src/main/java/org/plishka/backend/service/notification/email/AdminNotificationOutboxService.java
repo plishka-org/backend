@@ -1,22 +1,25 @@
 package org.plishka.backend.service.notification.email;
 
+import jakarta.validation.Validator;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.domain.notification.AdminNotificationOutbox;
 import org.plishka.backend.domain.notification.AdminNotificationOutboxStatus;
 import org.plishka.backend.domain.notification.AdminNotificationType;
+import org.plishka.backend.domain.settings.SystemSettings;
 import org.plishka.backend.event.callback.CallbackRequestCreatedEvent;
 import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.exception.InvalidEmailRecipientException;
 import org.plishka.backend.exception.NonRetryableEmailException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.RetryableEmailException;
 import org.plishka.backend.monitoring.metrics.EmailMetricsRecorder;
 import org.plishka.backend.monitoring.sentry.SentryMonitoringService;
 import org.plishka.backend.repository.notification.AdminNotificationOutboxRepository;
+import org.plishka.backend.repository.settings.SystemSettingsRepository;
 import org.plishka.backend.service.notification.email.transport.EmailTransport;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -37,7 +40,8 @@ public class AdminNotificationOutboxService {
     private final AdminNotificationOutboxRepository adminNotificationOutboxRepository;
     private final EmailTransport emailTransport;
     private final EmailTemplateBuilder templateBuilder;
-    private final BackendProperties backendProperties;
+    private final SystemSettingsRepository systemSettingsRepository;
+    private final Validator validator;
     private final TransactionOperations transactionOperations;
     private final Clock clock;
     private final EmailMetricsRecorder emailMetricsRecorder;
@@ -186,7 +190,7 @@ public class AdminNotificationOutboxService {
     }
 
     private AdminNotificationOutbox createOrderCreatedEntry(OrderCreatedEvent event, Instant now) {
-        return createEntry(
+        return createPendingNotificationEntry(
                 AdminNotificationType.ORDER_CREATED,
                 event.orderId(),
                 EmailSubjects.orderNotificationAdmin(event.orderNumber()),
@@ -196,7 +200,7 @@ public class AdminNotificationOutboxService {
     }
 
     private AdminNotificationOutbox createCallbackCreatedEntry(CallbackRequestCreatedEvent event, Instant now) {
-        return createEntry(
+        return createPendingNotificationEntry(
                 AdminNotificationType.CALLBACK_CREATED,
                 event.callbackRequestId(),
                 EmailSubjects.CALLBACK_NOTIFICATION_ADMIN,
@@ -205,7 +209,7 @@ public class AdminNotificationOutboxService {
         );
     }
 
-    private AdminNotificationOutbox createEntry(
+    private AdminNotificationOutbox createPendingNotificationEntry(
             AdminNotificationType notificationType,
             Long sourceId,
             String subject,
@@ -215,7 +219,7 @@ public class AdminNotificationOutboxService {
         AdminNotificationOutbox entry = new AdminNotificationOutbox();
         entry.setNotificationType(notificationType);
         entry.setSourceId(sourceId);
-        entry.setRecipient(backendProperties.admin().email());
+        entry.setRecipient(findValidatedAdminNotificationRecipient());
         entry.setSubject(subject);
         entry.setBody(body);
         entry.setStatus(AdminNotificationOutboxStatus.PENDING);
@@ -229,6 +233,16 @@ public class AdminNotificationOutboxService {
             case ORDER_CREATED -> EmailType.ORDER_ADMIN;
             case CALLBACK_CREATED -> EmailType.CALLBACK_ADMIN;
         };
+    }
+
+    private String findValidatedAdminNotificationRecipient() {
+        SystemSettings systemSettings = systemSettingsRepository.findById(SystemSettings.SINGLETON_ID)
+                .orElseThrow(() -> new RequiredSingletonUnavailableException("System settings not found"));
+        if (!validator.validateProperty(systemSettings, "adminEmail").isEmpty()) {
+            log.error("System settings contain an invalid admin email");
+            throw new IllegalStateException("System settings contain an invalid admin email");
+        }
+        return systemSettings.getAdminEmail();
     }
 
     private Instant now() {

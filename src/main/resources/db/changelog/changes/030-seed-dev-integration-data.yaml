@@ -15,6 +15,9 @@ databaseChangeLog:
                   name: name
                   value: "Tables"
               - column:
+                  name: display_order
+                  valueNumeric: 1
+              - column:
                   name: created_at
                   valueComputed: CURRENT_TIMESTAMP(6)
               - column:
@@ -29,6 +32,9 @@ databaseChangeLog:
               - column:
                   name: name
                   value: "Benches"
+              - column:
+                  name: display_order
+                  valueNumeric: 2
               - column:
                   name: created_at
                   valueComputed: CURRENT_TIMESTAMP(6)
@@ -45,6 +51,9 @@ databaseChangeLog:
                   name: name
                   value: "Decor"
               - column:
+                  name: display_order
+                  valueNumeric: 3
+              - column:
                   name: created_at
                   valueComputed: CURRENT_TIMESTAMP(6)
               - column:
@@ -59,6 +68,9 @@ databaseChangeLog:
               - column:
                   name: name
                   value: "Serving Boards"
+              - column:
+                  name: display_order
+                  valueNumeric: 4
               - column:
                   name: created_at
                   valueComputed: CURRENT_TIMESTAMP(6)
@@ -371,6 +383,15 @@ databaseChangeLog:
               - column:
                   name: role_id
                   valueNumeric: 1
+        - insert:
+            tableName: users_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueNumeric: 10001
+              - column:
+                  name: role_id
+                  valueNumeric: 2
 
         - update:
             tableName: system_settings

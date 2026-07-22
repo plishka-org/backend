@@ -6,6 +6,7 @@ import java.util.Locale;
 import org.plishka.backend.domain.product.Product;
 import org.plishka.backend.dto.admin.product.AdminProductFiltersDto;
 import org.plishka.backend.util.BulkIdNormalizer;
+import org.plishka.backend.util.LikePatternEscaper;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
@@ -50,13 +51,21 @@ public final class AdminProductSpecifications {
         }
 
         String searchTerm = search.trim();
-        String searchPattern = "%" + searchTerm.toLowerCase(Locale.ROOT) + "%";
+        String searchPattern = LikePatternEscaper.containsPattern(searchTerm.toLowerCase(Locale.ROOT));
         Long searchedPrice = parseSearchPrice(searchTerm);
 
         return (root, query, criteriaBuilder) -> {
             var categoryJoin = root.join("category", JoinType.LEFT);
-            var nameLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern);
-            var categoryLike = criteriaBuilder.like(criteriaBuilder.lower(categoryJoin.get("name")), searchPattern);
+            var nameLike = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("name")),
+                    searchPattern,
+                    LikePatternEscaper.ESCAPE_CHARACTER
+            );
+            var categoryLike = criteriaBuilder.like(
+                    criteriaBuilder.lower(categoryJoin.get("name")),
+                    searchPattern,
+                    LikePatternEscaper.ESCAPE_CHARACTER
+            );
 
             if (searchedPrice == null) {
                 return criteriaBuilder.or(nameLike, categoryLike);

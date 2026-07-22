@@ -1,6 +1,7 @@
 package org.plishka.backend.service.admin.review;
 
 import jakarta.persistence.EntityManager;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.plishka.backend.domain.media.MediaType;
 import org.plishka.backend.domain.review.Review;
@@ -8,6 +9,7 @@ import org.plishka.backend.domain.review.ReviewMedia;
 import org.plishka.backend.dto.admin.review.AdminReviewFeaturedRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewRequestDto;
 import org.plishka.backend.dto.admin.review.AdminReviewSearchRequestDto;
+import org.plishka.backend.dto.admin.review.AdminReviewSummaryDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.repository.review.ReviewMediaRepository;
 import org.plishka.backend.repository.review.ReviewRepository;
@@ -65,6 +67,20 @@ class AdminReviewServiceImplIntegrationTest {
         assertEquals(1, byContent.totalElements());
         assertEquals(3, allReviews.totalElements());
         assertEquals(10, allReviews.pageSize());
+    }
+
+    @Test
+    void getReviews_ShouldTreatLikeWildcardsAsLiteralText() {
+        var percentMatch = adminReviewService.createReview(
+                new AdminReviewRequestDto("Review % Literal", "Percent content")
+        );
+        var underscoreMatch = adminReviewService.createReview(
+                new AdminReviewRequestDto("Review _ Literal", "Underscore content")
+        );
+        adminReviewService.createReview(new AdminReviewRequestDto("Regular Review", "Regular content"));
+
+        assertEquals(List.of(percentMatch.reviewId()), findReviewIds("%"));
+        assertEquals(List.of(underscoreMatch.reviewId()), findReviewIds("_"));
     }
 
     @Test
@@ -155,6 +171,14 @@ class AdminReviewServiceImplIntegrationTest {
         media.setIsPrimary(primary);
         media.setDisplayOrder(displayOrder);
         return reviewMediaRepository.saveAndFlush(media);
+    }
+
+    private List<Long> findReviewIds(String searchQuery) {
+        return adminReviewService.getReviews(new AdminReviewSearchRequestDto(searchQuery), 0, 10)
+                .content()
+                .stream()
+                .map(AdminReviewSummaryDto::reviewId)
+                .toList();
     }
 
     private boolean findReviewFeatured(Long reviewId) {
