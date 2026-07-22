@@ -9,10 +9,6 @@ public class OperationDocumentationRegistry {
     private static final String CATEGORY_NOT_FOUND = "Category with ID 123 not found";
     private static final String REVIEW_NOT_FOUND = "Review with ID 123 not found";
     private static final String USER_NOT_FOUND = "User with ID 123 not found";
-    private static final String ABOUT_PAGE_NOT_FOUND = "About page content not found";
-    private static final String CONTACTS_PAGE_NOT_FOUND = "Contacts page content not found";
-    private static final String HOME_PAGE_NOT_FOUND = "Home page content not found";
-    private static final String SETTINGS_NOT_FOUND = "System settings not found";
     private static final String CART_NOT_FOUND = "Cart not found for user id=123";
 
     private final Map<String, OperationDocumentation> docs = buildDocs();
@@ -175,34 +171,35 @@ public class OperationDocumentationRegistry {
                 .notFound("Media file was not found")
                 .storageUnavailable());
 
-        put(result, secured("adminGetAboutPage")
-                .notFound(ABOUT_PAGE_NOT_FOUND));
+        put(result, secured("adminGetAboutPage"));
         put(result, secured("adminUpdateAboutPage")
                 .badRequest(validationBody(
                         "mainTitle: Main title is required",
                         "mainSubtitle: Main subtitle is required",
                         "secondaryTitle: Secondary title is required",
                         "secondarySubtitle: Secondary subtitle is required"
-                ))
-                .notFound(ABOUT_PAGE_NOT_FOUND));
+                )));
         put(result, secured("adminAttachAboutMedia")
                 .badRequest(validationAndBusiness(true, "S3 key does not match media target",
                         "s3Key: S3 key is required"))
-                .notFound(ABOUT_PAGE_NOT_FOUND)
                 .storageUnavailable());
         put(result, secured("adminReorderAboutMedia")
                 .badRequest(validationAndBusiness(true, "Media order must contain the current media ids",
                         "mediaIds: Media ids are required",
-                        "mediaIds[0]: must be greater than 0"))
-                .notFound(ABOUT_PAGE_NOT_FOUND));
-        put(result, secured("adminDeleteAllAboutMedia")
-                .notFound(ABOUT_PAGE_NOT_FOUND));
+                        "mediaIds[0]: must be greater than 0")));
+        put(result, secured("adminDeleteAllAboutMedia"));
         put(result, secured("adminDeleteAboutMedia")
                 .badRequest(validation(false, "mediaId: must be greater than 0"))
                 .notFound("About page media with ID 456 not found"));
 
         put(result, secured("adminGetCategories")
                 .badRequest(validation(false, "search: Search must contain at most 100 characters")));
+        put(result, secured("adminUpdateCategoryOrder")
+                .badRequest(validationAndBusiness(true,
+                        "Category order must contain the current category ids",
+                        "categoryIds: Category ids are required",
+                        "categoryIds: Category ids must not be empty",
+                        "categoryIds[0]: must be greater than 0")));
         put(result, secured("adminCreateCategory")
                 .badRequest(validationBody("name: Category name is required"))
                 .conflict(ConflictExample.CATEGORY_ALREADY_EXISTS));
@@ -218,19 +215,16 @@ public class OperationDocumentationRegistry {
                         "targetCategoryId: must be greater than 0"))
                 .notFound(CATEGORY_NOT_FOUND));
 
-        put(result, secured("adminGetContactsPage")
-                .notFound(CONTACTS_PAGE_NOT_FOUND));
+        put(result, secured("adminGetContactsPage"));
         put(result, secured("adminUpdateContactsPage")
                 .badRequest(validationBody(
                         "phone: Phone must be a valid Ukrainian phone number",
                         "email: Email must be a valid email address"
-                ))
-                .notFound(CONTACTS_PAGE_NOT_FOUND));
+                )));
         put(result, secured("adminCreateContactSocialLink")
                 .badRequest(validationAndBusiness(true, "Maximum social links count is 10",
                         "name: Social link name is required",
-                        "url: URL must be a valid HTTPS URL"))
-                .notFound(CONTACTS_PAGE_NOT_FOUND));
+                        "url: URL must be a valid HTTPS URL")));
         put(result, secured("adminUpdateContactSocialLink")
                 .badRequest(validationAndBusiness(true, "Maximum social links count is 10",
                         "name: Social link name is required",
@@ -250,14 +244,12 @@ public class OperationDocumentationRegistry {
                 .requestExample(RequestExample.PRESIGN_UPLOAD)
                 .successExample(SuccessExample.PRESIGN_UPLOAD));
 
-        put(result, secured("adminGetHomePage")
-                .notFound(HOME_PAGE_NOT_FOUND));
+        put(result, secured("adminGetHomePage"));
         put(result, secured("adminUpdateHomePage")
                 .badRequest(validationBody(
                         "title: Home page title is required",
                         "description: Home page description must contain at most 5000 characters"
-                ))
-                .notFound(HOME_PAGE_NOT_FOUND));
+                )));
 
         put(result, secured("adminGetProducts")
                 .badRequest(validationAndBusiness(false, "Unsupported product sort",
@@ -379,11 +371,27 @@ public class OperationDocumentationRegistry {
                         "mediaId: must be greater than 0"))
                 .notFound(REVIEW_NOT_FOUND));
 
-        put(result, secured("adminGetSettings")
-                .notFound(SETTINGS_NOT_FOUND));
+        put(result, secured("adminGetSettings"));
         put(result, secured("adminUpdateSettings")
-                .badRequest(validationBody("isShopModeEnabled: must not be null"))
-                .notFound(SETTINGS_NOT_FOUND));
+                .badRequest(validationBody(
+                        "isShopModeEnabled: Shop mode flag is required",
+                        "adminEmail: Admin email is required",
+                        "adminEmail: Email must be a valid email address"
+                )));
+
+        put(result, secured("adminGetOrders")
+                .badRequest(validationAndBusiness(false, "Unsupported order sort",
+                        "page: Page must be >= 0",
+                        "size: Size must be <= 100",
+                        "search: Search must contain at most 100 characters")));
+        put(result, secured("adminGetOrder")
+                .badRequest(validation(false, "id: must be greater than 0"))
+                .notFound("Order with ID 123 not found"));
+        put(result, secured("adminGetCallbackRequests")
+                .badRequest(validationAndBusiness(false, "Unsupported callback request sort",
+                        "page: Page must be >= 0",
+                        "size: Size must be <= 100",
+                        "search: Search must contain at most 100 characters")));
 
         put(result, secured("adminGetUsers")
                 .badRequest(validationAndBusiness(false, "Unsupported user sort",

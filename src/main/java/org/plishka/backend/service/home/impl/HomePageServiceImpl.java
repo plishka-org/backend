@@ -11,6 +11,7 @@ import org.plishka.backend.domain.product.ProductMedia;
 import org.plishka.backend.dto.home.HomePageProductDto;
 import org.plishka.backend.dto.home.HomePageResponse;
 import org.plishka.backend.dto.home.HomePageReviewDto;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.mapper.home.HomePageMapper;
 import org.plishka.backend.repository.home.HomePageContentRepository;
 import org.plishka.backend.repository.home.HomePageProductRepository;
@@ -61,7 +62,7 @@ public class HomePageServiceImpl implements HomePageService {
 
     private HomePageContent findContentOrThrow() {
         return contentRepository.findById(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(
                         "Home page content not found. Please verify database initialization."
                 ));
     }

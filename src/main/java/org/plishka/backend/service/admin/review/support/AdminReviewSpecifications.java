@@ -2,6 +2,7 @@ package org.plishka.backend.service.admin.review.support;
 
 import java.util.Locale;
 import org.plishka.backend.domain.review.Review;
+import org.plishka.backend.util.LikePatternEscaper;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
@@ -14,11 +15,19 @@ public final class AdminReviewSpecifications {
             return Specification.unrestricted();
         }
 
-        String searchPattern = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
+        String searchPattern = LikePatternEscaper.containsPattern(search.trim().toLowerCase(Locale.ROOT));
 
         return (root, query, criteriaBuilder) -> criteriaBuilder.or(
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("authorName")), searchPattern),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("content")), searchPattern)
+                criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("authorName")),
+                        searchPattern,
+                        LikePatternEscaper.ESCAPE_CHARACTER
+                ),
+                criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("content")),
+                        searchPattern,
+                        LikePatternEscaper.ESCAPE_CHARACTER
+                )
         );
     }
 }

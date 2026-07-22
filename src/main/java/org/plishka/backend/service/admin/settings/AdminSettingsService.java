@@ -1,10 +1,10 @@
 package org.plishka.backend.service.admin.settings;
 
+import org.plishka.backend.dto.admin.settings.AdminSettingsDto;
 import org.plishka.backend.dto.admin.settings.AdminSettingsRequestDto;
-import org.plishka.backend.dto.settings.SystemSettingsDto;
 
 public interface AdminSettingsService {
-    SystemSettingsDto getSettings();
+    AdminSettingsDto getSettings();
 
-    SystemSettingsDto updateSettings(AdminSettingsRequestDto request);
+    AdminSettingsDto updateSettings(AdminSettingsRequestDto settingsRequest);
 }

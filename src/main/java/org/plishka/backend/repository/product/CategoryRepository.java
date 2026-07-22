@@ -13,11 +13,16 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    List<Category> findAllByOrderByNameAsc();
+    List<Category> findAllByOrderByDisplayOrderAscIdAsc();
 
-    List<Category> findAllByOrderByNameAscIdAsc();
+    List<Category> findAllByNameContainingIgnoreCaseOrderByDisplayOrderAscIdAsc(String name);
 
-    List<Category> findAllByNameContainingIgnoreCaseOrderByNameAscIdAsc(String name);
+    @Query("SELECT COALESCE(MAX(c.displayOrder), 0) FROM Category c")
+    Integer findMaxDisplayOrder();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Category c ORDER BY c.displayOrder, c.id")
+    List<Category> findAllForUpdateOrderByDisplayOrder();
 
     @Query("""
             select count(c) > 0

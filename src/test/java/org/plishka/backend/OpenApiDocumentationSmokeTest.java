@@ -85,6 +85,12 @@ class OpenApiDocumentationSmokeTest {
                         .value("Admin - Product Media"))
                 .andExpect(jsonPath("$.paths['/admin/users'].get.tags[0]").value("Admin - Users"))
                 .andExpect(jsonPath("$.paths['/admin/settings'].get.tags[0]").value("Admin - Settings"))
+                .andExpect(jsonPath("$.paths['/admin/orders'].get.operationId").value("adminGetOrders"))
+                .andExpect(jsonPath("$.paths['/admin/orders/{id}'].get.operationId").value("adminGetOrder"))
+                .andExpect(jsonPath("$.paths['/admin/callback-requests'].get.operationId")
+                        .value("adminGetCallbackRequests"))
+                .andExpect(jsonPath("$.paths['/admin/categories/order'].put.operationId")
+                        .value("adminUpdateCategoryOrder"))
                 .andExpect(jsonPath("$.components.schemas.LoginRequestDto").exists())
                 .andExpect(jsonPath("$.components.schemas.CreateOrderRequestDto").exists())
                 .andExpect(jsonPath("$.components.schemas.ErrorResponseDto").exists())
@@ -293,23 +299,12 @@ class OpenApiDocumentationSmokeTest {
                         "$.paths['/home'].get.responses['200'].content['application/json'].examples"
                                 + ".homePage.value.products[0].category.name"
                 ).value(OpenApiExampleValues.ENDPOINT_CATEGORY_NAME))
-                .andExpect(jsonPath(
-                        "$.paths['/admin/about'].put.responses['404'].content['application/json'].examples"
-                                + ".resourceNotFound.value.path"
-                ).value("/api/admin/about"))
-                .andExpect(jsonPath(
-                        "$.paths['/admin/about'].put.responses['404'].content['application/json'].examples"
-                                + ".resourceNotFound.value.message"
-                ).value("About page content not found"))
-                .andExpect(jsonPath("$.paths['/admin/about'].put.responses['404'].$ref").doesNotExist())
-                .andExpect(jsonPath(
-                        "$.paths['/admin/contacts-page/social-links'].post.responses['404']"
-                                + ".content['application/json'].examples.resourceNotFound.value.path"
-                ).value("/api/admin/contacts-page/social-links"))
-                .andExpect(jsonPath(
-                        "$.paths['/admin/contacts-page/social-links'].post.responses['404']"
-                                + ".content['application/json'].examples.resourceNotFound.value.message"
-                ).value("Contacts page content not found"))
+                .andExpect(jsonPath("$.paths['/admin/about'].put.responses['404']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/admin/contacts-page/social-links'].post.responses['404']")
+                        .doesNotExist())
+                .andExpect(jsonPath("$.paths['/admin/home-page'].put.responses['404']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/admin/settings'].get.responses['404']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/admin/settings'].put.responses['404']").doesNotExist())
                 .andExpect(jsonPath(
                         "$.paths['/auth/verify-email-change'].post.responses['409'].content['application/json']"
                                 + ".examples.duplicateResource.value.path"

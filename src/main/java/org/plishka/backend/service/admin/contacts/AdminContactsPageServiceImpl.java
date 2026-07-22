@@ -10,6 +10,7 @@ import org.plishka.backend.dto.admin.contacts.AdminContactsPageSocialLinkDto;
 import org.plishka.backend.dto.admin.contacts.AdminContactsPageSocialLinkRequestDto;
 import org.plishka.backend.dto.contacts.ContactsPageContentDto;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.contacts.ContactsPageMapper;
 import org.plishka.backend.repository.contacts.ContactsPageRepository;
@@ -130,12 +131,12 @@ public class AdminContactsPageServiceImpl implements AdminContactsPageService {
 
     private ContactsPage findContactsPageOrThrow() {
         return contactsPageRepository.findById(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new ResourceNotFoundException(CONTENT_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(CONTENT_NOT_FOUND_MESSAGE));
     }
 
     private ContactsPage findContactsPageForUpdateOrThrow() {
         return contactsPageRepository.findByIdForUpdate(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new ResourceNotFoundException(CONTENT_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(CONTENT_NOT_FOUND_MESSAGE));
     }
 
     private SocialLink findSocialLinkForUpdateOrThrow(Long socialLinkId) {

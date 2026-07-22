@@ -1,28 +1,33 @@
 package org.plishka.backend.service.notification;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.validation.Validator;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.plishka.backend.config.properties.BackendProperties;
 import org.plishka.backend.domain.notification.AdminNotificationOutbox;
 import org.plishka.backend.domain.notification.AdminNotificationOutboxStatus;
 import org.plishka.backend.domain.notification.AdminNotificationType;
+import org.plishka.backend.domain.settings.SystemSettings;
 import org.plishka.backend.event.callback.CallbackRequestCreatedEvent;
 import org.plishka.backend.event.order.OrderCreatedEvent;
 import org.plishka.backend.exception.NonRetryableEmailException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.RetryableEmailException;
 import org.plishka.backend.monitoring.metrics.EmailMetricsRecorder;
 import org.plishka.backend.monitoring.sentry.SentryMonitoringService;
 import org.plishka.backend.repository.notification.AdminNotificationOutboxRepository;
+import org.plishka.backend.repository.settings.SystemSettingsRepository;
 import org.plishka.backend.service.notification.email.AdminNotificationOutboxService;
 import org.plishka.backend.service.notification.email.EmailSubjects;
 import org.plishka.backend.service.notification.email.EmailTemplateBuilder;
@@ -33,6 +38,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -56,7 +62,10 @@ class AdminNotificationOutboxServiceTest {
     private EmailTemplateBuilder templateBuilder;
 
     @Mock
-    private BackendProperties backendProperties;
+    private SystemSettingsRepository systemSettingsRepository;
+
+    @Mock
+    private Validator validator;
 
     private final TransactionOperations transactionOperations = new TransactionOperations() {
         @Override
@@ -71,12 +80,17 @@ class AdminNotificationOutboxServiceTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        lenient().when(backendProperties.admin()).thenReturn(new BackendProperties.Admin(ADMIN_EMAIL));
+        SystemSettings settings = new SystemSettings();
+        settings.setId(SystemSettings.SINGLETON_ID);
+        settings.setAdminEmail(ADMIN_EMAIL);
+        lenient().when(systemSettingsRepository.findById(SystemSettings.SINGLETON_ID)).thenReturn(Optional.of(settings));
+        lenient().when(validator.validateProperty(settings, "adminEmail")).thenReturn(Set.of());
         service = new AdminNotificationOutboxService(
                 adminNotificationOutboxRepository,
                 emailTransport,
                 templateBuilder,
-                backendProperties,
+                systemSettingsRepository,
+                validator,
                 transactionOperations,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 new EmailMetricsRecorder(meterRegistry),
@@ -122,6 +136,18 @@ class AdminNotificationOutboxServiceTest {
         assertEquals(event.callbackRequestId(), entry.getSourceId());
         assertEquals(EmailSubjects.CALLBACK_NOTIFICATION_ADMIN, entry.getSubject());
         assertEquals("callback admin body", entry.getBody());
+    }
+
+    @Test
+    void enqueueOrderCreated_ShouldFailWithOperationalError_WhenSystemSettingsAreMissing() {
+        when(systemSettingsRepository.findById(SystemSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+
+        assertThrows(
+                RequiredSingletonUnavailableException.class,
+                () -> service.enqueueOrderCreated(sampleOrderEvent())
+        );
+
+        verify(adminNotificationOutboxRepository, never()).save(any(AdminNotificationOutbox.class));
     }
 
     @Test

@@ -115,8 +115,6 @@ backend:
     password-reset-token-ttl: ${BACKEND_AUTH_PASSWORD_RESET_TOKEN_TTL}
   cleanup:
     unverified-user-ttl: ${BACKEND_CLEANUP_UNVERIFIED_USER_TTL}
-  admin:
-    email: ${BACKEND_ADMIN_EMAIL}
   rate-limit:
     enabled: ${BACKEND_RATE_LIMIT_ENABLED:true}
     cache:

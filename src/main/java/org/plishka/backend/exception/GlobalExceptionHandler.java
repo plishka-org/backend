@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.TokenStreamLocation;
 import tools.jackson.core.exc.StreamReadException;
@@ -46,6 +47,7 @@ public class GlobalExceptionHandler {
     private static final String VALIDATION_FAILED_MESSAGE = "Validation failed";
     private static final String MALFORMED_REQUEST_BODY_MESSAGE = "Malformed JSON request body";
     private static final String INTERNAL_SERVER_ERROR_MESSAGE = "An unexpected error occurred";
+    private static final String ENDPOINT_NOT_FOUND_MESSAGE = "Endpoint not found";
     private static final String DATA_CONFLICT_MESSAGE = "The request conflicts with the current state of the resource";
     private static final String EMAIL_ALREADY_EXISTS_MESSAGE = "Email already exists";
     private static final String REQUIRED_HEADER_MISSING_MESSAGE = "Required header is missing";
@@ -122,6 +124,13 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleNoResourceFound(
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ENDPOINT_NOT_FOUND_MESSAGE, request);
     }
 
     @ExceptionHandler(StorageOperationException.class)

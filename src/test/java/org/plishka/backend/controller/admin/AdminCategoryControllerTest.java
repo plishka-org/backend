@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.plishka.backend.controller.BaseControllerTest;
 import org.plishka.backend.dto.admin.category.AdminCategoryRequestDto;
 import org.plishka.backend.dto.admin.category.CategoryDeleteStrategy;
+import org.plishka.backend.dto.admin.category.CategoryOrderRequestDto;
 import org.plishka.backend.dto.product.CategoryDto;
 import org.plishka.backend.exception.ConflictException;
 import org.plishka.backend.exception.ResourceNotFoundException;
@@ -144,6 +145,26 @@ class AdminCategoryControllerTest extends BaseControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(adminCategoryService).deleteCategory(CATEGORY_ID, CategoryDeleteStrategy.MOVE_PRODUCTS, targetCategoryId);
+    }
+
+    @Test
+    void updateCategoryOrder_ShouldReturn204() throws Exception {
+        CategoryOrderRequestDto request = new CategoryOrderRequestDto(List.of(1L, 2L));
+
+        mockMvc.perform(put("/admin/categories/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(adminCategoryService).updateCategoryOrder(request);
+    }
+
+    @Test
+    void updateCategoryOrder_ShouldReturn400_WhenIdsMissing() throws Exception {
+        mockMvc.perform(put("/admin/categories/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
     }
 
     private static CategoryDto category() {

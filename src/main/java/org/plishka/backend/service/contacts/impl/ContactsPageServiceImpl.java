@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.plishka.backend.domain.contacts.ContactsPage;
 import org.plishka.backend.domain.contacts.SocialLink;
 import org.plishka.backend.dto.contacts.ContactsPageResponse;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.mapper.contacts.ContactsPageMapper;
 import org.plishka.backend.repository.contacts.ContactsPageRepository;
 import org.plishka.backend.repository.contacts.SocialLinkRepository;
@@ -39,7 +40,7 @@ public class ContactsPageServiceImpl implements ContactsPageService {
 
     private ContactsPage findContactsPageOrThrow() {
         return contactsPageRepository.findById(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(
                         "Contacts page content not found. Please verify database initialization."
                 ));
     }

@@ -19,6 +19,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: display_order
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
                   name: created_at
                   type: TIMESTAMP(6)
                   constraints:

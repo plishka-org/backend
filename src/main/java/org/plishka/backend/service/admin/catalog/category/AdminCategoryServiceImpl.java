@@ -1,10 +1,15 @@
 package org.plishka.backend.service.admin.catalog.category;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.domain.product.Category;
 import org.plishka.backend.dto.admin.category.AdminCategoryRequestDto;
 import org.plishka.backend.dto.admin.category.CategoryDeleteStrategy;
+import org.plishka.backend.dto.admin.category.CategoryOrderRequestDto;
 import org.plishka.backend.dto.product.CategoryDto;
 import org.plishka.backend.exception.BadRequestException;
 import org.plishka.backend.exception.ConflictException;
@@ -30,6 +35,10 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     private static final String UNSUPPORTED_CATEGORY_DELETE_STRATEGY_MESSAGE = "Unsupported category delete strategy";
     private static final String MOVE_TARGET_REQUIRED_MESSAGE = "Target category is required for MOVE_PRODUCTS strategy";
     private static final String MOVE_TARGET_CANNOT_BE_DELETED_MESSAGE = "Target category cannot be deleted";
+    private static final String CATEGORY_ORDER_IDS_REQUIRED_MESSAGE = "Category ids are required";
+    private static final String CATEGORY_ORDER_IDS_UNIQUE_MESSAGE = "Category ids must be unique";
+    private static final String CATEGORY_ORDER_CURRENT_IDS_MESSAGE =
+            "Category order must contain the current category ids";
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
@@ -41,8 +50,8 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(String search) {
         List<Category> categories = StringUtils.hasText(search)
-                ? categoryRepository.findAllByNameContainingIgnoreCaseOrderByNameAscIdAsc(search.trim())
-                : categoryRepository.findAllByOrderByNameAscIdAsc();
+                ? categoryRepository.findAllByNameContainingIgnoreCaseOrderByDisplayOrderAscIdAsc(search.trim())
+                : categoryRepository.findAllByOrderByDisplayOrderAscIdAsc();
 
         return categories
                 .stream()
@@ -58,6 +67,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
 
         Category category = new Category();
         category.setName(categoryName);
+        category.setDisplayOrder(findNextDisplayOrder());
 
         return categoryMapper.toDto(saveCategoryOrThrowConflict(category));
     }
@@ -72,6 +82,41 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         category.setName(categoryName);
 
         return categoryMapper.toDto(saveCategoryOrThrowConflict(category));
+    }
+
+    @Override
+    @Transactional
+    public void updateCategoryOrder(CategoryOrderRequestDto categoryOrderRequest) {
+        List<Long> requestedCategoryIds = requireCategoryIdsPresentAndUnique(categoryOrderRequest.categoryIds());
+        List<Category> currentCategories = lockAllCategoriesForOrderUpdate();
+        requireRequestedCategoryIdsMatchCurrentCategories(requestedCategoryIds, currentCategories);
+        applyRequestedDisplayOrder(requestedCategoryIds, currentCategories);
+        categoryRepository.flush();
+    }
+
+    private List<Category> lockAllCategoriesForOrderUpdate() {
+        return categoryRepository.findAllForUpdateOrderByDisplayOrder();
+    }
+
+    private void requireRequestedCategoryIdsMatchCurrentCategories(
+            List<Long> requestedCategoryIds,
+            List<Category> currentCategories
+    ) {
+        Set<Long> currentCategoryIds = currentCategories.stream()
+                .map(Category::getId)
+                .collect(Collectors.toSet());
+
+        if (!currentCategoryIds.equals(Set.copyOf(requestedCategoryIds))) {
+            throw new BadRequestException(CATEGORY_ORDER_CURRENT_IDS_MESSAGE);
+        }
+    }
+
+    private void applyRequestedDisplayOrder(List<Long> requestedCategoryIds, List<Category> currentCategories) {
+        Map<Long, Category> categoriesById = currentCategories.stream()
+                .collect(Collectors.toMap(Category::getId, category -> category));
+        for (int index = 0; index < requestedCategoryIds.size(); index++) {
+            categoriesById.get(requestedCategoryIds.get(index)).setDisplayOrder(index + 1);
+        }
     }
 
     @Override
@@ -170,6 +215,24 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         if (categoryRepository.existsByNameIgnoreCase(name)) {
             throw new ConflictException(CATEGORY_ALREADY_EXISTS_MESSAGE);
         }
+    }
+
+    private int findNextDisplayOrder() {
+        Integer highestDisplayOrder = categoryRepository.findMaxDisplayOrder();
+        return highestDisplayOrder == null ? 1 : highestDisplayOrder + 1;
+    }
+
+    private List<Long> requireCategoryIdsPresentAndUnique(List<Long> requestedCategoryIds) {
+        if (requestedCategoryIds == null) {
+            throw new BadRequestException(CATEGORY_ORDER_IDS_REQUIRED_MESSAGE);
+        }
+
+        Set<Long> uniqueCategoryIds = new HashSet<>(requestedCategoryIds);
+        if (uniqueCategoryIds.size() != requestedCategoryIds.size()) {
+            throw new BadRequestException(CATEGORY_ORDER_IDS_UNIQUE_MESSAGE);
+        }
+
+        return List.copyOf(requestedCategoryIds);
     }
 
     private void requireCategoryNameAvailableForUpdate(String name, Long categoryId) {

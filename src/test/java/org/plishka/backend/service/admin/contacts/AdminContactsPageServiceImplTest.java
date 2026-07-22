@@ -17,6 +17,7 @@ import org.plishka.backend.dto.admin.contacts.AdminContactsPageSocialLinkDto;
 import org.plishka.backend.dto.admin.contacts.AdminContactsPageSocialLinkRequestDto;
 import org.plishka.backend.dto.contacts.ContactsPageContentDto;
 import org.plishka.backend.exception.BadRequestException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.mapper.contacts.ContactsPageMapper;
 import org.plishka.backend.repository.contacts.ContactsPageRepository;
@@ -153,13 +154,35 @@ class AdminContactsPageServiceImplTest {
         when(contactsPageRepository.findByIdForUpdate(CONTENT_ID)).thenReturn(Optional.empty());
 
         assertThrows(
-                ResourceNotFoundException.class,
+                RequiredSingletonUnavailableException.class,
                 () -> service.createSocialLink(
                         new AdminContactsPageSocialLinkRequestDto("Instagram", "https://instagram.com/plishka")
                 )
         );
 
         verify(socialLinkRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void getContactsPage_ShouldThrowOperationalException_WhenContentMissing() {
+        when(contactsPageRepository.findById(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(RequiredSingletonUnavailableException.class, service::getContactsPage);
+    }
+
+    @Test
+    void updateContactsPageContent_ShouldThrowOperationalException_WhenContentMissing() {
+        when(contactsPageRepository.findByIdForUpdate(CONTENT_ID)).thenReturn(Optional.empty());
+
+        assertThrows(
+                RequiredSingletonUnavailableException.class,
+                () -> service.updateContactsPageContent(new AdminContactsPageContentRequestDto(
+                        "+380501234567",
+                        "mail@test.com",
+                        "Address",
+                        GOOGLE_MAPS_URL
+                ))
+        );
     }
 
     @Test

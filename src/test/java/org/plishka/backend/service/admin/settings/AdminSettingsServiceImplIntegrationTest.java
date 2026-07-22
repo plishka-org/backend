@@ -32,7 +32,7 @@ class AdminSettingsServiceImplIntegrationTest {
     void settingsFlow_ShouldToggleShopMode() {
         assertFalse(adminSettingsService.getSettings().isShopModeEnabled());
 
-        adminSettingsService.updateSettings(new AdminSettingsRequestDto(true));
+        adminSettingsService.updateSettings(new AdminSettingsRequestDto(true, "admin@example.com"));
 
         assertTrue(findShopModeEnabled());
         assertTrue(adminSettingsService.getSettings().isShopModeEnabled());

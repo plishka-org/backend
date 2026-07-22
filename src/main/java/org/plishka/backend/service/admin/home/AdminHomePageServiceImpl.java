@@ -5,7 +5,7 @@ import org.plishka.backend.domain.home.HomePageContent;
 import org.plishka.backend.dto.admin.home.AdminHomePageContentRequestDto;
 import org.plishka.backend.dto.admin.home.AdminHomePageDto;
 import org.plishka.backend.dto.home.HomePageContentDto;
-import org.plishka.backend.exception.ResourceNotFoundException;
+import org.plishka.backend.exception.RequiredSingletonUnavailableException;
 import org.plishka.backend.mapper.home.HomePageMapper;
 import org.plishka.backend.repository.home.HomePageContentRepository;
 import org.plishka.backend.util.UserInputNormalizer;
@@ -49,11 +49,11 @@ public class AdminHomePageServiceImpl implements AdminHomePageService {
 
     private HomePageContent findContentOrThrow() {
         return contentRepository.findById(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new ResourceNotFoundException(CONTENT_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(CONTENT_NOT_FOUND_MESSAGE));
     }
 
     private HomePageContent findContentForUpdateOrThrow() {
         return contentRepository.findByIdForUpdate(SINGLETON_CONTENT_ID)
-                .orElseThrow(() -> new ResourceNotFoundException(CONTENT_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new RequiredSingletonUnavailableException(CONTENT_NOT_FOUND_MESSAGE));
     }
 }

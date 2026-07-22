@@ -104,6 +104,8 @@ class AdminEndpointSmokeTest extends BaseControllerTest {
                         () -> delete("/admin/about/media/{mediaId}", MISSING_ID), HttpStatus.NOT_FOUND),
 
                 request("GET /admin/categories", () -> get("/admin/categories"), HttpStatus.OK),
+                request("PUT /admin/categories/order", () -> putJson("/admin/categories/order", "{}"),
+                        HttpStatus.BAD_REQUEST),
                 request("POST /admin/categories", () -> postJson("/admin/categories", "{}"), HttpStatus.BAD_REQUEST),
                 request(
                         "PUT /admin/categories/{id}",
@@ -193,6 +195,11 @@ class AdminEndpointSmokeTest extends BaseControllerTest {
 
                 request("GET /admin/settings", () -> get("/admin/settings"), HttpStatus.OK),
                 request("PUT /admin/settings", () -> putJson("/admin/settings", "{}"), HttpStatus.BAD_REQUEST),
+
+                request("GET /admin/orders", () -> get("/admin/orders"), HttpStatus.OK),
+                request("GET /admin/orders/{id}", () -> get("/admin/orders/{id}", MISSING_ID),
+                        HttpStatus.NOT_FOUND),
+                request("GET /admin/callback-requests", () -> get("/admin/callback-requests"), HttpStatus.OK),
 
                 request("GET /admin/users", () -> get("/admin/users"), HttpStatus.OK),
                 request("GET /admin/users/banned", () -> get("/admin/users/banned"), HttpStatus.OK),

@@ -25,6 +25,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Configuration
 public class SentryPrivacyConfig {
@@ -48,6 +49,7 @@ public class SentryPrivacyConfig {
             RefreshTokenDeviceMismatchException.class,
             RefreshTokenExpiredException.class,
             RefreshTokenNotFoundException.class,
+            NoResourceFoundException.class,
             ResourceNotFoundException.class
     );
 

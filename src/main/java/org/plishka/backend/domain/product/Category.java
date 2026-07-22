@@ -27,6 +27,9 @@ public class Category {
     @Column(name = "name", unique = true, nullable = false)
     private String name;
 
+    @Column(name = "display_order", nullable = false)
+    private Integer displayOrder = 1;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -94,6 +94,34 @@ class RateLimitRuleResolverTest {
         assertEquals(List.of(new RateLimitKey(RateLimitPolicy.AUTHENTICATED_READ, "42")), keys);
     }
 
+    @Test
+    void resolve_ShouldUseAuthenticatedReadForNewAdminReadEndpoints_WhenUserIsAdmin() {
+        authenticate("ROLE_ADMIN");
+
+        assertEquals(
+                List.of(new RateLimitKey(RateLimitPolicy.AUTHENTICATED_READ, "42")),
+                resolver.resolve(request("GET", "/admin/orders"), Map.of())
+        );
+        assertEquals(
+                List.of(new RateLimitKey(RateLimitPolicy.AUTHENTICATED_READ, "42")),
+                resolver.resolve(request("GET", "/admin/callback-requests"), Map.of())
+        );
+    }
+
+    @Test
+    void resolve_ShouldUseAdminWriteForNewAdminWrites_WhenUserIsAdmin() {
+        authenticate("ROLE_ADMIN");
+
+        assertEquals(
+                List.of(new RateLimitKey(RateLimitPolicy.ADMIN_WRITE, "42")),
+                resolver.resolve(request("PUT", "/admin/categories/order"), Map.of())
+        );
+        assertEquals(
+                List.of(new RateLimitKey(RateLimitPolicy.ADMIN_WRITE, "42")),
+                resolver.resolve(request("PUT", "/admin/settings"), Map.of())
+        );
+    }
+
     private static void authenticate(String role) {
         AuthenticatedUserPrincipal principal = AuthenticatedUserPrincipal.builder()
                 .userId(42L)
