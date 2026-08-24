@@ -2,7 +2,6 @@ package org.plishka.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -68,8 +67,10 @@ class OpenApiDocumentationSmokeTest {
                 .andExpect(jsonPath("$.paths['/auth/refresh'].post.security").doesNotExist())
                 .andExpect(jsonPath("$.paths['/auth/refresh'].post.responses['401']").exists())
                 .andExpect(jsonPath("$.paths['/auth/refresh'].post.responses['403']").exists())
-                .andExpect(jsonPath("$.paths['/auth/verify'].get.responses['302']").exists())
-                .andExpect(jsonPath("$.paths['/auth/verify'].get.responses['302'].headers.Location").exists())
+                .andExpect(jsonPath("$.paths['/auth/verify'].get.responses['200']").exists())
+                .andExpect(jsonPath("$.paths['/auth/verify'].get.responses['200'].content['*/*']")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/auth/verify'].get.responses['302']").doesNotExist())
                 .andExpect(jsonPath("$.paths['/auth/verify'].get.parameters[0].schema.minLength").value(43))
                 .andExpect(jsonPath("$.paths['/auth/verify'].get.parameters[0].schema.maxLength").value(43))
                 .andExpect(jsonPath("$.paths['/auth/verify'].get.parameters[0].schema.pattern")
@@ -123,11 +124,11 @@ class OpenApiDocumentationSmokeTest {
                 ).value("id: must be greater than 0"))
                 .andExpect(jsonPath(
                         "$.paths['/orders'].post.responses['400'].content['application/json']"
-                                + ".schema.oneOf[0].$ref"
+                                + ".schema.oneOf[0]['$ref']"
                 ).value("#/components/schemas/ErrorResponseDto"))
                 .andExpect(jsonPath(
                         "$.paths['/orders'].post.responses['400'].content['application/json']"
-                                + ".schema.oneOf[1].$ref"
+                                + ".schema.oneOf[1]['$ref']"
                 ).value("#/components/schemas/ValidationErrorResponseDto"))
                 .andExpect(jsonPath(
                         "$.paths['/admin/products'].get.responses['401'].content['application/json'].examples"
@@ -137,7 +138,7 @@ class OpenApiDocumentationSmokeTest {
                         "$.paths['/admin/products'].get.responses['401'].content['application/json'].examples"
                                 + ".invalidOrMissingCredentials.value.path"
                 ).value("/api/admin/products"))
-                .andExpect(jsonPath("$.paths['/admin/products'].get.responses['401'].$ref").doesNotExist())
+                .andExpect(jsonPath("$.paths['/admin/products'].get.responses['401']['$ref']").doesNotExist())
                 .andExpect(jsonPath(
                         "$.paths['/auth/login'].post.responses['401'].content['application/json']"
                                 + ".examples.invalidCredentials.value.message"
@@ -161,7 +162,7 @@ class OpenApiDocumentationSmokeTest {
                 .andExpect(jsonPath(
                         "$.paths['/admin/products'].get.responses['403'].content['application/json'].examples.shopModeDisabled"
                 ).doesNotExist())
-                .andExpect(jsonPath("$.paths['/admin/products'].get.responses['403'].$ref").doesNotExist())
+                .andExpect(jsonPath("$.paths['/admin/products'].get.responses['403']['$ref']").doesNotExist())
                 .andExpect(jsonPath(
                         "$.paths['/cart'].get.responses['403'].content['application/json'].examples"
                                 + ".shopModeDisabled.value.message"
@@ -204,7 +205,7 @@ class OpenApiDocumentationSmokeTest {
                                 + ".content['application/json'].examples.shopModeDisabled.value.path"
                 ).value("/api/users/me/orders/123/repeat"))
                 .andExpect(jsonPath(
-                        "$.paths['/cart/items/{productId}'].put.responses['403'].$ref"
+                        "$.paths['/cart/items/{productId}'].put.responses['403']['$ref']"
                 ).doesNotExist())
                 .andExpect(jsonPath(
                         "$.paths['/cart'].delete.responses['404'].content['application/json'].examples"
@@ -216,7 +217,7 @@ class OpenApiDocumentationSmokeTest {
                 ).value("Cart not found for user id=123"))
                 .andExpect(jsonPath("$.paths['/admin/files/presign/upload'].post.responses['404']").exists())
                 .andExpect(jsonPath("$.paths['/admin/files/presign/upload'].post.responses['503']").exists())
-                .andExpect(jsonPath("$.paths['/admin/files/presign/upload'].post.responses['503'].$ref")
+                .andExpect(jsonPath("$.paths['/admin/files/presign/upload'].post.responses['503']['$ref']")
                         .doesNotExist())
                 .andExpect(jsonPath(
                         "$.paths['/admin/files/presign/upload'].post.requestBody.content['application/json']"
@@ -317,13 +318,13 @@ class OpenApiDocumentationSmokeTest {
                         "$.paths['/auth/verify-email-change'].post.responses['409'].content['application/json']"
                                 + ".examples.idempotencyConflict"
                 ).doesNotExist())
-                .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['409'].$ref")
+                .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['409']['$ref']")
                         .doesNotExist())
                 .andExpect(jsonPath(
                         "$.paths['/auth/verify-email-change'].post.responses['429'].content['application/json']"
                                 + ".examples.rateLimitExceeded.value.path"
                 ).value("/api/auth/verify-email-change"))
-                .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['429'].$ref")
+                .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['429']['$ref']")
                         .doesNotExist())
                 .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['429'].headers['Retry-After']")
                         .exists())
@@ -331,7 +332,7 @@ class OpenApiDocumentationSmokeTest {
                         "$.paths['/auth/verify-email-change'].post.responses['500'].content['application/json']"
                                 + ".examples.unexpectedError.value.path"
                 ).value("/api/auth/verify-email-change"))
-                .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['500'].$ref")
+                .andExpect(jsonPath("$.paths['/auth/verify-email-change'].post.responses['500']['$ref']")
                         .doesNotExist())
                 .andReturn();
 
@@ -378,9 +379,7 @@ class OpenApiDocumentationSmokeTest {
         JsonNode paths = objectMapper.readTree(apiDocs).path("paths");
         Set<String> operationIds = new LinkedHashSet<>();
 
-        Iterator<Map.Entry<String, JsonNode>> pathIterator = paths.fields();
-        while (pathIterator.hasNext()) {
-            Map.Entry<String, JsonNode> path = pathIterator.next();
+        for (Map.Entry<String, JsonNode> path : paths.properties()) {
             collectOperationIds(path.getKey(), path.getValue(), operationIds);
         }
 
@@ -388,9 +387,7 @@ class OpenApiDocumentationSmokeTest {
     }
 
     private void collectOperationIds(String path, JsonNode pathItem, Set<String> operationIds) {
-        Iterator<Map.Entry<String, JsonNode>> operationIterator = pathItem.fields();
-        while (operationIterator.hasNext()) {
-            Map.Entry<String, JsonNode> operation = operationIterator.next();
+        for (Map.Entry<String, JsonNode> operation : pathItem.properties()) {
             if (!HTTP_METHODS.contains(operation.getKey())) {
                 continue;
             }

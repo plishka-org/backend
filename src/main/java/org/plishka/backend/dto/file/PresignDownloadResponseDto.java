@@ -13,7 +13,10 @@ public record PresignDownloadResponseDto(
                 example = OpenApiExampleValues.PRODUCT_IMAGE_S3_KEY
         )
         String s3Key,
-        @Schema(description = "Temporary presigned download URL.", example = OpenApiExampleValues.PRESIGNED_STORAGE_URL)
+        @Schema(
+                description = "Temporary presigned download URL. Reuse it until expiresAt instead of presigning again.",
+                example = OpenApiExampleValues.PRESIGNED_STORAGE_URL
+        )
         String downloadUrl,
         @Schema(description = "HTTP method to use with the presigned URL.", example = "GET")
         String method,

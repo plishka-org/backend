@@ -51,7 +51,7 @@ storage:
     access-key: test-access-key
     secret-key: test-secret-key
     upload-presign-ttl: 15m
-    download-presign-ttl: 60m
+    download-presign-ttl: 7d
   image:
     max-size: 10MB
   video:
