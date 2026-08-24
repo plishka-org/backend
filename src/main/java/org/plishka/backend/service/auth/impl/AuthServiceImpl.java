@@ -1,5 +1,7 @@
 package org.plishka.backend.service.auth.impl;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
@@ -60,7 +62,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
     private static final String RESET_PASSWORD_PATH = "/#/reset-password?token=";
-    private static final String VERIFY_TOKEN_PATH = "/auth/verify?token=";
+    private static final String VERIFY_TOKEN_PATH = "/#/register?token=";
     private static final String USERS_EMAIL_CONSTRAINT = "uk_users_email";
     private static final String AUTH_OPERATION_EMAIL_VERIFICATION = "email_verification";
     private static final String AUTH_OPERATION_LOGIN = "login";
@@ -508,11 +510,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String buildVerificationLink(String rawVerificationToken) {
-        return backendProperties.baseUrl() + VERIFY_TOKEN_PATH + rawVerificationToken;
+        return buildFrontendLink(VERIFY_TOKEN_PATH, rawVerificationToken);
     }
 
     private String buildResetPasswordLink(String rawResetToken) {
-        return frontendProperties.baseUrl().replaceAll("/+$", "") + RESET_PASSWORD_PATH + rawResetToken;
+        return buildFrontendLink(RESET_PASSWORD_PATH, rawResetToken);
+    }
+
+    private String buildFrontendLink(String path, String rawToken) {
+        return frontendProperties.baseUrl().replaceAll("/+$", "")
+                + path
+                + URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
     }
 
     private String normalizeDeviceId(String deviceId) {

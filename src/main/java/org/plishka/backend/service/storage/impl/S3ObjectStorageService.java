@@ -17,6 +17,7 @@ import org.plishka.backend.exception.ResourceNotFoundException;
 import org.plishka.backend.exception.StorageOperationException;
 import org.plishka.backend.monitoring.metrics.StorageMetricsRecorder;
 import org.plishka.backend.service.storage.ObjectStorageService;
+import org.plishka.backend.service.storage.PresignedDownloadUrlCache;
 import org.plishka.backend.service.storage.model.PresignedStorageUrl;
 import org.plishka.backend.service.storage.model.StorageObjectMetadata;
 import org.plishka.backend.service.storage.validation.S3ObjectKeyValidator;
@@ -65,6 +66,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
     private final S3ObjectKeyValidator s3ObjectKeyValidator;
     private final Clock clock;
     private final StorageMetricsRecorder storageMetricsRecorder;
+    private final PresignedDownloadUrlCache presignedDownloadUrlCache;
 
     @Override
     public PresignedStorageUrl presignUpload(String s3Key, String contentType, String checksumSha256Base64) {
@@ -95,6 +97,11 @@ public class S3ObjectStorageService implements ObjectStorageService {
     @Override
     public PresignedStorageUrl presignDownload(String s3Key) {
         String normalizedKey = s3ObjectKeyValidator.validateAndNormalizeS3Key(s3Key);
+
+        return presignedDownloadUrlCache.get(normalizedKey, this::createPresignedDownloadUrl);
+    }
+
+    private PresignedStorageUrl createPresignedDownloadUrl(String s3Key) {
         Duration ttl = storageProperties.s3().downloadPresignTtl();
         String bucket = storageProperties.s3().bucket();
 
@@ -105,7 +112,8 @@ public class S3ObjectStorageService implements ObjectStorageService {
                                 .signatureDuration(ttl)
                                 .getObjectRequest(request -> request
                                         .bucket(bucket)
-                                        .key(normalizedKey))
+                                        .key(s3Key)
+                                        .responseCacheControl(downloadCacheControl(ttl)))
                                 .build()
                 );
                 return buildDownloadUrl(presignedRequest, ttl);
@@ -113,6 +121,10 @@ public class S3ObjectStorageService implements ObjectStorageService {
                 throw new StorageOperationException("File storage is temporarily unavailable", exception);
             }
         });
+    }
+
+    private String downloadCacheControl(Duration ttl) {
+        return "public, max-age=" + ttl.toSeconds() + ", immutable";
     }
 
     @Override
@@ -289,6 +301,7 @@ public class S3ObjectStorageService implements ObjectStorageService {
             if (response.hasErrors()) {
                 throw new StorageOperationException("Failed to delete one or more files from storage");
             }
+            presignedDownloadUrlCache.invalidateAll(s3Keys);
         } catch (SdkException exception) {
             throw new StorageOperationException("Failed to delete one or more files from storage", exception);
         }

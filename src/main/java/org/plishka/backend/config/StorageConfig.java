@@ -3,6 +3,7 @@ package org.plishka.backend.config;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.plishka.backend.config.properties.StorageProperties;
+import org.plishka.backend.service.storage.PresignedDownloadUrlCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
@@ -45,6 +46,11 @@ public class StorageConfig {
         }
 
         return builder.build();
+    }
+
+    @Bean
+    public PresignedDownloadUrlCache presignedDownloadUrlCache() {
+        return new PresignedDownloadUrlCache(storageProperties.s3().downloadPresignTtl());
     }
 
     private Region region() {
