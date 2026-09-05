@@ -94,7 +94,7 @@ public class OrderController {
             content = @Content(examples = @ExampleObject(value = """
                     {
                       "customerName": "Olena Shevchenko",
-                      "deliveryCity": "Kyiv",
+                      "deliveryCity": "Shevchenka Street, 25",
                       "phone": "+380501234567",
                       "notes": "Call before delivery"
                     }

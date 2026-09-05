@@ -7,7 +7,8 @@ import org.plishka.backend.validation.ValidCity;
 
 public class CityValidator implements ConstraintValidator<ValidCity, String> {
     private static final Pattern CITY_PATTERN = Pattern.compile(
-            "^[\\p{IsLatin}\\p{IsCyrillic}]+(?:[ '\\-\\x{2019}\\x{02BC}][\\p{IsLatin}\\p{IsCyrillic}]+)*$"
+            "^[\\p{IsLatin}\\p{IsCyrillic}\\d]+(?:[ '\\-\\x{2019}\\x{02BC}]"
+                    + "[\\p{IsLatin}\\p{IsCyrillic}\\d]+|[,.] ?[\\p{IsLatin}\\p{IsCyrillic}\\d]+)*$"
     );
 
     @Override
