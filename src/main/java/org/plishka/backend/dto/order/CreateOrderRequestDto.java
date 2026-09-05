@@ -16,7 +16,7 @@ public record CreateOrderRequestDto(
         @ValidName
         String customerName,
 
-        @Schema(description = "Delivery city.", example = "Kyiv")
+        @Schema(description = "Delivery city or address.", example = "Shevchenka Street, 25")
         @NotBlank(message = "Delivery city is required")
         @Size(min = 2, max = 100, message = "Delivery city must be between 2 and 100 characters")
         @ValidCity

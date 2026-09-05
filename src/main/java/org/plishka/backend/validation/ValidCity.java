@@ -10,16 +10,17 @@ import java.lang.annotation.Target;
 import org.plishka.backend.validation.impl.CityValidator;
 
 /**
- * Validates a delivery city name using the project's custom rules.
+ * Validates a delivery city or address using the project's custom rules.
  *
  * <p>Validation rules:
  * <ul>
  *   <li>{@code null}, an empty string, and a blank string are considered valid.</li>
  *   <li>Required value and total length must be enforced separately, for example with
  *   {@code @NotBlank} and {@code @Size}.</li>
- *   <li>The value may contain only Latin or Cyrillic letters.</li>
- *   <li>Words may be separated only by a single space, hyphen, or apostrophe.</li>
- *   <li>The value must start and end with a letter.</li>
+ *   <li>The value may contain only Latin or Cyrillic letters and digits.</li>
+ *   <li>Text groups may be separated by a single space, hyphen, apostrophe, period, or comma.</li>
+ *   <li>A period or comma may be followed by one space.</li>
+ *   <li>The value must start and end with a letter or digit.</li>
  *   <li>Repeated separators and separators without letters on both sides are not allowed.</li>
  * </ul>
  */
@@ -28,8 +29,8 @@ import org.plishka.backend.validation.impl.CityValidator;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidCity {
-    String message() default "Delivery city may contain only Latin or "
-            + "Cyrillic letters, spaces, hyphens, and apostrophes (' ’ ʼ).";
+    String message() default "Delivery city may contain only Latin or Cyrillic letters, digits, "
+            + "spaces, hyphens, apostrophes (' ’ ʼ), periods, and commas.";
 
     Class<?>[] groups() default {};
 
