@@ -1,0 +1,88 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-users-table
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_users
+              - column:
+                  name: name
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone
+                  type: VARCHAR(13)
+              - column:
+                  name: password_hash
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_banned
+                  type: bit
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_email_verified
+                  type: bit
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+        - addUniqueConstraint:
+            tableName: users
+            columnNames: email
+            constraintName: uk_users_email
+        - createIndex:
+            tableName: users
+            indexName: idx_users_is_email_verified_created_at
+            columns:
+              - column:
+                  name: is_email_verified
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: users
+            indexName: idx_users_created_at_id
+            columns:
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true
+        - createIndex:
+            tableName: users
+            indexName: idx_users_is_banned_created_at_id
+            columns:
+              - column:
+                  name: is_banned
+              - column:
+                  name: created_at
+                  descending: true
+              - column:
+                  name: id
+                  descending: true

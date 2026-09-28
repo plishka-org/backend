@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: 031-create-admin-notification-outbox-table
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: admin_notification_outbox
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_admin_notification_outbox
+                    nullable: false
+              - column:
+                  name: notification_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recipient
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: body
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempts
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: next_attempt_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_error
+                  type: VARCHAR(1000)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: admin_notification_outbox
+            columnNames: notification_type, source_id
+            constraintName: uk_admin_notification_outbox_type_source
+        - createIndex:
+            tableName: admin_notification_outbox
+            indexName: idx_admin_notification_outbox_status_next_id
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: next_attempt_at
+              - column:
+                  name: id
+        - sql:
+            sql: ALTER TABLE admin_notification_outbox ADD CONSTRAINT chk_admin_notification_outbox_type CHECK (notification_type IN ('ORDER_CREATED', 'CALLBACK_CREATED'));
+        - sql:
+            sql: ALTER TABLE admin_notification_outbox ADD CONSTRAINT chk_admin_notification_outbox_status CHECK (status IN ('PENDING', 'FAILED'));
+        - sql:
+            sql: ALTER TABLE admin_notification_outbox ADD CONSTRAINT chk_admin_notification_outbox_attempts CHECK (attempts >= 0);

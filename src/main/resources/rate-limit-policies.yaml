@@ -1,0 +1,166 @@
+backend:
+  rate-limit:
+    policies:
+      auth-login-email:
+        bandwidths:
+          - capacity: 20
+            period: 1h
+          - capacity: 100
+            period: 1d
+      auth-login-email-ip:
+        bandwidths:
+          - capacity: 5
+            period: 10m
+      auth-login-ip:
+        bandwidths:
+          - capacity: 60
+            period: 10m
+
+      auth-register-ip:
+        bandwidths:
+          - capacity: 10
+            period: 1h
+          - capacity: 50
+            period: 1d
+      auth-register-email:
+        bandwidths:
+          - capacity: 3
+            period: 1d
+
+      auth-resend-email:
+        bandwidths:
+          - capacity: 1
+            period: 2m
+          - capacity: 5
+            period: 1d
+      auth-resend-ip:
+        bandwidths:
+          - capacity: 20
+            period: 1h
+          - capacity: 100
+            period: 1d
+
+      auth-forgot-email:
+        bandwidths:
+          - capacity: 1
+            period: 2m
+          - capacity: 5
+            period: 1d
+      auth-forgot-ip:
+        bandwidths:
+          - capacity: 20
+            period: 1h
+          - capacity: 100
+            period: 1d
+
+      auth-verify-ip:
+        bandwidths:
+          - capacity: 60
+            period: 1h
+      auth-verify-token:
+        bandwidths:
+          - capacity: 10
+            period: 1h
+
+      auth-email-change-verify-ip:
+        bandwidths:
+          - capacity: 30
+            period: 1h
+      auth-email-change-verify-token:
+        bandwidths:
+          - capacity: 10
+            period: 1h
+
+      auth-reset-ip:
+        bandwidths:
+          - capacity: 30
+            period: 1h
+      auth-reset-token:
+        bandwidths:
+          - capacity: 10
+            period: 1h
+
+      auth-refresh-device-ip:
+        bandwidths:
+          - capacity: 120
+            period: 1h
+      auth-refresh-ip:
+        bandwidths:
+          - capacity: 600
+            period: 1h
+      auth-logout-device:
+        bandwidths:
+          - capacity: 30
+            period: 1h
+
+      account-sensitive:
+        bandwidths:
+          - capacity: 5
+            period: 15m
+          - capacity: 20
+            period: 1d
+      account-email-change:
+        bandwidths:
+          - capacity: 1
+            period: 5m
+          - capacity: 5
+            period: 1d
+
+      profile-update:
+        bandwidths:
+          - capacity: 30
+            period: 1h
+
+      callback-create:
+        bandwidths:
+          - capacity: 1
+            period: 10m
+          - capacity: 5
+            period: 1d
+
+      order-create:
+        bandwidths:
+          - capacity: 10
+            period: 1h
+          - capacity: 30
+            period: 1d
+      order-repeat:
+        bandwidths:
+          - capacity: 10
+            period: 1h
+          - capacity: 30
+            period: 1d
+
+      cart-write:
+        bandwidths:
+          - capacity: 120
+            period: 1m
+
+      favorite-write:
+        bandwidths:
+          - capacity: 120
+            period: 1m
+
+      product-view:
+        bandwidths:
+          - capacity: 60
+            period: 1m
+
+      file-download-presign:
+        bandwidths:
+          - capacity: 300
+            period: 1m
+
+      admin-write:
+        bandwidths:
+          - capacity: 120
+            period: 1m
+
+      public-read:
+        bandwidths:
+          - capacity: 600
+            period: 1m
+      authenticated-read:
+        bandwidths:
+          - capacity: 600
+            period: 1m

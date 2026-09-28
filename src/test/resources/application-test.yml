@@ -1,0 +1,61 @@
+spring:
+  liquibase:
+    contexts: test
+
+  datasource:
+    url: jdbc:h2:mem:backend-${random.uuid};DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        default_batch_fetch_size: 100
+        jdbc:
+          time_zone: UTC
+
+resend:
+  api-key: test-api-key
+  from-email: Test <test@example.com>
+
+jwt:
+  secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY
+  expiration: 15m
+
+backend:
+  base-url: http://localhost:8080/api
+  scheduling:
+    enabled: false
+  refresh-token-expiration: 30d
+  auth:
+    email-verification-token-ttl: 24h
+    password-reset-token-ttl: 3h
+  cleanup:
+    unverified-user-ttl: 24h
+  rate-limit:
+    enabled: false
+
+frontend:
+  base-url: http://localhost:3000
+
+storage:
+  s3:
+    bucket: test-bucket
+    region: eu-central-1
+    access-key: test-access-key
+    secret-key: test-secret-key
+    upload-presign-ttl: 15m
+    download-presign-ttl: 7d
+  image:
+    max-size: 10MB
+  video:
+    max-size: 200MB
+  cleanup:
+    enabled: false
+    orphan-upload-ttl: 24h

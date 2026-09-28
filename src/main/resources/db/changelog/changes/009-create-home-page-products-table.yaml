@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: PLIS-176-create-home-page-products
+      author: plishka-backend
+      changes:
+        - createTable:
+            tableName: home_page_products
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: home_page_products
+            columnNames: product_id
+            constraintName: uk_home_page_products_product_id
+        - addUniqueConstraint:
+            tableName: home_page_products
+            columnNames: display_order
+            constraintName: uk_home_page_products_display_order
+        - addForeignKeyConstraint:
+            baseTableName: home_page_products
+            baseColumnNames: product_id
+            constraintName: fk_home_page_products_product
+            referencedTableName: products
+            referencedColumnNames: id
+            onDelete: CASCADE

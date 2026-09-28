@@ -3,6 +3,144 @@ spring:
     name: plishka-backend
     project_version: 1
 
+  liquibase:
+    contexts: ${SPRING_LIQUIBASE_CONTEXTS:prod}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        default_batch_fetch_size: 100
+        jdbc:
+          time_zone: UTC
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+      accept-float-as-int: false
+      accept-empty-string-as-null-object: false
+      accept-single-value-as-array: false
+    datatype:
+      enum:
+        fail-on-numbers-for-enums: true
+      datetime:
+        write-dates-as-timestamps: false
+    mapper:
+      accept-case-insensitive-properties: false
+      accept-case-insensitive-enums: false
+    time-zone: UTC
+
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - classpath:rate-limit-policies.yaml
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
+    tags-sorter: alpha
+  packages-to-scan: org.plishka.backend.controller
+  paths-to-exclude:
+    - /error
+
+resend:
+  api-key: ${RESEND_API_KEY}
+  from-email: ${RESEND_FROM_EMAIL}
+
 server:
   servlet:
     context-path: /api
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9090}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+      slo:
+        "[http.server.requests]": 100ms,250ms,500ms,1s,2s,5s
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${APP_ENV:production}
+  release: ${SENTRY_RELEASE:${RAILWAY_GIT_COMMIT_SHA:${RAILWAY_DEPLOYMENT_ID:local}}}
+  server-name: ${SENTRY_SERVER_NAME:plishka-backend}
+  send-default-pii: false
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  logging:
+    enabled: false
+
+jwt:
+  secret: ${JWT_ACCESS_SECRET}
+  expiration: ${JWT_ACCESS_EXPIRATION}
+
+backend:
+  base-url: ${BACKEND_BASE_URL}
+  refresh-token-expiration: ${BACKEND_REFRESH_TOKEN_EXPIRATION}
+  auth:
+    email-verification-token-ttl: ${BACKEND_AUTH_EMAIL_VERIFICATION_TOKEN_TTL}
+    password-reset-token-ttl: ${BACKEND_AUTH_PASSWORD_RESET_TOKEN_TTL}
+  cleanup:
+    unverified-user-ttl: ${BACKEND_CLEANUP_UNVERIFIED_USER_TTL}
+  rate-limit:
+    enabled: ${BACKEND_RATE_LIMIT_ENABLED:true}
+    cache:
+      expire-after-access: ${BACKEND_RATE_LIMIT_CACHE_EXPIRE_AFTER_ACCESS:24h}
+      maximum-size: ${BACKEND_RATE_LIMIT_CACHE_MAXIMUM_SIZE:100000}
+
+frontend:
+  base-url: ${FRONTEND_BASE_URL}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+storage:
+  s3:
+    endpoint-url: ${STORAGE_S3_ENDPOINT_URL:}
+    bucket: ${STORAGE_S3_BUCKET}
+    region: ${STORAGE_S3_REGION}
+    access-key: ${STORAGE_S3_ACCESS_KEY}
+    secret-key: ${STORAGE_S3_SECRET_KEY}
+
+    upload-presign-ttl: ${STORAGE_S3_UPLOAD_PRESIGN_TTL}
+    download-presign-ttl: ${STORAGE_S3_DOWNLOAD_PRESIGN_TTL}
+  image:
+    max-size: ${STORAGE_IMAGE_MAX_SIZE}
+  video:
+    max-size: ${STORAGE_VIDEO_MAX_SIZE}
+  cleanup:
+    enabled: ${STORAGE_CLEANUP_ENABLED:false}
+    orphan-upload-ttl: ${STORAGE_CLEANUP_ORPHAN_UPLOAD_TTL:}
