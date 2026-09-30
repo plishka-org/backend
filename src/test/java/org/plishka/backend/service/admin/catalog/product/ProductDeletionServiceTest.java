@@ -43,7 +43,7 @@ class ProductDeletionServiceTest {
     private ProductDeletionService service;
 
     @Test
-    void deleteProductsByIdsOrThrowIfMissing_ShouldLockAffectedCartsBeforeDeletingCartItemsAndProducts() {
+    void deleteProductsByIdsOrThrowIfMissing_ShouldLockCartsBeforeProductsAndDeletingRows() {
         List<Long> productIds = List.of(1L, 2L);
         List<Long> cartIds = List.of(10L, 20L);
         when(productRepository.findAllByIdInForUpdateOrderById(productIds))
@@ -63,9 +63,9 @@ class ProductDeletionServiceTest {
                 cartItemRepository,
                 cartRepository
         );
-        inOrder.verify(productRepository).findAllByIdInForUpdateOrderById(productIds);
         inOrder.verify(cartItemRepository).findCartIdsByProductIdInOrderById(productIds);
         inOrder.verify(cartRepository).findAllByIdInForUpdateOrderById(cartIds);
+        inOrder.verify(productRepository).findAllByIdInForUpdateOrderById(productIds);
         inOrder.verify(productMediaRepository).findS3KeysByProductIdInOrderByProductIdAndId(productIds);
         inOrder.verify(storageDeletionOutboxService).enqueueDeletes(List.of("first.jpg", "second.jpg"));
         inOrder.verify(cartItemRepository).deleteAllByProductIdIn(productIds);
@@ -80,7 +80,7 @@ class ProductDeletionServiceTest {
 
         assertThrows(ResourceNotFoundException.class, () -> service.deleteProductsByIdsOrThrowIfMissing(List.of(1L, 2L)));
 
-        verify(cartItemRepository, never()).findCartIdsByProductIdInOrderById(List.of(1L, 2L));
+        verify(cartItemRepository).findCartIdsByProductIdInOrderById(List.of(1L, 2L));
         verify(cartItemRepository, never()).deleteAllByProductIdIn(List.of(1L, 2L));
         verify(storageDeletionOutboxService, never()).enqueueDeletes(List.of("first.jpg"));
         verify(productRepository, never()).deleteAllByIdInBatch(List.of(1L, 2L));
