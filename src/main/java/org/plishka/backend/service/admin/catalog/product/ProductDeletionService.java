@@ -14,6 +14,9 @@ import org.plishka.backend.util.EntityPresenceValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Locks affected cart rows before product rows to prevent deadlocks with cart and checkout operations.
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductDeletionService {
@@ -34,12 +37,17 @@ public class ProductDeletionService {
     }
 
     private int deleteProducts(Collection<Long> productIds, MissingProductPolicy missingProductPolicy) {
-        List<Long> targetProductIds = resolveProductIdsForDeletion(productIds, missingProductPolicy);
+        List<Long> normalizedIds = BulkIdNormalizer.normalize(productIds);
+        if (normalizedIds.isEmpty()) {
+            return 0;
+        }
+
+        lockAffectedCarts(normalizedIds);
+        List<Long> targetProductIds = resolveProductIdsForDeletion(normalizedIds, missingProductPolicy);
         if (targetProductIds.isEmpty()) {
             return 0;
         }
 
-        lockAffectedCarts(targetProductIds);
         enqueueMediaDeletes(targetProductIds);
         deleteProductRows(targetProductIds);
 
@@ -47,14 +55,9 @@ public class ProductDeletionService {
     }
 
     private List<Long> resolveProductIdsForDeletion(
-            Collection<Long> productIds,
+            List<Long> normalizedIds,
             MissingProductPolicy missingProductPolicy
     ) {
-        List<Long> normalizedIds = BulkIdNormalizer.normalize(productIds);
-        if (normalizedIds.isEmpty()) {
-            return List.of();
-        }
-
         List<Product> lockedProducts = productRepository.findAllByIdInForUpdateOrderById(normalizedIds);
         List<Long> existingIds = lockedProducts.stream()
                 .map(Product::getId)
